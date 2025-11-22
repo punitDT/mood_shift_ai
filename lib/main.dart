@@ -12,6 +12,8 @@ import 'app/translations/app_translations.dart';
 import 'app/services/remote_config_service.dart';
 import 'app/services/ad_service.dart';
 import 'app/services/storage_service.dart';
+import 'app/controllers/ad_free_controller.dart';
+import 'app/controllers/streak_controller.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -40,8 +42,11 @@ void main() async {
   
   // Initialize Services
   await Get.putAsync(() => StorageService().init());
-  await Get.putAsync(() => RemoteConfigService().init());
+  // Initialize RemoteConfig in background without blocking app startup
+  Get.putAsync(() => RemoteConfigService().init());
   Get.put(AdService());
+  Get.put(AdFreeController());
+  Get.put(StreakController());
   
   // Set portrait orientation only
   await SystemChrome.setPreferredOrientations([

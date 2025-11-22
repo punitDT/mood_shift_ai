@@ -8,6 +8,14 @@ class SplashView extends GetView<SplashController> {
 
   @override
   Widget build(BuildContext context) {
+    print('SplashView build called');
+    // Trigger controller initialization
+    try {
+      final ctrl = controller;
+      print('SplashView controller accessed: $ctrl');
+    } catch (e) {
+      print('SplashView ERROR accessing controller: $e');
+    }
     return Scaffold(
       body: Container(
         width: double.infinity,

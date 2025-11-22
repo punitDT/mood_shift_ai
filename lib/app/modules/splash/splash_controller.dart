@@ -1,32 +1,24 @@
 import 'package:get/get.dart';
 import '../../routes/app_routes.dart';
-import '../../services/remote_config_service.dart';
 
 class SplashController extends GetxController {
-  final RemoteConfigService _remoteConfig = Get.find<RemoteConfigService>();
-
   @override
   void onInit() {
     super.onInit();
+    print('SplashController onInit called');
     _initializeApp();
   }
 
   Future<void> _initializeApp() async {
+    print('SplashController _initializeApp started');
     // Wait for 2.5 seconds (splash animation)
     await Future.delayed(const Duration(milliseconds: 2500));
 
-    // Fetch remote config
-    await _remoteConfig.fetchConfig();
-
-    // Check if force update is required
-    if (_remoteConfig.shouldForceUpdate()) {
-      // Force update dialog will be shown in HomeView
-      // Still navigate to home
-      Get.offAllNamed(AppRoutes.HOME);
-    } else {
-      // Navigate to home
-      Get.offAllNamed(AppRoutes.HOME);
-    }
+    print('SplashController navigating to home');
+    // Remote config is already being fetched in background (from main.dart init)
+    // No need to wait for it here - just navigate to home
+    // Force update check will happen in HomeController if needed
+    Get.offAllNamed(AppRoutes.HOME);
   }
 }
 

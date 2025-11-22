@@ -11,7 +11,7 @@ class RemoteConfigService extends GetxService {
 
   Future<RemoteConfigService> init() async {
     _remoteConfig = FirebaseRemoteConfig.instance;
-    
+
     await _remoteConfig.setConfigSettings(
       RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 10),
@@ -25,8 +25,9 @@ class RemoteConfigService extends GetxService {
       'update_message': 'A new version is available. Please update to continue using the app.',
     });
 
-    await fetchConfig();
-    
+    // Fetch config in background without blocking app startup
+    fetchConfig();
+
     return this;
   }
 

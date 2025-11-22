@@ -17,8 +17,15 @@ const Map<String, String> enUS = {
   // Rewarded Ad Buttons
   'make_stronger': 'Make this 2× stronger! 🎯',
   'unlock_golden': 'Unlock Golden Voice 1 hour ✨',
-  'remove_ads': 'Remove ads for 24 hours 🚀',
+  'remove_ads': 'Remove ads for 24 hours 🕊️',
+  'ad_free_active': 'Ad-free: ',
   'save_wallpaper': 'Save as wallpaper 🖼️',
+
+  // Ad-Free Messages
+  'peace_mode_activated': '🕊️ Peace Mode Activated! No ads for 24 hours',
+  'ad_free_ended': 'Ad-free period ended – welcome back!',
+  'ad_free_status': 'Ad-Free Status',
+  'no_ads_active': 'No active ad-free period',
   
   // Settings
   'settings': 'Settings',

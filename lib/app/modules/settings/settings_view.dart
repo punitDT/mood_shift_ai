@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'settings_controller.dart';
+import '../../controllers/ad_free_controller.dart';
 
 class SettingsView extends GetView<SettingsController> {
   const SettingsView({super.key});
@@ -34,6 +35,10 @@ class SettingsView extends GetView<SettingsController> {
                 child: ListView(
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
                   children: [
+                    _buildAdFreeStatus(),
+
+                    SizedBox(height: 12.h),
+
                     _buildSettingItem(
                       icon: Icons.info_outline_rounded,
                       title: 'version'.tr,
@@ -46,7 +51,7 @@ class SettingsView extends GetView<SettingsController> {
                           )),
                       onTap: null,
                     ),
-                    
+
                     SizedBox(height: 12.h),
                     
                     _buildSettingItem(
@@ -203,6 +208,80 @@ class SettingsView extends GetView<SettingsController> {
         ),
       ),
     );
+  }
+
+  Widget _buildAdFreeStatus() {
+    final adFreeController = Get.find<AdFreeController>();
+
+    return Obx(() {
+      final isAdFree = adFreeController.isAdFree.value;
+      final timeRemaining = adFreeController.adFreeTimeRemaining.value;
+
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isAdFree
+                ? [
+                    Colors.green.withOpacity(0.3),
+                    Colors.teal.withOpacity(0.3),
+                  ]
+                : [
+                    Colors.white.withOpacity(0.1),
+                    Colors.white.withOpacity(0.05),
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isAdFree
+                ? Colors.green.withOpacity(0.5)
+                : Colors.white.withOpacity(0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isAdFree ? Icons.spa_rounded : Icons.block_rounded,
+              color: Colors.white,
+              size: 24.sp,
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ad_free_status'.tr,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    isAdFree
+                        ? '${'ad_free_active'.tr}$timeRemaining'
+                        : 'no_ads_active'.tr,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isAdFree)
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 24.sp,
+              ),
+          ],
+        ),
+      );
+    });
   }
 }
 

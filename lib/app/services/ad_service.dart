@@ -117,19 +117,24 @@ class AdService extends GetxService {
 
   void showInterstitialAd() {
     if (_storage.isAdFree()) return;
-    
+
     final counter = _storage.getShiftCounter();
-    
-    if (counter >= 4 && isInterstitialLoaded.value && interstitialAd != null) {
+    print('🎯 [AD DEBUG] Shift counter: $counter');
+
+    // Show interstitial ONLY on exactly 4th, 8th, 12th shift (counter == 4)
+    if (counter == 4 && isInterstitialLoaded.value && interstitialAd != null) {
+      print('✅ [AD DEBUG] Showing interstitial ad on shift #$counter');
       interstitialAd?.show();
       _storage.resetShiftCounter();
+    } else {
+      print('⏭️  [AD DEBUG] Skipping interstitial (counter: $counter, loaded: ${isInterstitialLoaded.value})');
     }
   }
 
   // Rewarded Ads (3 types)
+  // NOTE: Rewarded ads are ALWAYS loaded, even during ad-free period
+  // They are superpowers, not ads!
   void loadRewardedAds() {
-    if (_storage.isAdFree()) return;
-    
     // 1. Make 2x Stronger
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
@@ -185,9 +190,15 @@ class AdService extends GetxService {
       return;
     }
 
+    bool rewarded = false;
+
     rewardedAdStronger?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        // Play audio after ad is closed
+        if (rewarded) {
+          onRewarded();
+        }
         // Reload
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
@@ -207,7 +218,7 @@ class AdService extends GetxService {
 
     rewardedAdStronger?.show(
       onUserEarnedReward: (ad, reward) {
-        onRewarded();
+        rewarded = true;
       },
     );
   }
@@ -218,9 +229,15 @@ class AdService extends GetxService {
       return;
     }
 
+    bool rewarded = false;
+
     rewardedAdGolden?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        // Execute reward after ad is closed
+        if (rewarded) {
+          onRewarded();
+        }
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -239,7 +256,7 @@ class AdService extends GetxService {
 
     rewardedAdGolden?.show(
       onUserEarnedReward: (ad, reward) {
-        onRewarded();
+        rewarded = true;
       },
     );
   }
@@ -250,9 +267,15 @@ class AdService extends GetxService {
       return;
     }
 
+    bool rewarded = false;
+
     rewardedAdRemoveAds?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        // Execute reward after ad is closed
+        if (rewarded) {
+          onRewarded();
+        }
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -271,7 +294,7 @@ class AdService extends GetxService {
 
     rewardedAdRemoveAds?.show(
       onUserEarnedReward: (ad, reward) {
-        onRewarded();
+        rewarded = true;
       },
     );
   }

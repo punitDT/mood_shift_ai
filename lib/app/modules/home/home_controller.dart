@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
@@ -7,6 +8,8 @@ import '../../services/tts_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
+import '../../controllers/ad_free_controller.dart';
+import '../../controllers/streak_controller.dart';
 import '../../routes/app_routes.dart';
 
 enum AppState {
@@ -23,15 +26,23 @@ class HomeController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
   final AdService _adService = Get.find<AdService>();
   final RemoteConfigService _remoteConfig = Get.find<RemoteConfigService>();
+  late final AdFreeController _adFreeController;
+  late final StreakController _streakController;
 
   final currentState = AppState.idle.obs;
   final statusText = 'hold_to_speak'.obs;
   final streakDay = 1.obs;
   final todayShifts = 0.obs;
   final showRewardButtons = false.obs;
-  
+
+  // Golden Voice tracking
+  final hasGoldenVoice = false.obs;
+  final goldenTimeRemaining = ''.obs;
+
   late ConfettiController confettiController;
-  
+  Timer? _goldenVoiceTimer;
+  Timer? _listeningTimeoutTimer;
+
   String? lastResponse;
   MoodStyle? lastStyle;
 
@@ -39,9 +50,12 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _adFreeController = Get.find<AdFreeController>();
+    _streakController = Get.find<StreakController>();
     _initializeServices();
     _updateStats();
     _checkForceUpdate();
+    _startGoldenVoiceTimer();
   }
 
   Future<void> _initializeServices() async {
@@ -51,6 +65,28 @@ class HomeController extends GetxController {
   void _updateStats() {
     streakDay.value = _storage.getStreakDay();
     todayShifts.value = _storage.getTodayShifts();
+    _updateGoldenVoiceStatus();
+  }
+
+  void _startGoldenVoiceTimer() {
+    // Update golden voice status every second
+    _goldenVoiceTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updateGoldenVoiceStatus();
+    });
+  }
+
+  void _updateGoldenVoiceStatus() {
+    hasGoldenVoice.value = _storage.hasGoldenVoice();
+
+    if (hasGoldenVoice.value) {
+      final remaining = _storage.getRemainingGoldenTime();
+      final minutes = remaining.inMinutes;
+      final seconds = remaining.inSeconds % 60;
+      goldenTimeRemaining.value = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      print('⏱️  [GOLDEN DEBUG] Time remaining: ${goldenTimeRemaining.value}');
+    } else {
+      goldenTimeRemaining.value = '';
+    }
   }
 
   void _checkForceUpdate() {
@@ -84,24 +120,48 @@ class HomeController extends GetxController {
   Future<void> onMicPressed() async {
     if (currentState.value != AppState.idle) return;
 
+    print('🎤 [MIC DEBUG] Mic pressed - starting listening');
     currentState.value = AppState.listening;
     statusText.value = 'listening'.tr;
     showRewardButtons.value = false;
 
-    await _speechService.startListening((recognizedText) async {
-      if (recognizedText.isEmpty) {
-        Get.snackbar('Error', 'no_speech_detected'.tr);
+    // Set a timeout to prevent getting stuck in listening state
+    _listeningTimeoutTimer?.cancel();
+    _listeningTimeoutTimer = Timer(const Duration(seconds: 10), () {
+      print('⏱️  [MIC DEBUG] Listening timeout - resetting to idle');
+      if (currentState.value == AppState.listening) {
+        _speechService.stopListening();
+        Get.snackbar('Timeout', 'No speech detected. Please try again.');
         _resetToIdle();
-        return;
       }
-
-      await _processUserInput(recognizedText);
     });
+
+    try {
+      await _speechService.startListening((recognizedText) async {
+        print('🎤 [MIC DEBUG] Speech recognized: $recognizedText');
+        _listeningTimeoutTimer?.cancel();
+
+        if (recognizedText.isEmpty) {
+          Get.snackbar('Error', 'no_speech_detected'.tr);
+          _resetToIdle();
+          return;
+        }
+
+        await _processUserInput(recognizedText);
+      });
+    } catch (e) {
+      print('❌ [MIC DEBUG] Error starting listening: $e');
+      _listeningTimeoutTimer?.cancel();
+      Get.snackbar('Error', 'Failed to start listening. Please try again.');
+      _resetToIdle();
+    }
   }
 
   Future<void> onMicReleased() async {
+    print('🎤 [MIC DEBUG] Mic released');
     if (currentState.value == AppState.listening) {
       await _speechService.stopListening();
+      // Don't reset to idle here - wait for the callback or timeout
     }
   }
 
@@ -147,12 +207,14 @@ class HomeController extends GetxController {
   }
 
   void _onShiftCompleted() {
-    // Update stats
-    _storage.incrementShift();
+    // Increment streak (handles total shifts + daily streak)
+    _streakController.incrementStreak();
+
+    // Update shift counter for ads
     _storage.incrementShiftCounter();
     _updateStats();
 
-    // Show confetti
+    // Show confetti (StreakController also shows confetti, but this is for the main shift completion)
     confettiController.play();
 
     // Show interstitial ad (every 4th shift)
@@ -187,24 +249,36 @@ class HomeController extends GetxController {
   void onUnlockGolden() {
     _adService.showRewardedAdGolden(() {
       _storage.setGoldenVoice1Hour();
+      _updateGoldenVoiceStatus();
+      confettiController.play();
       Get.snackbar(
-        'Success',
-        'Golden Voice unlocked for 1 hour! ✨',
-        backgroundColor: Colors.amber.withOpacity(0.8),
+        '✨ Golden Voice Unlocked!',
+        '1 hour of premium warm voice activated',
+        backgroundColor: Colors.amber.withOpacity(0.9),
+        colorText: Colors.black,
+        icon: const Icon(Icons.star, color: Colors.amber),
+        duration: const Duration(seconds: 3),
       );
     });
   }
 
   void onRemoveAds() {
-    _adService.showRewardedAdRemoveAds(() {
-      _storage.setAdFree24Hours();
+    _adFreeController.activateAdFree24h(() {
+      // Play confetti animation
+      confettiController.play();
+
+      // Show beautiful snackbar
       Get.snackbar(
-        'Success',
-        'Ads removed for 24 hours! 🚀',
-        backgroundColor: Colors.green.withOpacity(0.8),
+        '🕊️ Peace Mode Activated!',
+        'peace_mode_activated'.tr,
+        backgroundColor: Colors.green.withOpacity(0.9),
+        colorText: Colors.white,
+        icon: const Icon(Icons.spa_rounded, color: Colors.white),
+        duration: const Duration(seconds: 4),
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
       );
-      // Reload banner ad (will check ad-free status)
-      _adService.loadBannerAd();
     });
   }
 
@@ -214,6 +288,8 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    _goldenVoiceTimer?.cancel();
+    _listeningTimeoutTimer?.cancel();
     confettiController.dispose();
     super.onClose();
   }
