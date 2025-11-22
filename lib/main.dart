@@ -16,12 +16,22 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+
+  // Initialize Firebase (check if already initialized to prevent duplicate app error)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    if (e.toString().contains('duplicate-app')) {
+      // Firebase already initialized, continue
+      print('Firebase already initialized');
+    } else {
+      // Re-throw other errors
+      rethrow;
+    }
+  }
+
   // Initialize GetStorage
   await GetStorage.init();
   

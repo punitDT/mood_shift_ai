@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "767376759120",
+    "project_id": "mood-shift-ai",
+    "storage_bucket": "mood-shift-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:767376759120:android:0100b73b7a4f6e60d13455",
+        "android_client_info": {
+          "package_name": "com.moodshift.ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHJkwBJVtr79twIZ1ITPJYbs7mdmDuKzs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -20,7 +20,7 @@ dependencies:
   confetti: ^0.7.0
   
   # Voice
-  speech_to_text: ^6.6.0
+  speech_to_text: ^7.3.0
   flutter_tts: ^4.0.2
   
   # Network
