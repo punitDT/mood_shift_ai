@@ -1,0 +1,76 @@
+name: mood_shift_ai
+description: A viral ADHD/mood shifter app with AI voice responses
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  get: ^4.6.6
+  get_storage: ^2.1.1
+  
+  # UI & Animations
+  flutter_screenutil: ^5.9.0
+  lottie: ^3.1.0
+  confetti: ^0.7.0
+  
+  # Voice
+  speech_to_text: ^6.6.0
+  flutter_tts: ^3.10.0
+  
+  # Network
+  http: ^1.2.0
+  
+  # Firebase
+  firebase_core: ^2.24.0
+  firebase_remote_config: ^4.4.0
+  
+  # Ads
+  google_mobile_ads: ^5.1.0
+  
+  # Utilities
+  url_launcher: ^6.2.0
+  share_plus: ^7.2.0
+  package_info_plus: ^5.0.0
+  permission_handler: ^11.1.0
+  
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_native_splash: ^2.4.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/animations/
+    - assets/images/
+  
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+
+flutter_native_splash:
+  color: "#1a0f2e"
+  image: assets/images/splash_logo.png
+  android: true
+  ios: true
+  android_12:
+    color: "#1a0f2e"
+    image: assets/images/splash_logo.png
+
