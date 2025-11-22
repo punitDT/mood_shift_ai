@@ -11,7 +11,15 @@ const Map<String, String> zhCN = {
   'make_stronger': '让它强2倍！🎯',
   'unlock_golden': '解锁黄金语音1小时 ✨',
   'remove_ads': '移除广告24小时 🚀',
+  'ad_free_active': '无广告: ',
   'save_wallpaper': '保存为壁纸 🖼️',
+
+  // Ad-Free Messages
+  'peace_mode_activated': '🕊️ 和平模式已激活！24小时无广告',
+  'ad_free_ended': '无广告期已结束 – 欢迎回来！',
+  'ad_free_status': '无广告状态',
+  'no_ads_active': '没有活动的无广告期',
+
   'settings': '设置',
   'version': '版本',
   'language': '语言',

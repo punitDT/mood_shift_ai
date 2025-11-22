@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' hide AppState;
 import 'package:confetti/confetti.dart';
+import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
 import '../../controllers/ad_free_controller.dart';
@@ -18,18 +19,18 @@ class HomeView extends GetView<HomeController> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient
+          // Premium Background Gradient (deep blue → purple → black)
           Container(
             width: double.infinity,
             height: double.infinity,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  const Color(0xFF1a0f2e),
-                  const Color(0xFF2d1b4e),
-                  const Color(0xFF4a2c6f),
+                  Color(0xFF0a0520), // Very dark blue-purple
+                  Color(0xFF150a2e), // Deep purple
+                  Color(0xFF0d0618), // Almost black
                 ],
               ),
             ),
@@ -37,59 +38,42 @@ class HomeView extends GetView<HomeController> {
 
           // Main Content
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                // Top Bar
-                _buildTopBar(),
+                // Center content
+                Column(
+                  children: [
+                    // Top Bar (minimal)
+                    _buildMinimalTopBar(),
 
-                // Streak Info
-                SizedBox(height: 20.h),
-                _buildStreakInfo(),
+                    // Spacer - creates the 70-80% empty space
+                    const Spacer(flex: 3),
 
-                // Golden Voice Timer (at top)
-                SizedBox(height: 16.h),
-                _buildGoldenTimer(),
+                    // Mic Button (center of screen)
+                    _buildPremiumMicButton(),
 
-                // Ad-Free Timer
-                SizedBox(height: 8.h),
-                _buildAdFreeTimer(),
+                    // Spacer
+                    const Spacer(flex: 3),
 
-                // Spacer
-                const Spacer(),
+                    // Bottom Stats (very subtle)
+                    _buildBottomStats(),
 
-                // Status Text
-                Obx(() => Text(
-                      controller.statusText.value.tr,
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )),
+                    SizedBox(height: 20.h),
 
-                SizedBox(height: 30.h),
+                    // Banner Ad Space (only if loaded and not ad-free)
+                    Obx(() => adService.isBannerLoaded.value
+                        ? _buildBannerAd(adService)
+                        : SizedBox(height: 50.h)),
+                  ],
+                ),
 
-                // Mic Button
-                _buildMicButton(),
-
-                SizedBox(height: 40.h),
-
-                // Rewarded Ad Buttons
-                Obx(() => controller.showRewardButtons.value
-                    ? _buildRewardButtons()
-                    : const SizedBox.shrink()),
-
-                const Spacer(),
-
-                // Banner Ad Space
-                Obx(() => adService.isBannerLoaded.value
-                    ? _buildBannerAd(adService)
-                    : SizedBox(height: 50.h)),
+                // Subtle active state indicators (non-intrusive)
+                _buildActiveStateIndicators(),
               ],
             ),
           ),
 
-          // Confetti (Main shift completion)
+          // Confetti (minimal, elegant)
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
@@ -97,20 +81,18 @@ class HomeView extends GetView<HomeController> {
               blastDirectionality: BlastDirectionality.explosive,
               particleDrag: 0.05,
               emissionFrequency: 0.05,
-              numberOfParticles: 50,
+              numberOfParticles: 30, // Reduced for elegance
               gravity: 0.1,
               shouldLoop: false,
               colors: const [
-                Colors.purple,
-                Colors.pink,
-                Colors.blue,
-                Colors.amber,
-                Colors.green,
+                Color(0xFF6B4FBB), // Soft purple
+                Color(0xFF9B7FDB), // Lavender
+                Color(0xFF4A90E2), // Soft blue
               ],
             ),
           ),
 
-          // Confetti (Streak celebration)
+          // Streak confetti
           Align(
             alignment: Alignment.center,
             child: ConfettiWidget(
@@ -118,431 +100,315 @@ class HomeView extends GetView<HomeController> {
               blastDirectionality: BlastDirectionality.explosive,
               particleDrag: 0.05,
               emissionFrequency: 0.03,
-              numberOfParticles: 70,
+              numberOfParticles: 40,
               gravity: 0.15,
               shouldLoop: false,
               colors: const [
-                Colors.orange,
-                Colors.deepOrange,
-                Colors.amber,
-                Colors.yellow,
-                Colors.red,
+                Color(0xFFFFB74D), // Soft orange
+                Color(0xFFFFA726), // Warm orange
+                Color(0xFFFF9800), // Gentle amber
               ],
             ),
           ),
+
+          // Bottom Sheet for Superpower Buttons (appears after shift)
+          Obx(() => controller.showRewardButtons.value
+              ? _buildSuperpowerBottomSheet()
+              : const SizedBox.shrink()),
         ],
       ),
     );
   }
 
-  Widget _buildTopBar() {
+  // Minimal top bar - clean and spacious
+  Widget _buildMinimalTopBar() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Empty space for balance
+          SizedBox(width: 24.w),
+
+          // App name - centered, clean sans-serif
           Text(
-            'app_name'.tr,
+            'MoodShift AI',
             style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w300,
               color: Colors.white,
+              letterSpacing: 1.2,
             ),
           ),
+
+          // Settings icon - tiny, subtle
           IconButton(
             onPressed: controller.goToSettings,
             icon: Icon(
-              Icons.settings_rounded,
-              color: Colors.white,
-              size: 28.sp,
+              Icons.settings_outlined,
+              color: Colors.white.withOpacity(0.6),
+              size: 24.sp,
             ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStreakInfo() {
+  // Bottom stats - very subtle and small
+  Widget _buildBottomStats() {
     final streakController = Get.find<StreakController>();
 
     return Obx(() {
       final current = streakController.currentStreak.value;
       final total = streakController.totalShifts.value;
-      final showFire = streakController.shouldShowFire();
 
-      // Different UI for different states
-      if (current == 0) {
-        // First time user
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.purple.withOpacity(0.3),
-                Colors.blue.withOpacity(0.3),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.rocket_launch_rounded,
-                color: Colors.white,
-                size: 24.sp,
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Start your journey! 🌟',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        );
-      } else if (current == 1) {
-        // Day 1 - Special welcome message
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.pink.withOpacity(0.3),
-                Colors.purple.withOpacity(0.3),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: Colors.pink.withOpacity(0.4),
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.favorite_rounded,
-                color: Colors.pink.shade200,
-                size: 24.sp,
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Day 1 – Welcome! Keep coming back ❤️',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // Day 2+ - Show streak with fire emoji if >= 3
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: showFire
-                  ? [
-                      Colors.orange.withOpacity(0.3),
-                      Colors.deepOrange.withOpacity(0.3),
-                    ]
-                  : [
-                      Colors.white.withOpacity(0.1),
-                      Colors.white.withOpacity(0.05),
-                    ],
-            ),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: showFire
-                  ? Colors.orange.withOpacity(0.5)
-                  : Colors.white.withOpacity(0.2),
-              width: showFire ? 1.5 : 1,
-            ),
-            boxShadow: showFire
-                ? [
-                    BoxShadow(
-                      color: Colors.orange.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showFire)
-                Icon(
-                  Icons.local_fire_department_rounded,
-                  color: Colors.orange,
-                  size: 24.sp,
-                )
-              else
-                Icon(
-                  Icons.calendar_today_rounded,
-                  color: Colors.white70,
-                  size: 20.sp,
-                ),
-              SizedBox(width: 8.w),
-              Text(
-                showFire
-                    ? 'Day $current 🔥 • $total shifts saved'
-                    : 'Day $current • $total shifts saved',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-    });
-  }
-
-  Widget _buildGoldenTimer() {
-    return Obx(() {
-      final isGolden = controller.hasGoldenVoice.value;
-      final timeRemaining = controller.goldenTimeRemaining.value;
-
-      if (!isGolden || timeRemaining.isEmpty) {
-        return const SizedBox.shrink();
-      }
-
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-          ),
-          borderRadius: BorderRadius.circular(25.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withOpacity(0.4),
-              blurRadius: 15,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.star, color: Colors.white, size: 20),
-            SizedBox(width: 8.w),
-            Text(
-              'Golden Voice: $timeRemaining',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ],
+      return Text(
+        'Day $current • $total shifts',
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: const Color(0xFF6B6B8B), // Subtle gray-purple
+          fontWeight: FontWeight.w300,
+          letterSpacing: 0.5,
         ),
       );
     });
   }
 
-  Widget _buildAdFreeTimer() {
+  // Active state indicators - subtle, non-intrusive
+  Widget _buildActiveStateIndicators() {
     final adFreeController = Get.find<AdFreeController>();
 
-    return Obx(() {
-      if (!adFreeController.isAdFree.value) {
-        return const SizedBox.shrink();
-      }
+    return Positioned(
+      bottom: 80.h,
+      right: 20.w,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Ad-free indicator (tiny leaf icon)
+          Obx(() {
+            if (!adFreeController.isAdFree.value) {
+              return const SizedBox.shrink();
+            }
 
-      final timeRemaining = adFreeController.adFreeTimeRemaining.value;
-
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.green.withOpacity(0.3),
-              Colors.teal.withOpacity(0.3),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: Colors.green.withOpacity(0.5),
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.spa_rounded, color: Colors.white, size: 20),
-            SizedBox(width: 8.w),
-            Text(
-              'Ad-free: $timeRemaining',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            return Container(
+              padding: EdgeInsets.all(6.w),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                shape: BoxShape.circle,
               ),
-            ),
-          ],
-        ),
-      );
-    });
+              child: Icon(
+                Icons.spa_rounded,
+                color: const Color(0xFF4CAF50).withOpacity(0.4),
+                size: 16.sp,
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
-  Widget _buildMicButton() {
+  // Premium mic button - elegant, soft glow, breathing animation with Lottie
+  Widget _buildPremiumMicButton() {
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
       final isGolden = controller.hasGoldenVoice.value;
 
       return GestureDetector(
-            onTapDown: (_) => controller.onMicPressed(),
-            onTapUp: (_) => controller.onMicReleased(),
-            onTapCancel: () => controller.onMicReleased(),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: isListening ? 140.w : 120.w,
-          height: isListening ? 140.w : 120.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isGolden
-                  ? [const Color(0xFFFFD700), const Color(0xFFFFA500)]
-                  : isListening
-                      ? [Colors.red, Colors.pink]
-                      : [Colors.purple, Colors.deepPurple],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isGolden
-                    ? Colors.amber.withOpacity(0.3)
-                    : isListening
-                        ? Colors.red.withOpacity(0.25)
-                        : Colors.purple.withOpacity(0.25),
-                blurRadius: isGolden ? 30 : (isListening ? 25 : 15),
-                spreadRadius: isGolden ? 8 : (isListening ? 5 : 3),
-              ),
-              // Extra sparkle for golden
-              if (isGolden)
-                BoxShadow(
-                  color: Colors.yellow.withOpacity(0.2),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-            ],
-          ),
-          child: Icon(
-            isActive ? Icons.mic : Icons.mic_none_rounded,
-            size: 50.sp,
-            color: Colors.white,
-          ),
+        onTapDown: (_) => controller.onMicPressed(),
+        onTapUp: (_) => controller.onMicReleased(),
+        onTapCancel: () => controller.onMicReleased(),
+        child: _BreathingMicButton(
+          isListening: isListening,
+          isActive: isActive,
+          isGolden: isGolden,
         ),
       );
     });
   }
 
-  Widget _buildRewardButtons() {
+  // Superpower bottom sheet - elegant, slides up after shift
+  Widget _buildSuperpowerBottomSheet() {
     final adFreeController = Get.find<AdFreeController>();
 
-    return Obx(() {
-      final isGolden = controller.hasGoldenVoice.value;
-      final goldenText = isGolden
-          ? 'Golden Active – ${controller.goldenTimeRemaining.value}'
-          : 'unlock_golden'.tr;
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Transform.translate(
+            offset: Offset(0, (1 - value) * 300),
+            child: Opacity(
+              opacity: value,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF1a1030).withOpacity(0.95), // Dark translucent
+                      const Color(0xFF0d0618).withOpacity(0.98),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24.r),
+                    topRight: Radius.circular(24.r),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Handle bar
+                      Container(
+                        width: 40.w,
+                        height: 4.h,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(2.r),
+                        ),
+                      ),
 
-      final isAdFree = adFreeController.isAdFree.value;
-      final adFreeText = isAdFree
-          ? '${'ad_free_active'.tr}${adFreeController.adFreeTimeRemaining.value}'
-          : 'remove_ads'.tr;
+                      SizedBox(height: 20.h),
 
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20.w),
-        child: Column(
-          children: [
-            _buildRewardButton(
-              'make_stronger'.tr,
-              Icons.bolt_rounded,
-              Colors.orange,
-              controller.onMakeStronger,
+                      // Title
+                      Text(
+                        'Superpowers',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: const Color(0xFFA0A0FF), // Soft lavender
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Superpower cards
+                      Obx(() {
+                        final isGolden = controller.hasGoldenVoice.value;
+                        final isAdFree = adFreeController.isAdFree.value;
+
+                        return Column(
+                          children: [
+                            _buildSuperpowerCard(
+                              '2× Stronger',
+                              Icons.bolt_outlined,
+                              controller.onMakeStronger,
+                              isActive: false,
+                            ),
+                            SizedBox(height: 12.h),
+                            _buildSuperpowerCard(
+                              isGolden
+                                  ? 'Golden Voice • ${controller.goldenTimeRemaining.value}'
+                                  : 'Golden Voice',
+                              Icons.star_outline_rounded,
+                              isGolden ? null : controller.onUnlockGolden,
+                              isActive: isGolden,
+                            ),
+                            SizedBox(height: 12.h),
+                            _buildSuperpowerCard(
+                              isAdFree
+                                  ? 'Ad-free • ${adFreeController.adFreeTimeRemaining.value}'
+                                  : 'Remove ads',
+                              Icons.spa_outlined,
+                              isAdFree ? null : controller.onRemoveAds,
+                              isActive: isAdFree,
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            SizedBox(height: 12.h),
-            _buildRewardButton(
-              goldenText,
-              Icons.star_rounded,
-              isGolden ? Colors.amber.shade700 : Colors.amber,
-              isGolden ? null : controller.onUnlockGolden,
-              isDisabled: isGolden,
-            ),
-            SizedBox(height: 12.h),
-            _buildRewardButton(
-              adFreeText,
-              isAdFree ? Icons.spa_rounded : Icons.block_rounded,
-              isAdFree ? Colors.green.shade700 : Colors.green,
-              isAdFree ? null : controller.onRemoveAds,
-              isDisabled: isAdFree,
-            ),
-          ],
-        ),
-      );
-    });
+          );
+        },
+      ),
+    );
   }
 
-  Widget _buildRewardButton(
+  // Individual superpower card - minimal, elegant
+  Widget _buildSuperpowerCard(
     String text,
     IconData icon,
-    Color color,
     VoidCallback? onTap, {
-    bool isDisabled = false,
+    bool isActive = false,
   }) {
     return InkWell(
-      onTap: isDisabled ? null : onTap,
-      child: Opacity(
-        opacity: isDisabled ? 0.6 : 1.0,
-        child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+      onTap: isActive ? null : onTap,
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color.withOpacity(0.8), color],
+          color: isActive
+              ? Colors.white.withOpacity(0.05)
+              : Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isActive
+                ? const Color(0xFFA0A0FF).withOpacity(0.3)
+                : Colors.white.withOpacity(0.1),
+            width: 1,
           ),
-          borderRadius: BorderRadius.circular(12.r),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: isActive
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 20.sp),
-            SizedBox(width: 8.w),
-            Flexible(
+            Icon(
+              icon,
+              color: isActive
+                  ? const Color(0xFFA0A0FF).withOpacity(0.6)
+                  : Colors.white.withOpacity(0.8),
+              size: 22.sp,
+            ),
+            SizedBox(width: 14.w),
+            Expanded(
               child: Text(
                 text,
                 style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 15.sp,
+                  color: isActive
+                      ? const Color(0xFFA0A0FF).withOpacity(0.7)
+                      : Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.3,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
+            if (!isActive)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white.withOpacity(0.3),
+                size: 14.sp,
+              ),
           ],
-        ),
         ),
       ),
     );
@@ -560,3 +426,130 @@ class HomeView extends GetView<HomeController> {
   }
 }
 
+// Separate StatefulWidget for breathing animation to avoid TweenAnimationBuilder issues
+class _BreathingMicButton extends StatefulWidget {
+  final bool isListening;
+  final bool isActive;
+  final bool isGolden;
+
+  const _BreathingMicButton({
+    required this.isListening,
+    required this.isActive,
+    required this.isGolden,
+  });
+
+  @override
+  State<_BreathingMicButton> createState() => _BreathingMicButtonState();
+}
+
+class _BreathingMicButtonState extends State<_BreathingMicButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: widget.isListening ? 1.0 : _scaleAnimation.value,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Background container with gradient and glow
+              Container(
+                width: 140.w,
+                height: 140.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: widget.isGolden
+                        ? [
+                            const Color(0xFFD4AF37).withOpacity(0.9), // Soft gold
+                            const Color(0xFFB8941E).withOpacity(0.8),
+                          ]
+                        : widget.isListening
+                            ? [
+                                const Color(0xFF6B4FBB).withOpacity(0.9), // Soft purple
+                                const Color(0xFF4A3580).withOpacity(0.8),
+                              ]
+                            : [
+                                const Color(0xFF5A4A8A).withOpacity(0.7), // Very soft purple
+                                const Color(0xFF3D2F5F).withOpacity(0.6),
+                              ],
+                  ),
+                  boxShadow: [
+                    // Soft outer glow
+                    BoxShadow(
+                      color: widget.isGolden
+                          ? const Color(0xFFD4AF37).withOpacity(0.15)
+                          : const Color(0xFF6B4FBB).withOpacity(0.12),
+                      blurRadius: widget.isGolden ? 40 : 30,
+                      spreadRadius: widget.isGolden ? 8 : 5,
+                    ),
+                    // Inner subtle glow
+                    BoxShadow(
+                      color: widget.isGolden
+                          ? const Color(0xFFFFE082).withOpacity(0.1)
+                          : const Color(0xFF9B7FDB).withOpacity(0.08),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+              // Lottie animation overlay when listening
+              if (widget.isListening)
+                SizedBox(
+                  width: 100.w,
+                  height: 100.w,
+                  child: Lottie.asset(
+                    'assets/animations/microphone_pulse.json',
+                    repeat: true,
+                    animate: true,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Fallback to icon if Lottie fails to load
+                      return Icon(
+                        Icons.mic,
+                        size: 48.sp,
+                        color: Colors.white.withOpacity(0.95),
+                      );
+                    },
+                  ),
+                )
+              else
+                Icon(
+                  widget.isActive ? Icons.mic : Icons.mic_none_rounded,
+                  size: 48.sp,
+                  color: Colors.white.withOpacity(0.95),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

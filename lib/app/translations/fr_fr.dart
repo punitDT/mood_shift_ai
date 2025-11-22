@@ -11,7 +11,15 @@ const Map<String, String> frFR = {
   'make_stronger': 'Rendez-le 2× plus fort! 🎯',
   'unlock_golden': 'Débloquer Voix Dorée 1 heure ✨',
   'remove_ads': 'Supprimer les annonces pendant 24 heures 🚀',
+  'ad_free_active': 'Sans publicité: ',
   'save_wallpaper': 'Enregistrer comme fond d\'écran 🖼️',
+
+  // Ad-Free Messages
+  'peace_mode_activated': '🕊️ Mode Paix Activé! Pas de publicités pendant 24 heures',
+  'ad_free_ended': 'Période sans publicité terminée – bon retour!',
+  'ad_free_status': 'Statut Sans Publicité',
+  'no_ads_active': 'Aucune période active sans publicité',
+
   'settings': 'Paramètres',
   'version': 'Version',
   'language': 'Langue',

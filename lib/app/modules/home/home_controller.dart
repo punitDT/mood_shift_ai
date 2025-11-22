@@ -58,6 +58,17 @@ class HomeController extends GetxController {
     _startGoldenVoiceTimer();
   }
 
+  // Safe translation helper to prevent range errors
+  String _tr(String key, {String fallback = ''}) {
+    try {
+      final translated = key.tr;
+      return translated.isNotEmpty ? translated : (fallback.isNotEmpty ? fallback : key);
+    } catch (e) {
+      print('⚠️  [TRANSLATION DEBUG] Error translating "$key": $e');
+      return fallback.isNotEmpty ? fallback : key;
+    }
+  }
+
   Future<void> _initializeServices() async {
     await _speechService.initialize();
   }
@@ -121,36 +132,38 @@ class HomeController extends GetxController {
     if (currentState.value != AppState.idle) return;
 
     print('🎤 [MIC DEBUG] Mic pressed - starting listening');
-    currentState.value = AppState.listening;
-    statusText.value = 'listening'.tr;
-    showRewardButtons.value = false;
-
-    // Set a timeout to prevent getting stuck in listening state
-    _listeningTimeoutTimer?.cancel();
-    _listeningTimeoutTimer = Timer(const Duration(seconds: 10), () {
-      print('⏱️  [MIC DEBUG] Listening timeout - resetting to idle');
-      if (currentState.value == AppState.listening) {
-        _speechService.stopListening();
-        Get.snackbar('Timeout', 'No speech detected. Please try again.');
-        _resetToIdle();
-      }
-    });
 
     try {
+      currentState.value = AppState.listening;
+      statusText.value = _tr('listening', fallback: 'Listening...');
+      showRewardButtons.value = false;
+
+      // Set a timeout to prevent getting stuck in listening state
+      _listeningTimeoutTimer?.cancel();
+      _listeningTimeoutTimer = Timer(const Duration(seconds: 10), () {
+        print('⏱️  [MIC DEBUG] Listening timeout - resetting to idle');
+        if (currentState.value == AppState.listening) {
+          _speechService.stopListening();
+          Get.snackbar('Timeout', 'No speech detected. Please try again.');
+          _resetToIdle();
+        }
+      });
+
       await _speechService.startListening((recognizedText) async {
         print('🎤 [MIC DEBUG] Speech recognized: $recognizedText');
         _listeningTimeoutTimer?.cancel();
 
         if (recognizedText.isEmpty) {
-          Get.snackbar('Error', 'no_speech_detected'.tr);
+          Get.snackbar('Error', _tr('no_speech_detected', fallback: 'No speech detected'));
           _resetToIdle();
           return;
         }
 
         await _processUserInput(recognizedText);
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [MIC DEBUG] Error starting listening: $e');
+      print('❌ [MIC DEBUG] Stack trace: $stackTrace');
       _listeningTimeoutTimer?.cancel();
       Get.snackbar('Error', 'Failed to start listening. Please try again.');
       _resetToIdle();
@@ -166,16 +179,18 @@ class HomeController extends GetxController {
   }
 
   Future<void> _processUserInput(String userInput) async {
-    currentState.value = AppState.processing;
-    statusText.value = 'processing'.tr;
-
     try {
+      currentState.value = AppState.processing;
+      statusText.value = _tr('processing', fallback: 'Processing...');
+
       // Get AI response
       final languageCode = _storage.getLanguageCode();
+      print('🎤 [MIC DEBUG] Processing input with language: $languageCode');
+
       final response = await _aiService.generateResponse(userInput, languageCode);
-      
+
       if (response.isEmpty) {
-        Get.snackbar('Error', 'ai_error'.tr);
+        Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));
         _resetToIdle();
         return;
       }
@@ -187,7 +202,7 @@ class HomeController extends GetxController {
 
       // Speak response
       currentState.value = AppState.speaking;
-      statusText.value = 'speaking'.tr;
+      statusText.value = _tr('speaking', fallback: 'AI is responding...');
 
       await _ttsService.speak(response, lastStyle!);
 
@@ -199,9 +214,10 @@ class HomeController extends GetxController {
 
       // Shift completed!
       _onShiftCompleted();
-    } catch (e) {
-      print('Error processing input: $e');
-      Get.snackbar('Error', 'ai_error'.tr);
+    } catch (e, stackTrace) {
+      print('❌ [MIC DEBUG] Error processing input: $e');
+      print('❌ [MIC DEBUG] Stack trace: $stackTrace');
+      Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));
       _resetToIdle();
     }
   }
@@ -231,8 +247,14 @@ class HomeController extends GetxController {
   }
 
   void _resetToIdle() {
-    currentState.value = AppState.idle;
-    statusText.value = 'hold_to_speak'.tr;
+    try {
+      currentState.value = AppState.idle;
+      statusText.value = _tr('hold_to_speak', fallback: 'Hold to Speak');
+    } catch (e) {
+      print('❌ [MIC DEBUG] Error in _resetToIdle: $e');
+      currentState.value = AppState.idle;
+      statusText.value = 'Hold to Speak';
+    }
   }
 
   // Rewarded Ad Actions

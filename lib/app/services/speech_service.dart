@@ -37,50 +37,70 @@ class SpeechService extends GetxService {
   }
 
   Future<void> startListening(Function(String) onResult) async {
-    if (!_speech.isAvailable) {
-      print('🎤 [SPEECH DEBUG] Speech not available, initializing...');
-      final initialized = await initialize();
-      if (!initialized) {
-        print('❌ [SPEECH DEBUG] Failed to initialize speech recognition');
-        throw Exception('Speech recognition not available');
+    try {
+      if (!_speech.isAvailable) {
+        print('🎤 [SPEECH DEBUG] Speech not available, initializing...');
+        final initialized = await initialize();
+        if (!initialized) {
+          print('❌ [SPEECH DEBUG] Failed to initialize speech recognition');
+          throw Exception('Speech recognition not available');
+        }
       }
-    }
 
-    if (_speech.isAvailable && !isListening.value) {
-      recognizedText.value = '';
-      isListening.value = true;
+      if (_speech.isAvailable && !isListening.value) {
+        recognizedText.value = '';
+        isListening.value = true;
 
-      // Get user's language
-      final languageCode = _storage.getLanguageCode();
-      final localeId = _getLocaleId(languageCode);
+        // Get user's language with null safety
+        final languageCode = _storage.getLanguageCode();
+        if (languageCode.isEmpty) {
+          print('⚠️  [SPEECH DEBUG] Empty language code, using default');
+        }
+        final localeId = _getLocaleId(languageCode);
 
-      print('🎤 [SPEECH DEBUG] Starting to listen with locale: $localeId');
+        print('🎤 [SPEECH DEBUG] Starting to listen with locale: $localeId (from languageCode: $languageCode)');
 
-      await _speech.listen(
-        onResult: (result) {
-          recognizedText.value = result.recognizedWords;
-          print('🎤 [SPEECH DEBUG] Partial result: ${result.recognizedWords} (final: ${result.finalResult})');
+        await _speech.listen(
+          onResult: (result) {
+            try {
+              recognizedText.value = result.recognizedWords;
+              print('🎤 [SPEECH DEBUG] Partial result: ${result.recognizedWords} (final: ${result.finalResult})');
 
-          if (result.finalResult) {
-            isListening.value = false;
-            print('✅ [SPEECH DEBUG] Final result: ${recognizedText.value}');
-            if (recognizedText.value.isNotEmpty) {
-              onResult(recognizedText.value);
-            } else {
-              print('⚠️  [SPEECH DEBUG] Empty final result');
-              onResult(''); // Call with empty string to trigger error handling
+              if (result.finalResult) {
+                isListening.value = false;
+                print('✅ [SPEECH DEBUG] Final result: ${recognizedText.value}');
+                if (recognizedText.value.isNotEmpty) {
+                  onResult(recognizedText.value);
+                } else {
+                  print('⚠️  [SPEECH DEBUG] Empty final result');
+                  onResult(''); // Call with empty string to trigger error handling
+                }
+              }
+            } catch (e, stackTrace) {
+              print('❌ [SPEECH DEBUG] Error in onResult callback: $e');
+              print('❌ [SPEECH DEBUG] Stack trace: $stackTrace');
+              isListening.value = false;
+              onResult(''); // Trigger error handling
             }
-          }
-        },
-        localeId: localeId,
-        listenMode: ListenMode.confirmation,
-        cancelOnError: true,
-        partialResults: true,
-        listenFor: const Duration(seconds: 30), // Maximum listening duration
-        pauseFor: const Duration(seconds: 3), // Pause detection
-      );
-    } else {
-      print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');
+          },
+          localeId: localeId,
+          listenMode: ListenMode.confirmation,
+          cancelOnError: true,
+          partialResults: true,
+          listenFor: const Duration(seconds: 30), // Maximum listening duration
+          pauseFor: const Duration(seconds: 3), // Pause detection
+        );
+      } else {
+        print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');
+        if (isListening.value) {
+          throw Exception('Already listening');
+        }
+      }
+    } catch (e, stackTrace) {
+      print('❌ [SPEECH DEBUG] Error in startListening: $e');
+      print('❌ [SPEECH DEBUG] Stack trace: $stackTrace');
+      isListening.value = false;
+      rethrow;
     }
   }
 

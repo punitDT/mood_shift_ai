@@ -11,7 +11,15 @@ const Map<String, String> deDE = {
   'make_stronger': 'Mach es 2× stärker! 🎯',
   'unlock_golden': 'Goldene Stimme 1 Stunde freischalten ✨',
   'remove_ads': 'Anzeigen für 24 Stunden entfernen 🚀',
+  'ad_free_active': 'Werbefrei: ',
   'save_wallpaper': 'Als Hintergrundbild speichern 🖼️',
+
+  // Ad-Free Messages
+  'peace_mode_activated': '🕊️ Friedensmodus Aktiviert! Keine Werbung für 24 Stunden',
+  'ad_free_ended': 'Werbefreie Zeit beendet – willkommen zurück!',
+  'ad_free_status': 'Werbefreier Status',
+  'no_ads_active': 'Keine aktive werbefreie Zeit',
+
   'settings': 'Einstellungen',
   'version': 'Version',
   'language': 'Sprache',

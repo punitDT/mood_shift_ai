@@ -135,49 +135,57 @@ class AdService extends GetxService {
   // NOTE: Rewarded ads are ALWAYS loaded, even during ad-free period
   // They are superpowers, not ads!
   void loadRewardedAds() {
+    print('🔄 [AD DEBUG] Loading all rewarded ads...');
+
     // 1. Make 2x Stronger
+    print('   Loading 2x Stronger ad...');
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
+          print('✅ [AD DEBUG] 2x Stronger ad loaded successfully');
           rewardedAdStronger = ad;
           isRewardedStrongerLoaded.value = true;
         },
         onAdFailedToLoad: (error) {
-          print('Rewarded ad (stronger) failed to load: $error');
+          print('❌ [AD DEBUG] 2x Stronger ad failed to load: $error');
           isRewardedStrongerLoaded.value = false;
         },
       ),
     );
 
     // 2. Golden Voice
+    print('   Loading Golden Voice ad...');
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
+          print('✅ [AD DEBUG] Golden Voice ad loaded successfully');
           rewardedAdGolden = ad;
           isRewardedGoldenLoaded.value = true;
         },
         onAdFailedToLoad: (error) {
-          print('Rewarded ad (golden) failed to load: $error');
+          print('❌ [AD DEBUG] Golden Voice ad failed to load: $error');
           isRewardedGoldenLoaded.value = false;
         },
       ),
     );
 
     // 3. Remove Ads 24h
+    print('   Loading Remove Ads ad...');
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
+          print('✅ [AD DEBUG] Remove Ads ad loaded successfully');
           rewardedAdRemoveAds = ad;
           isRewardedRemoveAdsLoaded.value = true;
         },
         onAdFailedToLoad: (error) {
-          print('Rewarded ad (remove ads) failed to load: $error');
+          print('❌ [AD DEBUG] Remove Ads ad failed to load: $error');
           isRewardedRemoveAdsLoaded.value = false;
         },
       ),
@@ -185,8 +193,30 @@ class AdService extends GetxService {
   }
 
   void showRewardedAdStronger(Function onRewarded) {
+    print('🎬 [AD DEBUG] Attempting to show 2x Stronger ad');
+    print('   Ad loaded: ${isRewardedStrongerLoaded.value}');
+    print('   Ad object: ${rewardedAdStronger != null}');
+
     if (rewardedAdStronger == null || !isRewardedStrongerLoaded.value) {
-      Get.snackbar('Error', 'ad_not_ready'.tr);
+      print('❌ [AD DEBUG] Ad not ready, attempting to reload...');
+      Get.snackbar('Loading...', 'Please wait a moment and try again');
+
+      // Try to reload the ad immediately
+      RewardedAd.load(
+        adUnitId: rewardedAdUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            print('✅ [AD DEBUG] 2x Stronger ad reloaded successfully');
+            rewardedAdStronger = ad;
+            isRewardedStrongerLoaded.value = true;
+          },
+          onAdFailedToLoad: (error) {
+            print('❌ [AD DEBUG] Failed to reload 2x Stronger ad: $error');
+            isRewardedStrongerLoaded.value = false;
+          },
+        ),
+      );
       return;
     }
 
@@ -194,12 +224,36 @@ class AdService extends GetxService {
 
     rewardedAdStronger?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
+        print('🎬 [AD DEBUG] 2x Stronger ad dismissed');
         ad.dispose();
         // Play audio after ad is closed
         if (rewarded) {
+          print('✅ [AD DEBUG] User earned reward, executing callback');
           onRewarded();
         }
         // Reload
+        print('🔄 [AD DEBUG] Reloading 2x Stronger ad...');
+        RewardedAd.load(
+          adUnitId: rewardedAdUnitId,
+          request: const AdRequest(),
+          rewardedAdLoadCallback: RewardedAdLoadCallback(
+            onAdLoaded: (ad) {
+              print('✅ [AD DEBUG] 2x Stronger ad reloaded after show');
+              rewardedAdStronger = ad;
+              isRewardedStrongerLoaded.value = true;
+            },
+            onAdFailedToLoad: (error) {
+              print('❌ [AD DEBUG] Failed to reload 2x Stronger ad: $error');
+              isRewardedStrongerLoaded.value = false;
+            },
+          ),
+        );
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        print('❌ [AD DEBUG] Failed to show 2x Stronger ad: $error');
+        ad.dispose();
+        Get.snackbar('Error', 'Failed to show ad. Please try again.');
+        // Reload on failure
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -216,16 +270,40 @@ class AdService extends GetxService {
       },
     );
 
+    print('🎬 [AD DEBUG] Showing 2x Stronger ad now...');
     rewardedAdStronger?.show(
       onUserEarnedReward: (ad, reward) {
+        print('🎁 [AD DEBUG] User earned reward!');
         rewarded = true;
       },
     );
   }
 
   void showRewardedAdGolden(Function onRewarded) {
+    print('🎬 [AD DEBUG] Attempting to show Golden Voice ad');
+    print('   Ad loaded: ${isRewardedGoldenLoaded.value}');
+    print('   Ad object: ${rewardedAdGolden != null}');
+
     if (rewardedAdGolden == null || !isRewardedGoldenLoaded.value) {
-      Get.snackbar('Error', 'ad_not_ready'.tr);
+      print('❌ [AD DEBUG] Golden Voice ad not ready, attempting to reload...');
+      Get.snackbar('Loading...', 'Please wait a moment and try again');
+
+      // Try to reload the ad immediately
+      RewardedAd.load(
+        adUnitId: rewardedAdUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            print('✅ [AD DEBUG] Golden Voice ad reloaded successfully');
+            rewardedAdGolden = ad;
+            isRewardedGoldenLoaded.value = true;
+          },
+          onAdFailedToLoad: (error) {
+            print('❌ [AD DEBUG] Failed to reload Golden Voice ad: $error');
+            isRewardedGoldenLoaded.value = false;
+          },
+        ),
+      );
       return;
     }
 
@@ -233,11 +311,35 @@ class AdService extends GetxService {
 
     rewardedAdGolden?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
+        print('🎬 [AD DEBUG] Golden Voice ad dismissed');
         ad.dispose();
         // Execute reward after ad is closed
         if (rewarded) {
+          print('✅ [AD DEBUG] User earned Golden Voice reward');
           onRewarded();
         }
+        print('🔄 [AD DEBUG] Reloading Golden Voice ad...');
+        RewardedAd.load(
+          adUnitId: rewardedAdUnitId,
+          request: const AdRequest(),
+          rewardedAdLoadCallback: RewardedAdLoadCallback(
+            onAdLoaded: (ad) {
+              print('✅ [AD DEBUG] Golden Voice ad reloaded after show');
+              rewardedAdGolden = ad;
+              isRewardedGoldenLoaded.value = true;
+            },
+            onAdFailedToLoad: (error) {
+              print('❌ [AD DEBUG] Failed to reload Golden Voice ad: $error');
+              isRewardedGoldenLoaded.value = false;
+            },
+          ),
+        );
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        print('❌ [AD DEBUG] Failed to show Golden Voice ad: $error');
+        ad.dispose();
+        Get.snackbar('Error', 'Failed to show ad. Please try again.');
+        // Reload on failure
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -254,16 +356,40 @@ class AdService extends GetxService {
       },
     );
 
+    print('🎬 [AD DEBUG] Showing Golden Voice ad now...');
     rewardedAdGolden?.show(
       onUserEarnedReward: (ad, reward) {
+        print('🎁 [AD DEBUG] User earned Golden Voice reward!');
         rewarded = true;
       },
     );
   }
 
   void showRewardedAdRemoveAds(Function onRewarded) {
+    print('🎬 [AD DEBUG] Attempting to show Remove Ads ad');
+    print('   Ad loaded: ${isRewardedRemoveAdsLoaded.value}');
+    print('   Ad object: ${rewardedAdRemoveAds != null}');
+
     if (rewardedAdRemoveAds == null || !isRewardedRemoveAdsLoaded.value) {
-      Get.snackbar('Error', 'ad_not_ready'.tr);
+      print('❌ [AD DEBUG] Remove Ads ad not ready, attempting to reload...');
+      Get.snackbar('Loading...', 'Please wait a moment and try again');
+
+      // Try to reload the ad immediately
+      RewardedAd.load(
+        adUnitId: rewardedAdUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            print('✅ [AD DEBUG] Remove Ads ad reloaded successfully');
+            rewardedAdRemoveAds = ad;
+            isRewardedRemoveAdsLoaded.value = true;
+          },
+          onAdFailedToLoad: (error) {
+            print('❌ [AD DEBUG] Failed to reload Remove Ads ad: $error');
+            isRewardedRemoveAdsLoaded.value = false;
+          },
+        ),
+      );
       return;
     }
 
@@ -271,11 +397,35 @@ class AdService extends GetxService {
 
     rewardedAdRemoveAds?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
+        print('🎬 [AD DEBUG] Remove Ads ad dismissed');
         ad.dispose();
         // Execute reward after ad is closed
         if (rewarded) {
+          print('✅ [AD DEBUG] User earned Remove Ads reward');
           onRewarded();
         }
+        print('🔄 [AD DEBUG] Reloading Remove Ads ad...');
+        RewardedAd.load(
+          adUnitId: rewardedAdUnitId,
+          request: const AdRequest(),
+          rewardedAdLoadCallback: RewardedAdLoadCallback(
+            onAdLoaded: (ad) {
+              print('✅ [AD DEBUG] Remove Ads ad reloaded after show');
+              rewardedAdRemoveAds = ad;
+              isRewardedRemoveAdsLoaded.value = true;
+            },
+            onAdFailedToLoad: (error) {
+              print('❌ [AD DEBUG] Failed to reload Remove Ads ad: $error');
+              isRewardedRemoveAdsLoaded.value = false;
+            },
+          ),
+        );
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        print('❌ [AD DEBUG] Failed to show Remove Ads ad: $error');
+        ad.dispose();
+        Get.snackbar('Error', 'Failed to show ad. Please try again.');
+        // Reload on failure
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -292,8 +442,10 @@ class AdService extends GetxService {
       },
     );
 
+    print('🎬 [AD DEBUG] Showing Remove Ads ad now...');
     rewardedAdRemoveAds?.show(
       onUserEarnedReward: (ad, reward) {
+        print('🎁 [AD DEBUG] User earned Remove Ads reward!');
         rewarded = true;
       },
     );
