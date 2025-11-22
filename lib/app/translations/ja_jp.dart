@@ -2,6 +2,7 @@ const Map<String, String> jaJP = {
   'app_name': 'MoodShift AI',
   'loading': '読み込み中...',
   'hold_to_speak': '長押しして話す',
+  'mic_instruction': '長押しして心の中を共有 — 10秒で気分が良くなります',
   'listening': '聞いています...',
   'processing': '処理中...',
   'speaking': 'AIが応答しています...',

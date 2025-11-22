@@ -2,6 +2,7 @@ const Map<String, String> zhCN = {
   'app_name': 'MoodShift AI',
   'loading': '加载中...',
   'hold_to_speak': '按住说话',
+  'mic_instruction': '按住并分享你的想法 — 10秒内感觉更好',
   'listening': '正在聆听...',
   'processing': '处理中...',
   'speaking': 'AI正在回应...',

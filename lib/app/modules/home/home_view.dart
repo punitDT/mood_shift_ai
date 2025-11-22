@@ -49,11 +49,29 @@ class HomeView extends GetView<HomeController> {
                     // Spacer - creates the 70-80% empty space
                     const Spacer(flex: 3),
 
+                    // Instructional text above mic button
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32.w),
+                      child: Text(
+                        'mic_instruction'.tr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          color: Colors.white.withOpacity(0.7),
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.3,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(flex: 2),
+
                     // Mic Button (center of screen)
                     _buildPremiumMicButton(),
 
                     // Spacer
-                    const Spacer(flex: 3),
+                    const Spacer(flex: 5),
 
                     // Bottom Stats (very subtle)
                     _buildBottomStats(),

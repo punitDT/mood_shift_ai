@@ -2,6 +2,7 @@ const Map<String, String> frFR = {
   'app_name': 'MoodShift AI',
   'loading': 'Chargement...',
   'hold_to_speak': 'Maintenez pour parler',
+  'mic_instruction': 'Maintenez et partagez ce qui vous passe par la tête — sentez-vous mieux en 10 secondes',
   'listening': 'Écoute...',
   'processing': 'Traitement...',
   'speaking': 'L\'IA répond...',
