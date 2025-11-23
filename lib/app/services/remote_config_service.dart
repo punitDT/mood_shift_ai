@@ -1,10 +1,11 @@
 import 'package:get/get.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RemoteConfigService extends GetxService {
   late final FirebaseRemoteConfig _remoteConfig;
-  
+
   final forceUpdate = false.obs;
   final latestVersion = ''.obs;
   final updateMessage = ''.obs;
@@ -12,18 +13,27 @@ class RemoteConfigService extends GetxService {
   Future<RemoteConfigService> init() async {
     _remoteConfig = FirebaseRemoteConfig.instance;
 
+    final fetchTimeoutSeconds = int.tryParse(dotenv.env['REMOTE_CONFIG_FETCH_TIMEOUT_SECONDS'] ?? '10') ?? 10;
+    final minimumFetchIntervalMinutes = int.tryParse(dotenv.env['REMOTE_CONFIG_MINIMUM_FETCH_INTERVAL_MINUTES'] ?? '1') ?? 1;
+    final defaultForceUpdate = dotenv.env['REMOTE_CONFIG_DEFAULT_FORCE_UPDATE']?.toLowerCase() == 'true';
+    final defaultLatestVersion = dotenv.env['REMOTE_CONFIG_DEFAULT_LATEST_VERSION'] ?? '1.0.0';
+    final defaultUpdateMessage = dotenv.env['REMOTE_CONFIG_DEFAULT_UPDATE_MESSAGE'] ?? 'A new version is available. Please update to continue using the app.';
+
     await _remoteConfig.setConfigSettings(
       RemoteConfigSettings(
-        fetchTimeout: const Duration(seconds: 10),
-        minimumFetchInterval: const Duration(minutes: 1),
+        fetchTimeout: Duration(seconds: fetchTimeoutSeconds),
+        minimumFetchInterval: Duration(minutes: minimumFetchIntervalMinutes),
       ),
     );
 
     await _remoteConfig.setDefaults({
-      'force_update': false,
-      'latest_version': '1.0.0',
-      'update_message': 'A new version is available. Please update to continue using the app.',
+      'force_update': defaultForceUpdate,
+      'latest_version': defaultLatestVersion,
+      'update_message': defaultUpdateMessage,
     });
+
+    print('🔧 [REMOTE_CONFIG] Fetch timeout: ${fetchTimeoutSeconds}s, Min interval: ${minimumFetchIntervalMinutes}m');
+    print('🔧 [REMOTE_CONFIG] Defaults - Force update: $defaultForceUpdate, Version: $defaultLatestVersion');
 
     // Fetch config in background without blocking app startup
     fetchConfig();

@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../../services/ai_service.dart';
+import '../../services/groq_llm_service.dart';
 import '../../services/speech_service.dart';
-import '../../services/tts_service.dart';
+import '../../services/polly_tts_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
@@ -20,9 +21,9 @@ enum AppState {
 }
 
 class HomeController extends GetxController {
-  final AIService _aiService = Get.find<AIService>();
+  final GroqLLMService _llmService = Get.find<GroqLLMService>();
   final SpeechService _speechService = Get.find<SpeechService>();
-  final TTSService _ttsService = Get.find<TTSService>();
+  final PollyTTSService _ttsService = Get.find<PollyTTSService>();
   final StorageService _storage = Get.find<StorageService>();
   final AdService _adService = Get.find<AdService>();
   final RemoteConfigService _remoteConfig = Get.find<RemoteConfigService>();
@@ -179,15 +180,25 @@ class HomeController extends GetxController {
   }
 
   Future<void> _processUserInput(String userInput) async {
+    Timer? slowResponseTimer;
+
     try {
       currentState.value = AppState.processing;
-      statusText.value = _tr('processing', fallback: 'Processing...');
+      statusText.value = _tr('processing', fallback: 'Thinking...');
 
-      // Get AI response
+      // Show "Taking a moment..." if API is slow (>3 seconds)
+      slowResponseTimer = Timer(const Duration(seconds: 3), () {
+        if (currentState.value == AppState.processing) {
+          statusText.value = _tr('taking_moment', fallback: 'Taking a moment...');
+        }
+      });
+
+      // Get AI response from Groq
       final languageCode = _storage.getLanguageCode();
       print('🎤 [MIC DEBUG] Processing input with language: $languageCode');
 
-      final response = await _aiService.generateResponse(userInput, languageCode);
+      final response = await _llmService.generateResponse(userInput, languageCode);
+      slowResponseTimer.cancel();
 
       if (response.isEmpty) {
         Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));
@@ -197,12 +208,17 @@ class HomeController extends GetxController {
 
       // Save response for 2x stronger feature
       lastResponse = response;
-      lastStyle = _aiService.getRandomStyle();
+      lastStyle = _llmService.getRandomStyle();
       _storage.setLastResponse(response);
 
       // Speak response
       currentState.value = AppState.speaking;
-      statusText.value = _tr('speaking', fallback: 'AI is responding...');
+      statusText.value = _tr('speaking', fallback: 'Speaking...');
+
+      // Show offline mode indicator if using fallback TTS
+      if (_ttsService.isUsingOfflineMode.value) {
+        statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
+      }
 
       await _ttsService.speak(response, lastStyle!);
 
@@ -215,6 +231,7 @@ class HomeController extends GetxController {
       // Shift completed!
       _onShiftCompleted();
     } catch (e, stackTrace) {
+      slowResponseTimer?.cancel();
       print('❌ [MIC DEBUG] Error processing input: $e');
       print('❌ [MIC DEBUG] Stack trace: $stackTrace');
       Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));

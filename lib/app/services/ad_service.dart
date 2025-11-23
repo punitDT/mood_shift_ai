@@ -1,47 +1,48 @@
 import 'dart:io';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
 
 class AdService extends GetxService {
   final StorageService _storage = Get.find<StorageService>();
-  
+
   BannerAd? bannerAd;
   InterstitialAd? interstitialAd;
   RewardedAd? rewardedAdStronger;
   RewardedAd? rewardedAdGolden;
   RewardedAd? rewardedAdRemoveAds;
-  
+
   final isBannerLoaded = false.obs;
   final isInterstitialLoaded = false.obs;
   final isRewardedStrongerLoaded = false.obs;
   final isRewardedGoldenLoaded = false.obs;
   final isRewardedRemoveAdsLoaded = false.obs;
 
-  // Test Ad Unit IDs (replace with real ones for production)
+  // Ad Unit IDs loaded from environment variables
   String get bannerAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111'; // Test banner
+      return dotenv.env['ADMOB_ANDROID_BANNER_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/6300978111';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716'; // Test banner
+      return dotenv.env['ADMOB_IOS_BANNER_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/2934735716';
     }
     return '';
   }
 
   String get interstitialAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712'; // Test interstitial
+      return dotenv.env['ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/1033173712';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/4411468910'; // Test interstitial
+      return dotenv.env['ADMOB_IOS_INTERSTITIAL_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/4411468910';
     }
     return '';
   }
 
   String get rewardedAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/5224354917'; // Test rewarded
+      return dotenv.env['ADMOB_ANDROID_REWARDED_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/5224354917';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/1712485313'; // Test rewarded
+      return dotenv.env['ADMOB_IOS_REWARDED_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/1712485313';
     }
     return '';
   }
@@ -49,6 +50,9 @@ class AdService extends GetxService {
   @override
   void onInit() {
     super.onInit();
+    print('📱 [AD] Banner ID: $bannerAdUnitId');
+    print('📱 [AD] Interstitial ID: $interstitialAdUnitId');
+    print('📱 [AD] Rewarded ID: $rewardedAdUnitId');
     loadBannerAd();
     loadInterstitialAd();
     loadRewardedAds();

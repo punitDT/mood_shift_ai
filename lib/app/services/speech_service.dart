@@ -1,14 +1,26 @@
 import 'package:get/get.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
 
 class SpeechService extends GetxService {
   final SpeechToText _speech = SpeechToText();
   final StorageService _storage = Get.find<StorageService>();
-  
+
   final isListening = false.obs;
   final recognizedText = ''.obs;
+
+  late final int _listenForSeconds;
+  late final int _pauseForSeconds;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _listenForSeconds = int.tryParse(dotenv.env['SPEECH_LISTEN_FOR_SECONDS'] ?? '30') ?? 30;
+    _pauseForSeconds = int.tryParse(dotenv.env['SPEECH_PAUSE_FOR_SECONDS'] ?? '3') ?? 3;
+    print('🎤 [SPEECH] Listen for: ${_listenForSeconds}s, Pause for: ${_pauseForSeconds}s');
+  }
 
   Future<bool> initialize() async {
     // Request microphone permission
@@ -87,8 +99,8 @@ class SpeechService extends GetxService {
           listenMode: ListenMode.confirmation,
           cancelOnError: true,
           partialResults: true,
-          listenFor: const Duration(seconds: 30), // Maximum listening duration
-          pauseFor: const Duration(seconds: 3), // Pause detection
+          listenFor: Duration(seconds: _listenForSeconds),
+          pauseFor: Duration(seconds: _pauseForSeconds),
         );
       } else {
         print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');

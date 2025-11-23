@@ -242,6 +242,52 @@ class StorageService extends GetxService {
     _box.write('last_response', response);
   }
 
+  // Response cache for offline support (last 20 responses)
+  List<Map<String, dynamic>> getCachedResponses() {
+    final cached = _box.read('cached_responses');
+    if (cached == null) return [];
+    return List<Map<String, dynamic>>.from(cached);
+  }
+
+  void addCachedResponse(String userInput, String response, String language) {
+    final cached = getCachedResponses();
+
+    // Add new response
+    cached.add({
+      'userInput': userInput,
+      'response': response,
+      'language': language,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    // Keep only last 20
+    if (cached.length > 20) {
+      cached.removeRange(0, cached.length - 20);
+    }
+
+    _box.write('cached_responses', cached);
+    print('💾 [CACHE] Saved response to cache (${cached.length}/20)');
+  }
+
+  Map<String, dynamic>? findCachedResponse(String userInput, String language) {
+    final cached = getCachedResponses();
+
+    try {
+      return cached.lastWhere(
+        (item) =>
+          item['userInput'].toString().toLowerCase() == userInput.toLowerCase() &&
+          item['language'] == language,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  void clearCachedResponses() {
+    _box.remove('cached_responses');
+    print('🔄 [CACHE] Cleared all cached responses');
+  }
+
   // First launch
   bool isFirstLaunch() {
     return _box.read('first_launch') ?? true;
