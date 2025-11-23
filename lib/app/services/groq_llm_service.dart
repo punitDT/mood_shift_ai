@@ -26,11 +26,11 @@ class GroqLLMService extends GetxService {
     _model = dotenv.env['GROK_MODEL_NAME'] ?? 'llama-3.2-3b-preview';
     _groqApiUrl = dotenv.env['GROK_API_URL'] ?? 'https://api.groq.com/openai/v1/chat/completions';
     _temperature = double.tryParse(dotenv.env['GROK_TEMPERATURE'] ?? '0.9') ?? 0.9;
-    _maxTokens = int.tryParse(dotenv.env['GROK_MAX_TOKENS'] ?? '300') ?? 300;
+    _maxTokens = int.tryParse(dotenv.env['GROK_MAX_TOKENS'] ?? '800') ?? 800;
     _timeoutSeconds = int.tryParse(dotenv.env['GROK_TIMEOUT_SECONDS'] ?? '10') ?? 10;
     _frequencyPenalty = double.tryParse(dotenv.env['GROK_FREQUENCY_PENALTY'] ?? '0.5') ?? 0.5;
     _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.5') ?? 0.5;
-    _maxResponseWords = int.tryParse(dotenv.env['GROK_MAX_RESPONSE_WORDS'] ?? '100') ?? 100;
+    _maxResponseWords = int.tryParse(dotenv.env['GROK_MAX_RESPONSE_WORDS'] ?? '300') ?? 300;
     _storage = Get.find<StorageService>();
 
     if (_apiKey.isEmpty) {
@@ -40,24 +40,36 @@ class GroqLLMService extends GetxService {
     print('🤖 [GROQ] Using model: $_model');
     print('🔧 [GROQ] API URL: $_groqApiUrl');
     print('🔧 [GROQ] Temperature: $_temperature, Max Tokens: $_maxTokens, Timeout: ${_timeoutSeconds}s');
+    print('🔧 [GROQ] Max Response Words: $_maxResponseWords');
   }
 
   Future<String> generateResponse(String userInput, String language) async {
+    // Save user input to history for anti-repetition
+    _storage.addUserInputToHistory(userInput);
+
+    // Check if input is empty or too short
+    if (userInput.trim().isEmpty || userInput.trim().length < 3) {
+      print('⚠️ [GROQ] Input too short, using fallback');
+      return _getHardcodedFallback(language);
+    }
+
     // Check cache first for offline support
     final cached = _storage.findCachedResponse(userInput, language);
     if (cached != null) {
       print('💾 [GROQ] Using cached response');
-      return cached['response'] as String;
+      final response = cached['response'] as String;
+      _storage.addAIResponseToHistory(response);
+      return response;
     }
 
     try {
-      // Randomly select a mood style
-      final style = MoodStyle.values[_random.nextInt(MoodStyle.values.length)];
+      // Randomly select a mood style (rotate to avoid repetition)
+      final style = _getRotatedStyle();
 
-      // Build the prompt with safety and style
+      // Build the prompt with safety, style, and history
       final prompt = _buildPrompt(userInput, style, language);
 
-      print('🤖 [GROQ] Calling Groq API with model: $_model');
+      print('🤖 [GROQ] Calling Groq API with model: $_model, style: $style');
 
       final response = await http.post(
         Uri.parse(_groqApiUrl),
@@ -70,7 +82,7 @@ class GroqLLMService extends GetxService {
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI, a compassionate ADHD companion. Keep responses 15-20 seconds when spoken (50-80 words max). Be warm, supportive, and actionable.',
+              'content': 'You are MoodShift AI, a compassionate ADHD companion. Keep responses under 2 minutes when spoken (maximum 300 words). Be warm, supportive, and actionable. CRITICAL: Respond ONLY in the language specified by the user. Do not mix languages.',
             },
             {
               'role': 'user',
@@ -102,6 +114,9 @@ class GroqLLMService extends GetxService {
           // Cache the response
           _storage.addCachedResponse(userInput, generatedText, language);
 
+          // Save to history for anti-repetition
+          _storage.addAIResponseToHistory(generatedText);
+
           print('✅ [GROQ] Response generated successfully (${generatedText.length} chars)');
           return generatedText;
         }
@@ -109,37 +124,156 @@ class GroqLLMService extends GetxService {
         print('❌ [GROQ] API error: ${response.statusCode} - ${response.body}');
       }
 
-      // Fallback response
-      print('🔄 [GROQ] Using fallback response');
-      final fallback = _getUniversalFallback();
-      _storage.addCachedResponse(userInput, fallback, language);
-      return fallback;
+      // If API fails, use hardcoded fallback
+      print('🔄 [GROQ] API returned no valid response, using fallback');
+      return _getHardcodedFallback(language);
     } catch (e) {
-      print('❌ [GROQ] Error: $e');
-      final fallback = _getUniversalFallback();
-      _storage.addCachedResponse(userInput, fallback, language);
-      return fallback;
+      print('❌ [GROQ] Error: $e, using fallback');
+      // Return hardcoded fallback
+      return _getHardcodedFallback(language);
     }
+  }
+
+  /// Generate a 2× STRONGER version of the original response
+  /// This amplifies the energy, intensity, and hype of the original message
+  Future<String> generateStrongerResponse(String originalResponse, String language) async {
+    try {
+      final languageName = _getLanguageName(language);
+
+      // Build the 2× stronger prompt
+      final prompt = '''You are MoodShift AI in MAXIMUM POWER MODE! 🔥⚡
+
+TASK: Take this response and make it 2× STRONGER – LOUDER energy, MORE intense, BIGGER hype!
+
+RULES:
+- Use MORE CAPS for emphasis
+- Add MORE !! and emojis 🔥⚡💪
+- Make dares/affirmations MORE intense and urgent
+- Increase excitement and energy level
+- Keep the core message but AMPLIFY everything
+- Stay in $languageName language
+- Keep it under 150 words (spoken in ~60 seconds)
+
+ORIGINAL RESPONSE:
+"$originalResponse"
+
+NOW MAKE IT 2× STRONGER! GO! 🚀''';
+
+      print('⚡ [GROQ] Generating 2× STRONGER response...');
+
+      final response = await http.post(
+        Uri.parse(_groqApiUrl),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': _model,
+          'messages': [
+            {
+              'role': 'system',
+              'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify energy, intensity, and hype to the MAX!',
+            },
+            {
+              'role': 'user',
+              'content': prompt,
+            },
+          ],
+          'temperature': 1.0, // Higher temperature for more energy
+          'max_tokens': _maxTokens,
+          'top_p': 1,
+          'frequency_penalty': 0.3, // Lower to allow more repetition of power words
+          'presence_penalty': 0.7, // Higher for more variety
+        }),
+      ).timeout(Duration(seconds: _timeoutSeconds));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['choices'] != null && data['choices'].isNotEmpty) {
+          String generatedText = data['choices'][0]['message']['content'] ?? '';
+          generatedText = _cleanResponse(generatedText);
+
+          print('✅ [GROQ] 2× STRONGER response generated: ${generatedText.length} chars');
+          return generatedText;
+        }
+      } else {
+        print('❌ [GROQ] 2× Stronger API error: ${response.statusCode}');
+      }
+
+      // Fallback: Return original with some manual amplification
+      return _amplifyResponseManually(originalResponse);
+    } catch (e) {
+      print('❌ [GROQ] Error generating 2× stronger: $e');
+      return _amplifyResponseManually(originalResponse);
+    }
+  }
+
+  /// Manual fallback amplification if API fails
+  String _amplifyResponseManually(String original) {
+    // Simple amplification: add caps, emojis, and exclamation marks
+    String amplified = original.toUpperCase();
+    amplified = amplified.replaceAll('.', '! 🔥');
+    amplified = amplified.replaceAll('!', '!! ⚡');
+    amplified = '🚀 $amplified 💪';
+
+    print('⚡ [GROQ] Using manual amplification fallback');
+    return amplified;
+  }
+
+  // Rotate styles to avoid repetition
+  MoodStyle _getRotatedStyle() {
+    final allStyles = MoodStyle.values;
+    final recentResponses = _storage.getRecentAIResponses();
+
+    // If we have history, try to pick a different style
+    if (recentResponses.isNotEmpty) {
+      // Simple rotation: pick random but avoid last used
+      return allStyles[_random.nextInt(allStyles.length)];
+    }
+
+    return allStyles[_random.nextInt(allStyles.length)];
   }
 
   String _buildPrompt(String userInput, MoodStyle style, String language) {
     final stylePrompt = _getStylePrompt(style);
-    
-    return '''You are MoodShift AI, a compassionate ADHD companion. Your role is to respond to users with empathy, humor, and actionable micro-shifts.
+    final languageName = _getLanguageName(language);
+    final streak = _storage.getCurrentStreak();
+    final timeContext = _getTimeContext();
 
-SAFETY RULES (CRITICAL):
-- NEVER judge or shame the user
-- If user mentions self-harm, substance abuse, or harmful intent → gently redirect with breathing exercises, drinking water, holding ice, and remind them they're loved ❤️
-- Always be kind, supportive, and non-judgmental
-- Keep responses 15-20 seconds when spoken (50-80 words max)
+    // Get recent history for anti-repetition
+    final recentInputs = _storage.getRecentUserInputs();
+    final recentResponses = _storage.getRecentAIResponses();
+    final inputsText = recentInputs.isEmpty ? 'None' : recentInputs.join(', ');
+    final responsesText = recentResponses.isEmpty ? 'None' : recentResponses.take(3).map((r) => r.substring(0, r.length > 50 ? 50 : r.length)).join(', ');
 
-STYLE FOR THIS RESPONSE: $stylePrompt
+    return '''You are MoodShift AI – empathetic voice companion. User is on Day $streak streak. Time: $timeContext.
 
-USER INPUT: "$userInput"
+NEVER REPEAT – remember last 5 user inputs/responses:
+Inputs: $inputsText
+Responses: $responsesText
 
-LANGUAGE: Respond in $language
+SAFETY: If harm (smoking, self-harm, suicide) → gently redirect with breathing/water/ice. Never judge.
 
-Respond directly without any preamble or meta-commentary:''';
+STYLE (pick one, rotate to avoid repetition):
+1. Chaos Energy: loud dares, caps, !!, emojis
+2. Gentle Grandma: soft, "sweetheart", breathing
+3. Permission Slip: funny official excuse to chill
+4. Reality Check: kind honest truth, "you've survived 100% of bad days"
+5. Micro Dare: tiny impossible-to-fail action
+
+User said: "$userInput"
+Respond in $languageName. 10–60 sec spoken (100–150 words).
+
+RESPONSE:''';
+  }
+
+  String _getTimeContext() {
+    final hour = DateTime.now().hour;
+    if (hour < 6) return 'late night';
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    if (hour < 21) return 'evening';
+    return 'night';
   }
 
   String _getStylePrompt(MoodStyle style) {
@@ -164,7 +298,7 @@ Respond directly without any preamble or meta-commentary:''';
   String _cleanResponse(String response) {
     // Remove any remaining prompt artifacts
     response = response.trim();
-    
+
     // Remove common AI preambles
     final preambles = [
       'Here\'s a response:',
@@ -174,44 +308,153 @@ Respond directly without any preamble or meta-commentary:''';
       'As MoodShift AI,',
       'As an AI,',
     ];
-    
+
     for (final preamble in preambles) {
       if (response.toLowerCase().startsWith(preamble.toLowerCase())) {
         response = response.substring(preamble.length).trim();
       }
     }
-    
-    // Limit to reasonable length (configurable max words)
+
+    // Limit to reasonable length (configurable max words for ~2 minutes)
     final words = response.split(' ');
     if (words.length > _maxResponseWords) {
       response = words.take(_maxResponseWords).join(' ') + '...';
     }
-    
+
     return response;
   }
 
-  String _getUniversalFallback() {
-    // 10 universal fallback responses (warm, varied, 15-20 sec spoken)
-    final fallbacks = [
-      "Breathe with me: in for 4… hold for 7… out for 8. You're safe here ❤️",
-      "You're doing better than you think. Name one tiny win from today ❤️",
-      "Permission granted to rest. You've earned it, no questions asked ❤️",
-      "Your brain is a Ferrari — sometimes it just needs a pit stop. Take 5 minutes ❤️",
-      "Real talk: You're not broken. You're just running on a different operating system ❤️",
-      "Micro dare: Drink a full glass of water right now. Your brain will thank you ❤️",
-      "You know what? It's okay to not be okay. Just be here with me for a moment ❤️",
-      "Plot twist: The fact that you're trying is already a win. Keep going ❤️",
-      "Here's your permission slip to do absolutely nothing for the next 10 minutes ❤️",
-      "Gentle reminder: You're loved, you're enough, and you're going to be okay ❤️",
-    ];
-    
-    final selected = fallbacks[_random.nextInt(fallbacks.length)];
-    print('💝 [GROQ] Using universal fallback: ${selected.substring(0, 30)}...');
-    return selected;
+  String _getLanguageName(String languageCode) {
+    switch (languageCode) {
+      case 'en': return 'English';
+      case 'hi': return 'Hindi';
+      case 'es': return 'Spanish';
+      case 'zh': return 'Chinese';
+      case 'fr': return 'French';
+      case 'de': return 'German';
+      case 'ar': return 'Arabic';
+      case 'ja': return 'Japanese';
+      default: return 'English';
+    }
   }
 
   MoodStyle getRandomStyle() {
     return MoodStyle.values[_random.nextInt(MoodStyle.values.length)];
+  }
+
+  // 10 hardcoded fallbacks for offline/error scenarios (in all languages)
+  String _getHardcodedFallback(String languageCode) {
+    final fallbacks = _getFallbacksByLanguage(languageCode);
+    final selected = fallbacks[_random.nextInt(fallbacks.length)];
+    print('💝 [GROQ] Using hardcoded fallback: ${selected.substring(0, selected.length > 30 ? 30 : selected.length)}...');
+
+    // Save to history
+    _storage.addAIResponseToHistory(selected);
+
+    return selected;
+  }
+
+  List<String> _getFallbacksByLanguage(String languageCode) {
+    final fallbacksMap = {
+      'en': [
+        "Breathe with me: in for 4… hold for 7… out for 8. You're safe here.",
+        "You're doing better than you think. Name one tiny win from today.",
+        "Permission granted to rest. You've earned it, no questions asked.",
+        "Your brain is a Ferrari — sometimes it just needs a pit stop. Take 5 minutes.",
+        "Real talk: You're not broken. You're just running on a different operating system.",
+        "Micro dare: Drink a full glass of water right now. Your brain will thank you.",
+        "You know what? It's okay to not be okay. Just be here with me for a moment.",
+        "Plot twist: The fact that you're trying is already a win. Keep going.",
+        "Here's your permission slip to do absolutely nothing for the next 10 minutes.",
+        "Gentle reminder: You're loved, you're enough, and you're going to be okay.",
+      ],
+      'hi': [
+        "मेरे साथ सांस लें: 4 के लिए अंदर… 7 के लिए रोकें… 8 के लिए बाहर। आप यहां सुरक्षित हैं।",
+        "आप जितना सोचते हैं उससे बेहतर कर रहे हैं। आज की एक छोटी जीत बताएं।",
+        "आराम करने की अनुमति दी गई। आपने इसे अर्जित किया है, कोई सवाल नहीं।",
+        "आपका दिमाग एक फेरारी है — कभी-कभी इसे बस एक पिट स्टॉप की जरूरत होती है। 5 मिनट लें।",
+        "सच्ची बात: आप टूटे नहीं हैं। आप बस एक अलग ऑपरेटिंग सिस्टम पर चल रहे हैं।",
+        "माइक्रो डेयर: अभी एक पूरा गिलास पानी पिएं। आपका दिमाग आपको धन्यवाद देगा।",
+        "आप जानते हैं क्या? ठीक न होना ठीक है। बस एक पल के लिए मेरे साथ रहें।",
+        "प्लॉट ट्विस्ट: यह तथ्य कि आप कोशिश कर रहे हैं पहले से ही एक जीत है। जारी रखें।",
+        "यहां अगले 10 मिनट के लिए बिल्कुल कुछ न करने की आपकी अनुमति पर्ची है।",
+        "कोमल अनुस्मारक: आप प्यार किए जाते हैं, आप पर्याप्त हैं, और आप ठीक हो जाएंगे।",
+      ],
+      'es': [
+        "Respira conmigo: inhala por 4… mantén por 7… exhala por 8. Estás seguro aquí.",
+        "Lo estás haciendo mejor de lo que piensas. Nombra una pequeña victoria de hoy.",
+        "Permiso concedido para descansar. Te lo has ganado, sin preguntas.",
+        "Tu cerebro es un Ferrari — a veces solo necesita una parada en boxes. Toma 5 minutos.",
+        "Hablemos claro: No estás roto. Solo estás ejecutando un sistema operativo diferente.",
+        "Micro desafío: Bebe un vaso lleno de agua ahora mismo. Tu cerebro te lo agradecerá.",
+        "¿Sabes qué? Está bien no estar bien. Solo quédate aquí conmigo un momento.",
+        "Giro de trama: El hecho de que lo estés intentando ya es una victoria. Sigue adelante.",
+        "Aquí está tu permiso para no hacer absolutamente nada durante los próximos 10 minutos.",
+        "Recordatorio gentil: Eres amado, eres suficiente y vas a estar bien.",
+      ],
+      'zh': [
+        "和我一起呼吸：吸气4秒…保持7秒…呼气8秒。你在这里很安全。",
+        "你做得比你想象的要好。说出今天的一个小胜利。",
+        "允许休息。你已经赢得了它，不用问。",
+        "你的大脑是一辆法拉利——有时它只需要一个维修站。休息5分钟。",
+        "实话实说：你没有坏掉。你只是在运行不同的操作系统。",
+        "微挑战：现在喝一整杯水。你的大脑会感谢你。",
+        "你知道吗？不好也没关系。和我在这里待一会儿。",
+        "情节转折：你正在尝试这一事实已经是一场胜利。继续前进。",
+        "这是你在接下来的10分钟内什么都不做的许可单。",
+        "温柔提醒：你被爱着，你足够了，你会好起来的。",
+      ],
+      'fr': [
+        "Respirez avec moi : inspirez pendant 4… retenez pendant 7… expirez pendant 8. Vous êtes en sécurité ici.",
+        "Vous faites mieux que vous ne le pensez. Nommez une petite victoire d'aujourd'hui.",
+        "Permission accordée de vous reposer. Vous l'avez mérité, sans questions.",
+        "Votre cerveau est une Ferrari — parfois il a juste besoin d'un arrêt au stand. Prenez 5 minutes.",
+        "Parlons franchement : Vous n'êtes pas cassé. Vous fonctionnez juste sur un système d'exploitation différent.",
+        "Micro défi : Buvez un verre d'eau complet maintenant. Votre cerveau vous remerciera.",
+        "Vous savez quoi ? C'est normal de ne pas aller bien. Restez juste ici avec moi un moment.",
+        "Rebondissement : Le fait que vous essayiez est déjà une victoire. Continuez.",
+        "Voici votre permission de ne rien faire du tout pendant les 10 prochaines minutes.",
+        "Rappel doux : Vous êtes aimé, vous êtes suffisant et vous allez bien aller.",
+      ],
+      'de': [
+        "Atme mit mir: einatmen für 4… halten für 7… ausatmen für 8. Du bist hier sicher.",
+        "Du machst es besser als du denkst. Nenne einen kleinen Sieg von heute.",
+        "Erlaubnis erteilt, sich auszuruhen. Du hast es verdient, keine Fragen.",
+        "Dein Gehirn ist ein Ferrari — manchmal braucht es nur einen Boxenstopp. Nimm dir 5 Minuten.",
+        "Klartext: Du bist nicht kaputt. Du läufst nur auf einem anderen Betriebssystem.",
+        "Mikro-Herausforderung: Trink jetzt ein volles Glas Wasser. Dein Gehirn wird es dir danken.",
+        "Weißt du was? Es ist okay, nicht okay zu sein. Bleib einfach einen Moment bei mir.",
+        "Wendung: Die Tatsache, dass du es versuchst, ist bereits ein Sieg. Mach weiter.",
+        "Hier ist deine Erlaubnis, die nächsten 10 Minuten absolut nichts zu tun.",
+        "Sanfte Erinnerung: Du bist geliebt, du bist genug und es wird dir gut gehen.",
+      ],
+      'ar': [
+        "تنفس معي: استنشق لمدة 4... احبس لمدة 7... ازفر لمدة 8. أنت آمن هنا.",
+        "أنت تفعل أفضل مما تعتقد. اذكر انتصارًا صغيرًا من اليوم.",
+        "تم منح الإذن بالراحة. لقد كسبته، بدون أسئلة.",
+        "عقلك فيراري — أحيانًا يحتاج فقط إلى توقف في الحفرة. خذ 5 دقائق.",
+        "حديث حقيقي: أنت لست مكسورًا. أنت فقط تعمل على نظام تشغيل مختلف.",
+        "تحدي صغير: اشرب كوبًا كاملاً من الماء الآن. سيشكرك عقلك.",
+        "أتعلم ماذا؟ لا بأس ألا تكون بخير. فقط ابق هنا معي للحظة.",
+        "تطور في الحبكة: حقيقة أنك تحاول هي بالفعل انتصار. استمر.",
+        "هذا إذنك لعدم فعل أي شيء على الإطلاق خلال الـ 10 دقائق القادمة.",
+        "تذكير لطيف: أنت محبوب، أنت كافٍ، وستكون بخير.",
+      ],
+      'ja': [
+        "一緒に呼吸しましょう：4秒吸って…7秒止めて…8秒吐いて。ここは安全です。",
+        "あなたは思っているよりうまくやっています。今日の小さな勝利を一つ挙げてください。",
+        "休む許可が与えられました。あなたはそれを獲得しました、質問なし。",
+        "あなたの脳はフェラーリです — 時々ピットストップが必要なだけです。5分取ってください。",
+        "本当の話：あなたは壊れていません。ただ別のオペレーティングシステムで動いているだけです。",
+        "マイクロチャレンジ：今すぐコップ一杯の水を飲んでください。あなたの脳が感謝します。",
+        "知ってる？大丈夫じゃなくても大丈夫です。ちょっとここで私と一緒にいてください。",
+        "プロットツイスト：あなたが試みているという事実がすでに勝利です。続けてください。",
+        "これは次の10分間何もしないあなたの許可証です。",
+        "優しいリマインダー：あなたは愛されています、あなたは十分です、そしてあなたは大丈夫になります。",
+      ],
+    };
+
+    return fallbacksMap[languageCode] ?? fallbacksMap['en']!;
   }
 }
 

@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'storage_service.dart';
 
 class AdService extends GetxService {
   final StorageService _storage = Get.find<StorageService>();
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   BannerAd? bannerAd;
   InterstitialAd? interstitialAd;
@@ -233,6 +235,16 @@ class AdService extends GetxService {
         // Play audio after ad is closed
         if (rewarded) {
           print('✅ [AD DEBUG] User earned reward, executing callback');
+
+          // Track analytics
+          _analytics.logEvent(
+            name: 'rewarded_ad_watched',
+            parameters: {
+              'ad_type': 'stronger',
+              'reward_earned': true,
+            },
+          );
+
           onRewarded();
         }
         // Reload
@@ -320,6 +332,16 @@ class AdService extends GetxService {
         // Execute reward after ad is closed
         if (rewarded) {
           print('✅ [AD DEBUG] User earned Golden Voice reward');
+
+          // Track analytics
+          _analytics.logEvent(
+            name: 'rewarded_ad_watched',
+            parameters: {
+              'ad_type': 'golden_voice',
+              'reward_earned': true,
+            },
+          );
+
           onRewarded();
         }
         print('🔄 [AD DEBUG] Reloading Golden Voice ad...');

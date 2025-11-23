@@ -242,6 +242,49 @@ class StorageService extends GetxService {
     _box.write('last_response', response);
   }
 
+  // ========== CONVERSATION HISTORY (Anti-Repetition) ==========
+
+  // Get last 5 user inputs
+  List<String> getRecentUserInputs() {
+    final inputs = _box.read<List>('recent_user_inputs');
+    if (inputs == null) return [];
+    return inputs.cast<String>().take(5).toList();
+  }
+
+  // Get last 5 AI responses
+  List<String> getRecentAIResponses() {
+    final responses = _box.read<List>('recent_ai_responses');
+    if (responses == null) return [];
+    return responses.cast<String>().take(5).toList();
+  }
+
+  // Add user input to history (keep last 5)
+  void addUserInputToHistory(String input) {
+    final inputs = getRecentUserInputs();
+    inputs.insert(0, input);
+    if (inputs.length > 5) {
+      inputs.removeRange(5, inputs.length);
+    }
+    _box.write('recent_user_inputs', inputs);
+  }
+
+  // Add AI response to history (keep last 5)
+  void addAIResponseToHistory(String response) {
+    final responses = getRecentAIResponses();
+    responses.insert(0, response);
+    if (responses.length > 5) {
+      responses.removeRange(5, responses.length);
+    }
+    _box.write('recent_ai_responses', responses);
+  }
+
+  // Clear conversation history
+  void clearConversationHistory() {
+    _box.remove('recent_user_inputs');
+    _box.remove('recent_ai_responses');
+    print('🔄 [HISTORY] Cleared conversation history');
+  }
+
   // Response cache for offline support (last 20 responses)
   List<Map<String, dynamic>> getCachedResponses() {
     final cached = _box.read('cached_responses');
@@ -296,5 +339,42 @@ class StorageService extends GetxService {
   void setFirstLaunchComplete() {
     _box.write('first_launch', false);
   }
+
+  // ========== 2× STRONGER FEATURE ==========
+
+  // Get remaining uses for 2× stronger feature (resets daily)
+  int getStrongerUsesRemaining() {
+    return _box.read('stronger_uses_remaining') ?? 3;
+  }
+
+  void setStrongerUsesRemaining(int uses) {
+    _box.write('stronger_uses_remaining', uses);
+    print('⚡ [STRONGER] Uses remaining: $uses');
+  }
+
+  // Get last session date (for resetting daily limits)
+  String? getLastSessionDate() {
+    return _box.read('last_session_date');
+  }
+
+  void setLastSessionDate(String date) {
+    _box.write('last_session_date', date);
+    print('📅 [SESSION] Last session date: $date');
+  }
+
+  // Store original response and style for 2× stronger replay
+  void setStrongerOriginalResponse(String response, String style) {
+    _box.write('stronger_original_response', response);
+    _box.write('stronger_original_style', style);
+  }
+
+  String? getStrongerOriginalResponse() {
+    return _box.read('stronger_original_response');
+  }
+
+  String? getStrongerOriginalStyle() {
+    return _box.read('stronger_original_style');
+  }
 }
+
 

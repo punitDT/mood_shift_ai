@@ -100,7 +100,8 @@ class PollyTTSService extends GetxService {
     await stop();
 
     final languageCode = _storage.getLanguageCode();
-    final cacheKey = _getCacheKey(text, languageCode, style);
+    final isGolden = _storage.hasGoldenVoice();
+    final cacheKey = _getCacheKey(text, languageCode, style, isGolden: isGolden);
     final cachedFile = await _getCachedAudio(cacheKey);
 
     // Try to use cached audio first
@@ -129,75 +130,194 @@ class PollyTTSService extends GetxService {
     await _speakWithFallback(text, languageCode, style);
   }
 
+  /// Speak with 2× STRONGER amplification
+  /// Uses SSML for Polly or amplified settings for fallback TTS
   Future<void> speakStronger(String text, MoodStyle style) async {
     if (text.isEmpty) return;
 
     await stop();
 
     final languageCode = _storage.getLanguageCode();
-    
-    // For "stronger" mode, always use fallback TTS with amplified settings
-    // (Polly doesn't support real-time pitch/rate changes easily)
+    final cacheKey = _getCacheKey(text, languageCode, style, isStronger: true);
+    final cachedFile = await _getCachedAudio(cacheKey);
+
+    // Try to use cached audio first
+    if (cachedFile != null) {
+      print('🎵 [POLLY] Using cached 2× STRONGER audio');
+      await _playAudioFile(cachedFile);
+      return;
+    }
+
+    // Try Amazon Polly with 2× STRONGER SSML
+    try {
+      final audioFile = await _synthesizeStrongerWithPolly(text, languageCode, style);
+      if (audioFile != null) {
+        await _cacheAudio(cacheKey, audioFile);
+        await _playAudioFile(audioFile);
+        isUsingOfflineMode.value = false;
+        return;
+      }
+    } catch (e) {
+      print('❌ [POLLY] Polly 2× stronger synthesis failed: $e');
+    }
+
+    // Fallback to flutter_tts with amplified settings
+    print('🔄 [POLLY] Using flutter_tts fallback for 2× STRONGER');
     isUsingOfflineMode.value = true;
-    
+
     await _fallbackTts.setVolume(1.0);
-    
+
     final baseRate = _getMoodRate(style);
     final basePitch = _getMoodPitch(style);
-    
+
+    // Amplify by 1.3x for 2× STRONGER effect
     await _fallbackTts.setSpeechRate((baseRate * 1.3).clamp(0.3, 1.0));
     await _fallbackTts.setPitch((basePitch * 1.3).clamp(0.8, 1.5));
     await _setLanguage(languageCode);
-    
+
     await _fallbackTts.speak(text);
+  }
+
+  /// Synthesize 2× STRONGER audio with Polly using amplified SSML
+  Future<File?> _synthesizeStrongerWithPolly(String text, String languageCode, MoodStyle style) async {
+    try {
+      final voiceId = _getPollyVoice(languageCode);
+      final ssmlText = _buildStrongerSSML(text);
+
+      print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId');
+
+      final engines = _pollyEngine == 'neural' ? ['neural', 'standard'] : ['standard'];
+
+      for (final engine in engines) {
+        try {
+          final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
+          final now = DateTime.now().toUtc();
+
+          final requestBody = jsonEncode({
+            'Text': ssmlText,
+            'TextType': 'ssml',
+            'VoiceId': voiceId,
+            'Engine': engine,
+            'OutputFormat': _pollyOutputFormat,
+          });
+
+          final headers = await _generateSigV4Headers(
+            method: 'POST',
+            endpoint: endpoint,
+            body: requestBody,
+            timestamp: now,
+          );
+
+          final response = await http.post(
+            Uri.parse(endpoint),
+            headers: headers,
+            body: requestBody,
+          ).timeout(
+            Duration(seconds: _pollyTimeoutSeconds),
+            onTimeout: () {
+              print('⏱️ [POLLY] 2× STRONGER API timeout after ${_pollyTimeoutSeconds}s');
+              throw Exception('Polly API timeout');
+            },
+          );
+
+          if (response.statusCode == 200) {
+            final tempFile = File('${_cacheDir}/temp_stronger_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
+            await tempFile.writeAsBytes(response.bodyBytes);
+            print('✅ [POLLY] 2× STRONGER audio synthesized successfully with $engine engine');
+            return tempFile;
+          } else if (response.statusCode == 400 && engine == 'neural' && engines.length > 1) {
+            print('⚠️ [POLLY] Neural engine not supported for 2× STRONGER, trying standard...');
+            continue;
+          } else {
+            print('❌ [POLLY] 2× STRONGER API error: ${response.statusCode} - ${response.body}');
+            return null;
+          }
+        } catch (e) {
+          if (engine == 'neural' && engines.length > 1) {
+            print('⚠️ [POLLY] Neural engine failed for 2× STRONGER: $e, trying standard...');
+            continue;
+          }
+          throw e;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print('❌ [POLLY] 2× STRONGER synthesis error: $e');
+      return null;
+    }
   }
 
   Future<File?> _synthesizeWithPolly(String text, String languageCode, MoodStyle style) async {
     try {
       final voiceId = _getPollyVoice(languageCode);
-      final ssmlText = _buildSSML(text, style);
-      
-      print('🎙️ [POLLY] Synthesizing with voice: $voiceId');
-      
-      final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
-      final now = DateTime.now().toUtc();
-      
-      final requestBody = jsonEncode({
-        'Text': ssmlText,
-        'TextType': 'ssml',
-        'VoiceId': voiceId,
-        'Engine': _pollyEngine,
-        'OutputFormat': _pollyOutputFormat,
-      });
-      
-      final headers = await _generateSigV4Headers(
-        method: 'POST',
-        endpoint: endpoint,
-        body: requestBody,
-        timestamp: now,
-      );
-      
-      final response = await http.post(
-        Uri.parse(endpoint),
-        headers: headers,
-        body: requestBody,
-      ).timeout(
-        Duration(seconds: _pollyTimeoutSeconds),
-        onTimeout: () {
-          print('⏱️ [POLLY] API timeout after ${_pollyTimeoutSeconds}s');
-          throw Exception('Polly API timeout');
-        },
-      );
-      
-      if (response.statusCode == 200) {
-        final tempFile = File('${_cacheDir}/temp_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
-        await tempFile.writeAsBytes(response.bodyBytes);
-        print('✅ [POLLY] Audio synthesized successfully');
-        return tempFile;
-      } else {
-        print('❌ [POLLY] API error: ${response.statusCode} - ${response.body}');
-        return null;
+
+      // Use Golden SSML if golden voice is active, otherwise use normal SSML
+      final ssmlText = _storage.hasGoldenVoice()
+          ? _buildGoldenSSML(text, style)
+          : _buildSSML(text, style);
+
+      final voiceMode = _storage.hasGoldenVoice() ? 'GOLDEN' : 'NORMAL';
+      print('🎙️ [POLLY] Synthesizing with voice: $voiceId ($voiceMode mode)');
+
+      // Try with configured engine first (neural), then fallback to standard
+      final engines = _pollyEngine == 'neural' ? ['neural', 'standard'] : ['standard'];
+
+      for (final engine in engines) {
+        try {
+          final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
+          final now = DateTime.now().toUtc();
+
+          final requestBody = jsonEncode({
+            'Text': ssmlText,
+            'TextType': 'ssml',
+            'VoiceId': voiceId,
+            'Engine': engine,
+            'OutputFormat': _pollyOutputFormat,
+          });
+
+          final headers = await _generateSigV4Headers(
+            method: 'POST',
+            endpoint: endpoint,
+            body: requestBody,
+            timestamp: now,
+          );
+
+          final response = await http.post(
+            Uri.parse(endpoint),
+            headers: headers,
+            body: requestBody,
+          ).timeout(
+            Duration(seconds: _pollyTimeoutSeconds),
+            onTimeout: () {
+              print('⏱️ [POLLY] API timeout after ${_pollyTimeoutSeconds}s');
+              throw Exception('Polly API timeout');
+            },
+          );
+
+          if (response.statusCode == 200) {
+            final tempFile = File('${_cacheDir}/temp_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
+            await tempFile.writeAsBytes(response.bodyBytes);
+            print('✅ [POLLY] Audio synthesized successfully with $engine engine');
+            return tempFile;
+          } else if (response.statusCode == 400 && engine == 'neural' && engines.length > 1) {
+            // Neural not supported, try standard engine
+            print('⚠️ [POLLY] Neural engine not supported, trying standard engine...');
+            continue;
+          } else {
+            print('❌ [POLLY] API error: ${response.statusCode} - ${response.body}');
+            return null;
+          }
+        } catch (e) {
+          if (engine == 'neural' && engines.length > 1) {
+            print('⚠️ [POLLY] Neural engine failed: $e, trying standard engine...');
+            continue;
+          }
+          throw e;
+        }
       }
+
+      return null;
     } catch (e) {
       print('❌ [POLLY] Synthesis error: $e');
       return null;
@@ -302,20 +422,68 @@ class PollyTTSService extends GetxService {
 
     switch (style) {
       case MoodStyle.chaosEnergy:
-        prosody = '<prosody rate="fast" pitch="high">$text</prosody>';
+        // Hype: fast, high pitch, energetic
+        prosody = '<prosody rate="fast" pitch="high" volume="loud">$text</prosody>';
         break;
       case MoodStyle.gentleGrandma:
-        prosody = '<prosody rate="slow" pitch="low">$text</prosody>';
+        // Gentle: slow, low pitch, soft
+        prosody = '<prosody rate="slow" pitch="low" volume="soft">$text</prosody>';
         break;
-      default:
-        prosody = text;
+      case MoodStyle.permissionSlip:
+        // Permission: medium pace, formal tone
+        prosody = '<prosody rate="medium" pitch="medium">$text</prosody>';
+        break;
+      case MoodStyle.realityCheck:
+        // Reality: steady, clear, direct
+        prosody = '<prosody rate="medium" pitch="medium" volume="medium">$text</prosody>';
+        break;
+      case MoodStyle.microDare:
+        // Micro Dare: quick, upbeat, encouraging
+        prosody = '<prosody rate="fast" pitch="medium" volume="medium">$text</prosody>';
+        break;
     }
 
     return '<speak>$prosody</speak>';
   }
 
-  String _getCacheKey(String text, String languageCode, MoodStyle style) {
-    final combined = '$text-$languageCode-${style.toString()}';
+  /// Build SSML for 2× STRONGER effect
+  /// Faster rate (1.3x), higher pitch (1.2x), louder volume (1.2x)
+  String _buildStrongerSSML(String text) {
+    // Escape XML special characters
+    final escapedText = _escapeXml(text);
+
+    // 2× STRONGER: rate="130%" pitch="+20%" volume="loud"
+    // Using percentage and semitone notation for better control
+    return '<speak><prosody rate="130%" pitch="+20%" volume="loud">$escapedText</prosody></speak>';
+  }
+
+  /// Build SSML for Golden Voice effect
+  /// Warmer, more empathetic tone with conversational style
+  String _buildGoldenSSML(String text, MoodStyle style) {
+    // Escape XML special characters
+    final escapedText = _escapeXml(text);
+
+    // Golden Voice: slightly slower (90%), slightly higher pitch (+10%), warm volume
+    // Add emphasis on key emotional words
+    String prosody = '<prosody rate="90%" pitch="+10%" volume="medium">$escapedText</prosody>';
+
+    // Wrap in conversational speaking style if supported
+    return '<speak><amazon:domain name="conversational">$prosody</amazon:domain></speak>';
+  }
+
+  /// Escape XML special characters for SSML
+  String _escapeXml(String text) {
+    return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+  }
+
+  String _getCacheKey(String text, String languageCode, MoodStyle style, {bool isStronger = false, bool isGolden = false}) {
+    final modifier = isStronger ? '-stronger' : (isGolden ? '-golden' : '');
+    final combined = '$text-$languageCode-${style.toString()}$modifier';
     return sha256.convert(utf8.encode(combined)).toString();
   }
 

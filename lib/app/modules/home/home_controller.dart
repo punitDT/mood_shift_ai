@@ -11,6 +11,7 @@ import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
+import '../../controllers/rewarded_controller.dart';
 import '../../routes/app_routes.dart';
 
 enum AppState {
@@ -29,6 +30,7 @@ class HomeController extends GetxController {
   final RemoteConfigService _remoteConfig = Get.find<RemoteConfigService>();
   late final AdFreeController _adFreeController;
   late final StreakController _streakController;
+  late final RewardedController _rewardedController;
 
   final currentState = AppState.idle.obs;
   final statusText = 'hold_to_speak'.obs;
@@ -36,13 +38,15 @@ class HomeController extends GetxController {
   final todayShifts = 0.obs;
   final showRewardButtons = false.obs;
 
-  // Golden Voice tracking
-  final hasGoldenVoice = false.obs;
-  final goldenTimeRemaining = ''.obs;
+  // Circular progress tracking
+  final listeningProgress = 0.0.obs;
+  final speakingProgress = 0.0.obs;
+  final showLottieAnimation = false.obs;
 
   late ConfettiController confettiController;
-  Timer? _goldenVoiceTimer;
   Timer? _listeningTimeoutTimer;
+  Timer? _listeningProgressTimer;
+  Timer? _speakingProgressTimer;
 
   String? lastResponse;
   MoodStyle? lastStyle;
@@ -53,10 +57,10 @@ class HomeController extends GetxController {
     confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _adFreeController = Get.find<AdFreeController>();
     _streakController = Get.find<StreakController>();
+    _rewardedController = Get.find<RewardedController>();
     _initializeServices();
     _updateStats();
     _checkForceUpdate();
-    _startGoldenVoiceTimer();
   }
 
   // Safe translation helper to prevent range errors
@@ -77,28 +81,6 @@ class HomeController extends GetxController {
   void _updateStats() {
     streakDay.value = _storage.getStreakDay();
     todayShifts.value = _storage.getTodayShifts();
-    _updateGoldenVoiceStatus();
-  }
-
-  void _startGoldenVoiceTimer() {
-    // Update golden voice status every second
-    _goldenVoiceTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _updateGoldenVoiceStatus();
-    });
-  }
-
-  void _updateGoldenVoiceStatus() {
-    hasGoldenVoice.value = _storage.hasGoldenVoice();
-
-    if (hasGoldenVoice.value) {
-      final remaining = _storage.getRemainingGoldenTime();
-      final minutes = remaining.inMinutes;
-      final seconds = remaining.inSeconds % 60;
-      goldenTimeRemaining.value = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-      print('⏱️  [GOLDEN DEBUG] Time remaining: ${goldenTimeRemaining.value}');
-    } else {
-      goldenTimeRemaining.value = '';
-    }
   }
 
   void _checkForceUpdate() {
@@ -135,13 +117,21 @@ class HomeController extends GetxController {
     print('🎤 [MIC DEBUG] Mic pressed - starting listening');
 
     try {
+      // Show Lottie animation for 1 second
+      showLottieAnimation.value = true;
+      await Future.delayed(const Duration(milliseconds: 1000));
+      showLottieAnimation.value = false;
+
       currentState.value = AppState.listening;
       statusText.value = _tr('listening', fallback: 'Listening...');
       showRewardButtons.value = false;
 
-      // Set a timeout to prevent getting stuck in listening state
+      // Start circular progress for listening (120 seconds max)
+      _startListeningProgress();
+
+      // Set a timeout to prevent getting stuck in listening state (120 seconds)
       _listeningTimeoutTimer?.cancel();
-      _listeningTimeoutTimer = Timer(const Duration(seconds: 10), () {
+      _listeningTimeoutTimer = Timer(const Duration(seconds: 120), () {
         print('⏱️  [MIC DEBUG] Listening timeout - resetting to idle');
         if (currentState.value == AppState.listening) {
           _speechService.stopListening();
@@ -153,8 +143,9 @@ class HomeController extends GetxController {
       await _speechService.startListening((recognizedText) async {
         print('🎤 [MIC DEBUG] Speech recognized: $recognizedText');
         _listeningTimeoutTimer?.cancel();
+        _stopListeningProgress();
 
-        if (recognizedText.isEmpty) {
+        if (recognizedText.isEmpty || recognizedText.trim().length < 2) {
           Get.snackbar('Error', _tr('no_speech_detected', fallback: 'No speech detected'));
           _resetToIdle();
           return;
@@ -166,6 +157,7 @@ class HomeController extends GetxController {
       print('❌ [MIC DEBUG] Error starting listening: $e');
       print('❌ [MIC DEBUG] Stack trace: $stackTrace');
       _listeningTimeoutTimer?.cancel();
+      _stopListeningProgress();
       Get.snackbar('Error', 'Failed to start listening. Please try again.');
       _resetToIdle();
     }
@@ -177,6 +169,52 @@ class HomeController extends GetxController {
       await _speechService.stopListening();
       // Don't reset to idle here - wait for the callback or timeout
     }
+  }
+
+  void _startListeningProgress() {
+    listeningProgress.value = 0.0;
+    _listeningProgressTimer?.cancel();
+
+    const maxSeconds = 120;
+    const updateInterval = 100; // Update every 100ms
+    var elapsed = 0;
+
+    _listeningProgressTimer = Timer.periodic(const Duration(milliseconds: updateInterval), (timer) {
+      elapsed += updateInterval;
+      listeningProgress.value = (elapsed / (maxSeconds * 1000)).clamp(0.0, 1.0);
+
+      if (elapsed >= maxSeconds * 1000) {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _stopListeningProgress() {
+    _listeningProgressTimer?.cancel();
+    listeningProgress.value = 0.0;
+  }
+
+  void _startSpeakingProgress(int estimatedDurationMs) {
+    speakingProgress.value = 0.0;
+    _speakingProgressTimer?.cancel();
+
+    const updateInterval = 100; // Update every 100ms
+    var elapsed = 0;
+
+    _speakingProgressTimer = Timer.periodic(const Duration(milliseconds: updateInterval), (timer) {
+      elapsed += updateInterval;
+      speakingProgress.value = (elapsed / estimatedDurationMs).clamp(0.0, 1.0);
+
+      if (elapsed >= estimatedDurationMs || !_ttsService.isSpeaking.value) {
+        timer.cancel();
+        speakingProgress.value = 0.0;
+      }
+    });
+  }
+
+  void _stopSpeakingProgress() {
+    _speakingProgressTimer?.cancel();
+    speakingProgress.value = 0.0;
   }
 
   Future<void> _processUserInput(String userInput) async {
@@ -193,7 +231,7 @@ class HomeController extends GetxController {
         }
       });
 
-      // Get AI response from Groq
+      // Get AI response from Groq (with history tracking built-in)
       final languageCode = _storage.getLanguageCode();
       print('🎤 [MIC DEBUG] Processing input with language: $languageCode');
 
@@ -220,6 +258,16 @@ class HomeController extends GetxController {
         statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
       }
 
+      // Estimate speaking duration (60 seconds max, ~150 words per minute)
+      final wordCount = response.split(' ').length;
+      final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 60).toInt();
+      final estimatedMs = estimatedSeconds * 1000;
+
+      print('🎙️ [TTS DEBUG] Estimated speaking time: ${estimatedSeconds}s for $wordCount words');
+
+      // Start speaking progress
+      _startSpeakingProgress(estimatedMs);
+
       await _ttsService.speak(response, lastStyle!);
 
       // Wait for TTS to complete
@@ -228,10 +276,14 @@ class HomeController extends GetxController {
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
+      // Stop speaking progress
+      _stopSpeakingProgress();
+
       // Shift completed!
       _onShiftCompleted();
     } catch (e, stackTrace) {
       slowResponseTimer?.cancel();
+      _stopSpeakingProgress();
       print('❌ [MIC DEBUG] Error processing input: $e');
       print('❌ [MIC DEBUG] Stack trace: $stackTrace');
       Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));
@@ -267,6 +319,11 @@ class HomeController extends GetxController {
     try {
       currentState.value = AppState.idle;
       statusText.value = _tr('hold_to_speak', fallback: 'Hold to Speak');
+
+      // Clean up all timers and progress
+      _stopListeningProgress();
+      _stopSpeakingProgress();
+      showLottieAnimation.value = false;
     } catch (e) {
       print('❌ [MIC DEBUG] Error in _resetToIdle: $e');
       currentState.value = AppState.idle;
@@ -275,29 +332,66 @@ class HomeController extends GetxController {
   }
 
   // Rewarded Ad Actions
-  void onMakeStronger() {
-    _adService.showRewardedAdStronger(() {
-      // Replay 2x stronger
+  Future<void> onMakeStronger() async {
+    // Check if user has uses remaining
+    if (!_rewardedController.canUseStronger()) {
+      return; // Controller will show limit reached snackbar
+    }
+
+    _adService.showRewardedAdStronger(() async {
+      // User watched ad - now generate and play 2× stronger response
       if (lastResponse != null && lastStyle != null) {
-        _ttsService.speakStronger(lastResponse!, lastStyle!);
-        confettiController.play();
+        try {
+          // Use the stronger use
+          _rewardedController.useStronger();
+
+          // Play visual effects (orange flash + power overlay)
+          _rewardedController.playStrongerEffects();
+
+          // Show power activated overlay
+          Get.snackbar(
+            '⚡ 2× POWER ACTIVATED! ⚡',
+            'Amplifying your response...',
+            backgroundColor: Colors.orange.withOpacity(0.9),
+            colorText: Colors.white,
+            icon: const Icon(Icons.bolt, color: Colors.white),
+            duration: const Duration(seconds: 2),
+          );
+
+          // Generate 2× stronger response from LLM
+          final languageCode = _storage.getLanguageCode();
+          final strongerResponse = await _llmService.generateStrongerResponse(
+            lastResponse!,
+            languageCode,
+          );
+
+          // Play confetti
+          confettiController.play();
+
+          // Speak the stronger response with amplified TTS
+          await _ttsService.speakStronger(strongerResponse, lastStyle!);
+
+          print('⚡ [STRONGER] 2× stronger response played successfully');
+        } catch (e) {
+          print('❌ [STRONGER] Error: $e');
+          Get.snackbar(
+            'Error',
+            'Failed to generate 2× stronger response',
+            backgroundColor: Colors.red.withOpacity(0.9),
+            colorText: Colors.white,
+          );
+        }
       }
     });
   }
 
-  void onUnlockGolden() {
-    _adService.showRewardedAdGolden(() {
-      _storage.setGoldenVoice1Hour();
-      _updateGoldenVoiceStatus();
+  Future<void> onUnlockGolden() async {
+    _adService.showRewardedAdGolden(() async {
+      // Activate golden voice
+      await _rewardedController.activateGoldenVoice();
+
+      // Play confetti
       confettiController.play();
-      Get.snackbar(
-        '✨ Golden Voice Unlocked!',
-        '1 hour of premium warm voice activated',
-        backgroundColor: Colors.amber.withOpacity(0.9),
-        colorText: Colors.black,
-        icon: const Icon(Icons.star, color: Colors.amber),
-        duration: const Duration(seconds: 3),
-      );
     });
   }
 
@@ -327,8 +421,9 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
-    _goldenVoiceTimer?.cancel();
     _listeningTimeoutTimer?.cancel();
+    _listeningProgressTimer?.cancel();
+    _speakingProgressTimer?.cancel();
     confettiController.dispose();
     super.onClose();
   }

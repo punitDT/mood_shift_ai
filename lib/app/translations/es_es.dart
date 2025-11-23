@@ -2,7 +2,7 @@ const Map<String, String> esES = {
   'app_name': 'MoodShift AI',
   'loading': 'Cargando...',
   'hold_to_speak': 'Mantén para hablar',
-  'mic_instruction': 'Mantén y comparte lo que piensas — siéntete mejor en 10 segundos',
+  'mic_instruction': 'Mantén el micrófono y di cualquier cosa — siéntete mejor en 10 segundos',
   'listening': 'Escuchando...',
   'processing': 'Procesando...',
   'speaking': 'IA está respondiendo...',

@@ -2,7 +2,7 @@ const Map<String, String> deDE = {
   'app_name': 'MoodShift AI',
   'loading': 'Wird geladen...',
   'hold_to_speak': 'Halten zum Sprechen',
-  'mic_instruction': 'Halten und teilen Sie, was Ihnen durch den Kopf geht — fühlen Sie sich in 10 Sekunden besser',
+  'mic_instruction': 'Halten Sie das Mikrofon und sagen Sie etwas — fühlen Sie sich in 10 Sekunden besser',
   'listening': 'Hört zu...',
   'processing': 'Verarbeitung...',
   'speaking': 'KI antwortet...',

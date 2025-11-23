@@ -8,6 +8,7 @@ import 'home_controller.dart';
 import '../../services/ad_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
+import '../../controllers/rewarded_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -15,6 +16,7 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final adService = Get.find<AdService>();
+    final rewardedController = Get.find<RewardedController>();
 
     return Scaffold(
       body: Stack(
@@ -35,6 +37,45 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
           ),
+
+          // 2× STRONGER Orange Flash Effect
+          Obx(() => rewardedController.showStrongerFlash.value
+              ? Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.orange.withOpacity(0.3),
+                )
+              : const SizedBox.shrink()),
+
+          // Golden Voice Sparkle Animation
+          Obx(() => rewardedController.showGoldenSparkle.value
+              ? Center(
+                  child: SizedBox(
+                    width: 200.w,
+                    height: 200.w,
+                    child: Lottie.asset(
+                      'assets/animations/sparkle.json',
+                      repeat: false,
+                      animate: true,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to simple golden glow
+                        return Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFD4AF37).withOpacity(0.5),
+                                blurRadius: 100,
+                                spreadRadius: 50,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink()),
 
           // Main Content
           SafeArea(
@@ -129,6 +170,47 @@ class HomeView extends GetView<HomeController> {
             ),
           ),
 
+          // 2× STRONGER Power Overlay
+          Obx(() => rewardedController.showStrongerOverlay.value
+              ? Center(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 20.h),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(20.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.5),
+                          blurRadius: 30,
+                          spreadRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bolt,
+                          color: Colors.white,
+                          size: 60.sp,
+                        ),
+                        SizedBox(height: 12.h),
+                        Text(
+                          '⚡ 2× POWER ACTIVATED! ⚡',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink()),
+
           // Bottom Sheet for Superpower Buttons (appears after shift)
           Obx(() => controller.showRewardButtons.value
               ? _buildSuperpowerBottomSheet()
@@ -140,13 +222,52 @@ class HomeView extends GetView<HomeController> {
 
   // Minimal top bar - clean and spacious
   Widget _buildMinimalTopBar() {
+    final rewardedController = Get.find<RewardedController>();
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Empty space for balance
-          SizedBox(width: 24.w),
+          // Golden Voice Timer (left side)
+          Obx(() {
+            final timerText = rewardedController.getGoldenTimerDisplay();
+            if (timerText.isEmpty) {
+              return SizedBox(width: 24.w);
+            }
+
+            return Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: const Color(0xFFD4AF37).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.star,
+                    color: const Color(0xFFD4AF37),
+                    size: 14.sp,
+                  ),
+                  SizedBox(width: 6.w),
+                  Text(
+                    timerText,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: const Color(0xFFD4AF37),
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
 
           // App name - centered, clean sans-serif
           Text(
@@ -229,21 +350,65 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // Premium mic button - elegant, soft glow, breathing animation with Lottie
+  // Premium mic button - elegant, soft glow, breathing animation with Lottie and circular progress
   Widget _buildPremiumMicButton() {
+    final rewardedController = Get.find<RewardedController>();
+
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
-      final isGolden = controller.hasGoldenVoice.value;
+      final isSpeaking = controller.currentState.value == AppState.speaking;
+      final isGolden = rewardedController.hasGoldenVoice.value;
+      final showGoldenGlow = rewardedController.showGoldenGlow.value;
+      final listeningProgress = controller.listeningProgress.value;
+      final speakingProgress = controller.speakingProgress.value;
+      final showLottie = controller.showLottieAnimation.value;
 
       return GestureDetector(
         onTapDown: (_) => controller.onMicPressed(),
         onTapUp: (_) => controller.onMicReleased(),
         onTapCancel: () => controller.onMicReleased(),
-        child: _BreathingMicButton(
-          isListening: isListening,
-          isActive: isActive,
-          isGolden: isGolden,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Circular progress for listening (120s max)
+            if (isListening && listeningProgress > 0)
+              SizedBox(
+                width: 160.w,
+                height: 160.w,
+                child: CircularProgressIndicator(
+                  value: listeningProgress,
+                  strokeWidth: 4.w,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    const Color(0xFF6B4FBB).withOpacity(0.8),
+                  ),
+                ),
+              ),
+
+            // Circular progress for speaking (60s max)
+            if (isSpeaking && speakingProgress > 0)
+              SizedBox(
+                width: 160.w,
+                height: 160.w,
+                child: CircularProgressIndicator(
+                  value: speakingProgress,
+                  strokeWidth: 4.w,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    const Color(0xFF4A90E2).withOpacity(0.8),
+                  ),
+                ),
+              ),
+
+            // Main mic button
+            _BreathingMicButton(
+              isListening: isListening,
+              isActive: isActive,
+              isGolden: isGolden,
+              showLottie: showLottie,
+            ),
+          ],
         ),
       );
     });
@@ -306,36 +471,27 @@ class HomeView extends GetView<HomeController> {
 
                       SizedBox(height: 20.h),
 
-                      // Title
-                      Text(
-                        'Superpowers',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          color: const Color(0xFFA0A0FF), // Soft lavender
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-
                       // Superpower cards
                       Obx(() {
-                        final isGolden = controller.hasGoldenVoice.value;
+                        final rewardedController = Get.find<RewardedController>();
+                        final isGolden = rewardedController.hasGoldenVoice.value;
                         final isAdFree = adFreeController.isAdFree.value;
+                        final strongerUsesRemaining = rewardedController.strongerUsesRemaining.value;
 
                         return Column(
                           children: [
                             _buildSuperpowerCard(
-                              '2× Stronger',
+                              strongerUsesRemaining > 0
+                                  ? '2× Stronger ($strongerUsesRemaining left)'
+                                  : '2× Stronger (0 left)',
                               Icons.bolt_outlined,
-                              controller.onMakeStronger,
-                              isActive: false,
+                              strongerUsesRemaining > 0 ? controller.onMakeStronger : null,
+                              isActive: strongerUsesRemaining == 0,
                             ),
                             SizedBox(height: 12.h),
                             _buildSuperpowerCard(
                               isGolden
-                                  ? 'Golden Voice • ${controller.goldenTimeRemaining.value}'
+                                  ? 'Golden Voice • ${rewardedController.goldenTimeRemaining.value}'
                                   : 'Golden Voice',
                               Icons.star_outline_rounded,
                               isGolden ? null : controller.onUnlockGolden,
@@ -449,11 +605,13 @@ class _BreathingMicButton extends StatefulWidget {
   final bool isListening;
   final bool isActive;
   final bool isGolden;
+  final bool showLottie;
 
   const _BreathingMicButton({
     required this.isListening,
     required this.isActive,
     required this.isGolden,
+    this.showLottie = false,
   });
 
   @override
@@ -539,8 +697,8 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                   ],
                 ),
               ),
-              // Lottie animation overlay when listening
-              if (widget.isListening)
+              // Lottie animation overlay when showing animation or listening
+              if (widget.showLottie || widget.isListening)
                 SizedBox(
                   width: 100.w,
                   height: 100.w,

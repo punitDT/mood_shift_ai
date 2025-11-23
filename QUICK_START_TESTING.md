@@ -1,312 +1,269 @@
-# ⚡ Quick Start Testing Guide
-## Test Both Features in 10 Minutes
+# 🚀 Quick Start Testing Guide - Rewarded Features
+
+## Prerequisites
+
+1. **Install dependencies:**
+   ```bash
+   flutter pub get
+   ```
+
+2. **Verify `.env` file has required keys:**
+   ```env
+   # Groq LLM API
+   GROQ_API_KEY=your_groq_api_key_here
+   
+   # AWS Polly TTS
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   AWS_REGION=us-east-1
+   
+   # AdMob Test IDs (already configured)
+   ADMOB_ANDROID_REWARDED_AD_UNIT_ID=ca-app-pub-3940256099942544/5224354917
+   ADMOB_IOS_REWARDED_AD_UNIT_ID=ca-app-pub-3940256099942544/1712485313
+   ```
+
+3. **Run the app:**
+   ```bash
+   flutter run
+   ```
 
 ---
 
-## 🎯 GOAL
+## ⚡ Test 2× Stronger Feature (5 minutes)
 
-Verify that:
-1. ✅ Interstitial ad shows ONLY on 4th, 8th, 12th shifts
-2. ✅ Golden Voice unlocks for 1 hour with timer and visual effects
+### Step 1: Complete a Mood Shift
+1. Hold the mic button
+2. Say something like: "I'm feeling tired and unmotivated"
+3. Release the mic button
+4. Wait for AI response to play
 
----
+### Step 2: Use 2× Stronger
+1. Bottom sheet appears with "2× Stronger (3 left)" button
+2. Tap the button
+3. **Watch the test rewarded ad** (it's a test ad, so it's quick)
+4. Ad closes automatically
 
-## 📋 PREREQUISITES (1 minute)
+### Step 3: Verify Visual Effects ✅
+- [ ] Orange flash covers screen briefly
+- [ ] "⚡ 2× POWER ACTIVATED! ⚡" overlay appears in center
+- [ ] Confetti animation plays
+- [ ] Button now shows "2× Stronger (2 left)"
 
-```bash
-# 1. Ensure code is up to date
-git pull
+### Step 4: Verify Audio Response ✅
+- [ ] New response is generated (different from original)
+- [ ] Response has more caps, emojis, exclamation marks
+- [ ] Voice is noticeably faster, higher pitch, louder
+- [ ] Response feels "2× stronger" in energy
 
-# 2. Clean build
-flutter clean
-flutter pub get
-
-# 3. Build for device
-flutter run --release
-```
-
-**Device Requirements:**
-- Real Android or iOS device (not emulator)
-- Internet connection (for ads)
-- Clear app data before testing
-
----
-
-## 🧪 AUTOMATED TESTS (2 minutes)
-
-### Run the Test Suite
-
-```bash
-flutter test test/features_test.dart -r expanded
-```
-
-### Expected Output
-
-```
-✅ FEATURE 1: Interstitial Ad Counter Logic
-  ✅ Counter starts at 0
-  ✅ Counter increments correctly for 7 shifts
-  ✅ Interstitial should show ONLY on 4th shift
-  ✅ Counter persists across service restarts
-  ✅ Counter resets correctly after 4th shift
-  ✅ Verify counter never shows ad on 1st, 2nd, 3rd, 5th, 6th, 7th shifts
-
-✅ FEATURE 2: Golden Voice Timer Logic
-  ✅ Golden voice initially inactive
-  ✅ Golden voice activates for 1 hour
-  ✅ Golden voice timer counts down
-  ✅ Golden voice timer format is correct
-  ✅ Golden voice persists across service restarts
-  ✅ Golden voice expires after 1 hour
-  ✅ Golden voice can be renewed after expiration
-  ✅ Clear golden voice works correctly
-
-✅ INTEGRATION: Both Features Together
-  ✅ Simulate 4 shifts with golden voice unlock on 4th
-
-All tests passed! ✅
-```
-
-**If all tests pass → Continue to manual testing**
-**If any test fails → Check DEBUG_REFERENCE.md**
+### Step 5: Test Usage Limit ✅
+1. Complete 2 more mood shifts
+2. Use 2× Stronger on each (watch 2 more ads)
+3. Complete a 4th mood shift
+4. Tap "2× Stronger (0 left)" button
+5. **Verify:** Snackbar appears: "⚡ Limit Reached"
+6. **Verify:** No ad is shown
 
 ---
 
-## 📱 MANUAL TESTING (7 minutes)
+## ✨ Test Golden Voice Feature (5 minutes)
 
-### PART 1: Interstitial Ad (3 minutes)
+### Step 1: Activate Golden Voice
+1. Complete a mood shift
+2. Bottom sheet appears with "Golden Voice" button
+3. Tap the button
+4. **Watch the test rewarded ad**
+5. Ad closes automatically
 
-#### Step 1: Clear App Data
-- Android: Settings → Apps → MoodShift AI → Storage → Clear Data
-- iOS: Uninstall and reinstall
-
-#### Step 2: Complete 4 Shifts
-Open app and complete 4 shifts quickly:
-
-```
-Shift 1: "I feel stressed"        → ❌ No ad
-Shift 2: "I'm feeling better"     → ❌ No ad
-Shift 3: "Tell me something"      → ❌ No ad
-Shift 4: "I need motivation"      → ✅ INTERSTITIAL AD SHOWS
-```
-
-#### Step 3: Verify Debug Logs
-Check console for:
-```
-🎯 [AD DEBUG] Shift counter: 1
-🎯 [AD DEBUG] Shift counter: 2
-🎯 [AD DEBUG] Shift counter: 3
-🎯 [AD DEBUG] Shift counter: 4
-✅ [AD DEBUG] Showing interstitial ad on shift #4
-```
-
-#### Step 4: Test Persistence
-```
-1. Complete 2 more shifts (counter = 2)
-2. Close app completely
-3. Reopen app
-4. Complete 2 more shifts (counter = 4)
-5. Verify: Ad shows on 4th shift (not 2nd after restart)
-```
-
-**✅ PASS if:**
-- Ad shows ONLY on 4th shift
-- No ad on 1st, 2nd, 3rd shifts
-- Counter persists after restart
-
----
-
-### PART 2: Golden Voice (4 minutes)
-
-#### Step 1: Unlock Golden Voice
-```
-1. Complete 1 shift (to show reward buttons)
-2. Tap "Unlock Golden Voice 1 hour" button
-3. Watch test rewarded ad to completion
-4. Close ad
-```
-
-#### Step 2: Verify Immediate Effects
-**Check these appear instantly:**
-
-✅ **Confetti Animation**
-- Confetti particles explode from top
-
-✅ **Snackbar Message**
-- Text: "✨ Golden Voice Unlocked! 1 hour of premium warm voice activated"
-- Amber background
-- Star icon
-
-✅ **Mic Button Changes**
-- Color: Gold gradient (not purple)
-- Glow: Larger, golden sparkle effect
-- Very noticeable difference
-
-✅ **Timer Appears**
-- Badge above mic button
-- Text: "Golden: 59:XX"
-- Star icon in badge
-- Gold gradient background
-
-✅ **Button State Changes**
-- Text: "Golden Active – 59:XX"
-- Disabled (60% opacity)
-- Darker amber color
-
-#### Step 3: Verify Timer Countdown (1 minute)
-```
-1. Watch timer for 60 seconds
-2. Verify it counts down: 59:59 → 59:58 → 59:57...
-3. Check format stays MM:SS
-```
-
-**Debug logs should show:**
-```
-✨ [GOLDEN DEBUG] Golden Voice activated until: [timestamp]
-⏱️  [GOLDEN DEBUG] Time remaining: 59:45
-⏱️  [GOLDEN DEBUG] Time remaining: 59:44
-```
-
-#### Step 4: Verify Voice Quality
-```
-1. Complete a shift while golden voice is active
-2. Listen to TTS response
-3. Voice should sound:
-   - Warmer (higher pitch)
-   - Slower (reduced rate)
-   - More pleasant/premium
-```
-
-#### Step 5: Verify Persistence
-```
-1. Note current timer (e.g., "Golden: 47:23")
-2. Close app completely
-3. Wait 10 seconds
-4. Reopen app
-5. Verify:
-   - Golden glow still visible
-   - Timer shows ~47:13 (10 seconds less)
-   - Timer continues counting down
-```
-
-**✅ PASS if:**
-- All visual effects appear
-- Timer counts down accurately
-- Voice sounds different
-- Timer persists after restart
-
----
-
-## 🎯 QUICK VERIFICATION CHECKLIST
-
-### Feature 1: Interstitial Ad
-- [ ] Ad shows on 4th shift
-- [ ] No ad on 1st, 2nd, 3rd shifts
-- [ ] Counter persists after app restart
-- [ ] Debug logs show correct counter values
-
-### Feature 2: Golden Voice
-- [ ] Rewarded ad plays successfully
-- [ ] Confetti + snackbar appear
-- [ ] Mic turns gold with glow
-- [ ] Timer appears: "Golden: 59:XX"
+### Step 2: Verify Visual Effects ✅
+- [ ] Golden sparkle animation plays (or golden glow fallback)
+- [ ] "✨ Golden Voice Unlocked!" snackbar appears
+- [ ] Golden timer appears in top-left: "Golden: 59:59"
 - [ ] Timer counts down every second
-- [ ] Button text: "Golden Active – XX:XX"
-- [ ] Button disabled during active period
-- [ ] Voice sounds warmer/slower
-- [ ] Timer persists after app restart
+- [ ] Mic button has golden glow effect
+
+### Step 3: Verify Audio Quality ✅
+1. Complete another mood shift
+2. Listen to the response
+3. **Verify:**
+   - [ ] Voice sounds warmer and more empathetic
+   - [ ] Voice is slightly slower than normal
+   - [ ] Voice has conversational style
+   - [ ] Voice feels more premium
+
+### Step 4: Test Persistence ✅
+1. Complete 2-3 more mood shifts
+2. **Verify:**
+   - [ ] Golden voice is used for all shifts
+   - [ ] Timer continues counting down
+   - [ ] Golden glow remains on mic button
 
 ---
 
-## 🐛 TROUBLESHOOTING
+## 🎨 Test Visual Effects (2 minutes)
 
-### Automated Tests Fail
+### Orange Flash (2× Stronger)
+1. Use 2× Stronger
+2. **Verify:**
+   - [ ] Orange flash covers entire screen
+   - [ ] Flash lasts ~300ms
+   - [ ] Flash has 30% opacity
+   - [ ] Flash disappears smoothly
+
+### Power Overlay (2× Stronger)
+1. Use 2× Stronger
+2. **Verify:**
+   - [ ] "⚡ 2× POWER ACTIVATED! ⚡" overlay appears
+   - [ ] Overlay is centered on screen
+   - [ ] Overlay has orange background with glow
+   - [ ] Overlay shows for ~1.5 seconds
+
+### Golden Sparkle Animation
+1. Activate golden voice
+2. **Verify:**
+   - [ ] Sparkle animation plays (or golden glow fallback)
+   - [ ] Animation is centered on screen
+   - [ ] Animation plays for ~2 seconds
+   - [ ] Animation doesn't repeat
+
+### Golden Glow on Mic Button
+1. Activate golden voice
+2. **Verify:**
+   - [ ] Mic button has golden gradient
+   - [ ] Glow is visible and attractive
+   - [ ] Glow persists while golden voice is active
+
+### Confetti Animation
+1. Use 2× Stronger OR activate golden voice
+2. **Verify:**
+   - [ ] Confetti animation plays
+   - [ ] Confetti is visible and celebratory
+   - [ ] Confetti plays for ~3 seconds
+
+---
+
+## 📊 Test Analytics (Optional - 3 minutes)
+
+### Enable Firebase Analytics Debug Mode
+
+**Android:**
 ```bash
-flutter clean
-flutter pub get
-flutter test test/features_test.dart
+adb shell setprop debug.firebase.analytics.app com.moodshift.ai
 ```
 
-### Ads Don't Load
+**iOS:**
+In Xcode, add `-FIRAnalyticsDebugEnabled` to launch arguments.
+
+### Verify Events
+
+1. Use 2× Stronger
+2. Check console for:
+   ```
+   [Analytics] rewarded_ad_watched: {ad_type: stronger, reward_earned: true}
+   [Analytics] stronger_used: {uses_remaining: 2, session_date: 2024-...}
+   ```
+
+3. Activate golden voice
+4. Check console for:
+   ```
+   [Analytics] rewarded_ad_watched: {ad_type: golden_voice, reward_earned: true}
+   [Analytics] golden_voice_activated: {duration_minutes: 60, activation_time: 2024-...}
+   ```
+
+---
+
+## 🐛 Common Issues & Fixes
+
+### Issue: Ads not showing
+**Fix:**
 - Check internet connection
-- Verify test ad IDs in code
-- Check console for ad loading errors
+- Verify AdMob test IDs in `.env`
+- Check console for ad load errors
+- Wait a few seconds and try again
 
-### Timer Not Visible
-- Verify golden voice unlocked (check debug logs)
-- Check `hasGoldenVoice.value` is true
-- Restart app
+### Issue: 2× Stronger sounds normal
+**Fix:**
+- Check Groq API key in `.env`
+- Verify LLM service is initialized
+- Check console for API errors
+- Try again with a different input
 
-### Counter Not Working
-- Clear app data
-- Check debug logs for counter values
-- Verify GetStorage initialized
+### Issue: Golden voice sounds normal
+**Fix:**
+- Verify Polly credentials in `.env`
+- Check if golden voice is actually active (timer visible?)
+- Verify SSML is being applied (check logs)
+- Try restarting the app
 
----
+### Issue: Timer not counting down
+**Fix:**
+- Check if timer is started in `onInit()`
+- Verify storage methods are working
+- Check console for timer errors
+- Try restarting the app
 
-## 📊 EXPECTED RESULTS
-
-### All Tests Pass ✅
-```
-Automated Tests: 15/15 passed
-Manual Tests: All features work correctly
-Debug Logs: Show correct behavior
-```
-
-### Ready for Production ✅
-- Interstitial shows only on 4th, 8th, 12th shifts
-- Golden voice unlocks with full UI effects
-- Timer counts down and persists
-- Voice quality changes are noticeable
-
----
-
-## 📞 NEXT STEPS
-
-### If All Tests Pass ✅
-1. Review `IMPLEMENTATION_SUMMARY.md` for details
-2. Deploy to production
-3. Monitor analytics for ad impressions
-
-### If Any Test Fails ❌
-1. Check `DEBUG_REFERENCE.md` for troubleshooting
-2. Review `MANUAL_TEST_PLAN.md` for detailed steps
-3. Check debug logs for error messages
-4. Verify all code changes applied
+### Issue: Visual effects not showing
+**Fix:**
+- Check if `RewardedController` is initialized
+- Verify `Obx()` widgets are wrapping the effects
+- Check console for errors
+- Try restarting the app
 
 ---
 
-## 📁 DOCUMENTATION
+## ✅ Final Checklist
 
-**Quick Reference:**
-- `QUICK_START_TESTING.md` ← You are here
-- `IMPLEMENTATION_SUMMARY.md` - Complete overview
-- `MANUAL_TEST_PLAN.md` - Detailed test cases
-- `VERIFICATION_SCRIPT.md` - Verification guide
-- `DEBUG_REFERENCE.md` - Debug help
+Before considering the feature complete, verify:
 
-**Test Files:**
-- `test/features_test.dart` - Automated tests
+### 2× Stronger
+- [ ] Ad shows and rewards user
+- [ ] Orange flash appears
+- [ ] Power overlay appears
+- [ ] Confetti plays
+- [ ] New response is generated
+- [ ] Voice is amplified (faster, higher, louder)
+- [ ] Usage limit works (3/session)
+- [ ] Button updates correctly
+- [ ] Analytics events logged
 
-**Modified Code:**
-- `lib/app/services/ad_service.dart`
-- `lib/app/services/storage_service.dart`
-- `lib/app/modules/home/home_controller.dart`
-- `lib/app/modules/home/home_view.dart`
+### Golden Voice
+- [ ] Ad shows and rewards user
+- [ ] Sparkle animation plays
+- [ ] Timer appears and counts down
+- [ ] Mic button has golden glow
+- [ ] Voice is warmer and empathetic
+- [ ] Feature persists across shifts
+- [ ] Timer expires correctly
+- [ ] Analytics events logged
+
+### Visual Effects
+- [ ] Orange flash (2× stronger)
+- [ ] Power overlay (2× stronger)
+- [ ] Golden sparkle (golden voice)
+- [ ] Golden glow (golden voice)
+- [ ] Confetti (both features)
+
+### Edge Cases
+- [ ] Ad fails to load → retry works
+- [ ] LLM API fails → fallback works
+- [ ] Caching works correctly
+- [ ] App restart preserves state
+- [ ] Session reset works (next day)
 
 ---
 
-## ✅ SUCCESS CRITERIA
+## 🎉 Success!
 
-**Both features work 100% correctly if:**
+If all tests pass, the rewarded features are **100% working, beautiful, and addictive**!
 
-1. ✅ Automated tests: 15/15 pass
-2. ✅ Interstitial shows ONLY on 4th, 8th, 12th shifts
-3. ✅ Golden voice unlocks with all visual effects
-4. ✅ Timer displays and counts down accurately
-5. ✅ Both features persist across app restarts
-6. ✅ Debug logs confirm correct behavior
+Users should be **spamming these buttons happily** because:
+1. ✅ Visual effects are **magical** (flash, overlay, sparkle, glow)
+2. ✅ Audio quality is **noticeably better** (2× stronger + golden voice)
+3. ✅ Rewards are **instant** (no waiting)
+4. ✅ Limits create **urgency** (3/day for 2× stronger)
+5. ✅ Timer creates **engagement** (golden voice countdown)
+6. ✅ Analytics track **everything** (for profit optimization)
 
-**Total Testing Time: ~10 minutes**
-**Expected Result: All features working perfectly** 🎉
+---
+
+Made with ❤️ for MoodShift AI
 

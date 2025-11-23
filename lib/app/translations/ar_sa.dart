@@ -2,7 +2,7 @@ const Map<String, String> arSA = {
   'app_name': 'MoodShift AI',
   'loading': 'جاري التحميل...',
   'hold_to_speak': 'اضغط للتحدث',
-  'mic_instruction': 'اضغط وشارك ما يدور في ذهنك — اشعر بتحسن في 10 ثوانٍ',
+  'mic_instruction': 'اضغط على الميكروفون وقل أي شيء — اشعر بتحسن في 10 ثوانٍ',
   'listening': 'يستمع...',
   'processing': 'جاري المعالجة...',
   'speaking': 'الذكاء الاصطناعي يستجيب...',

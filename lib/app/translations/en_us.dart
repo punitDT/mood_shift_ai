@@ -7,7 +7,7 @@ const Map<String, String> enUS = {
   
   // Home
   'hold_to_speak': 'Hold to Speak',
-  'mic_instruction': 'Hold & share whatever\'s on your mind — feel better in 10 seconds',
+  'mic_instruction': 'Hold the mic & say anything — feel better in 10 seconds',
   'listening': 'Listening...',
   'processing': 'Processing...',
   'speaking': 'AI is responding...',
