@@ -33,11 +33,11 @@ class TTSService extends GetxService {
 
     // Set default values
     await _tts.setVolume(1.0);
-    await _tts.setSpeechRate(0.5);
+    await _tts.setSpeechRate(0.42); // Reduced from 0.5 for more natural pace
     await _tts.setPitch(1.0);
   }
 
-  Future<void> speak(String text, MoodStyle style) async {
+  Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
 
     // Stop any ongoing speech
@@ -47,14 +47,14 @@ class TTSService extends GetxService {
     final languageCode = _storage.getLanguageCode();
     await _setLanguage(languageCode);
 
-    // Apply mood-based voice modulation
-    await _applyMoodStyle(style);
+    // Apply LLM-provided prosody
+    await _applyProsody(prosody);
 
     // Speak
     await _tts.speak(text);
   }
 
-  Future<void> speakStronger(String text, MoodStyle style) async {
+  Future<void> speakStronger(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -64,11 +64,11 @@ class TTSService extends GetxService {
 
     // Make it 2x stronger - increase volume, rate, and pitch
     await _tts.setVolume(1.0);
-    
-    // Get base values for style
-    final baseRate = _getMoodRate(style);
-    final basePitch = _getMoodPitch(style);
-    
+
+    // Get base values from LLM prosody
+    final baseRate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
+    final basePitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
+
     // Amplify by 1.3x (not too much to avoid distortion)
     await _tts.setSpeechRate((baseRate * 1.3).clamp(0.3, 1.0));
     await _tts.setPitch((basePitch * 1.3).clamp(0.8, 1.5));
@@ -111,10 +111,11 @@ class TTSService extends GetxService {
     await _tts.setLanguage(language);
   }
 
-  Future<void> _applyMoodStyle(MoodStyle style) async {
-    final rate = _getMoodRate(style);
-    final pitch = _getMoodPitch(style);
-    
+  /// Apply LLM-provided prosody settings
+  Future<void> _applyProsody(Map<String, String>? prosody) async {
+    final rate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
+    final pitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
+
     // Golden voice - warmer, slower, more pleasant
     if (_storage.hasGoldenVoice()) {
       await _tts.setSpeechRate(rate * 0.9);
@@ -125,33 +126,23 @@ class TTSService extends GetxService {
     }
   }
 
-  double _getMoodRate(MoodStyle style) {
-    switch (style) {
-      case MoodStyle.chaosEnergy:
-        return 0.65; // Fast, energetic
-      case MoodStyle.gentleGrandma:
-        return 0.4; // Slow, calming
-      case MoodStyle.permissionSlip:
-        return 0.5; // Moderate, formal
-      case MoodStyle.realityCheck:
-        return 0.55; // Steady, clear
-      case MoodStyle.microDare:
-        return 0.6; // Quick, actionable
+  /// Convert LLM rate (slow/medium/fast) to numeric value
+  double _convertRateToNumeric(String rate) {
+    switch (rate.toLowerCase()) {
+      case 'slow': return 0.35;
+      case 'fast': return 0.50;
+      case 'medium':
+      default: return 0.42;
     }
   }
 
-  double _getMoodPitch(MoodStyle style) {
-    switch (style) {
-      case MoodStyle.chaosEnergy:
-        return 1.2; // Higher, excited
-      case MoodStyle.gentleGrandma:
-        return 0.9; // Lower, soothing
-      case MoodStyle.permissionSlip:
-        return 1.0; // Normal, official
-      case MoodStyle.realityCheck:
-        return 1.0; // Normal, honest
-      case MoodStyle.microDare:
-        return 1.1; // Slightly higher, motivating
+  /// Convert LLM pitch (low/medium/high) to numeric value
+  double _convertPitchToNumeric(String pitch) {
+    switch (pitch.toLowerCase()) {
+      case 'low': return 0.9;
+      case 'high': return 1.2;
+      case 'medium':
+      default: return 1.0;
     }
   }
 

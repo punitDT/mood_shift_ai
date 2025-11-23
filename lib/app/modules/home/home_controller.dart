@@ -246,7 +246,8 @@ class HomeController extends GetxController {
 
       // Save response for 2x stronger feature
       lastResponse = response;
-      lastStyle = _llmService.getRandomStyle();
+      lastStyle = _llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
+      final prosody = _llmService.getLastProsody();
       _storage.setLastResponse(response);
 
       // Speak response
@@ -258,9 +259,9 @@ class HomeController extends GetxController {
         statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
       }
 
-      // Estimate speaking duration (60 seconds max, ~150 words per minute)
+      // Estimate speaking duration (30 seconds max, ~150 words per minute)
       final wordCount = response.split(' ').length;
-      final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 60).toInt();
+      final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
       final estimatedMs = estimatedSeconds * 1000;
 
       print('🎙️ [TTS DEBUG] Estimated speaking time: ${estimatedSeconds}s for $wordCount words');
@@ -268,7 +269,7 @@ class HomeController extends GetxController {
       // Start speaking progress
       _startSpeakingProgress(estimatedMs);
 
-      await _ttsService.speak(response, lastStyle!);
+      await _ttsService.speak(response, lastStyle!, prosody: prosody);
 
       // Wait for TTS to complete
       await Future.delayed(const Duration(milliseconds: 500));
@@ -365,11 +366,14 @@ class HomeController extends GetxController {
             languageCode,
           );
 
+          // Get prosody for stronger response
+          final prosody = _llmService.getLastProsody();
+
           // Play confetti
           confettiController.play();
 
           // Speak the stronger response with amplified TTS
-          await _ttsService.speakStronger(strongerResponse, lastStyle!);
+          await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody);
 
           print('⚡ [STRONGER] 2× stronger response played successfully');
         } catch (e) {

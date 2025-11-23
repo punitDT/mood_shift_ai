@@ -47,16 +47,13 @@ class AIService extends GetxService {
         final data = jsonDecode(response.body);
         if (data is List && data.isNotEmpty) {
           String generatedText = data[0]['generated_text'] ?? '';
-          
+
           // Extract only the response part (after the prompt)
           if (generatedText.contains('RESPONSE:')) {
             generatedText = generatedText.split('RESPONSE:').last.trim();
           }
-          
-          // Clean up and limit length
-          generatedText = _cleanResponse(generatedText);
-          
-          return generatedText;
+
+          return generatedText.trim();
         }
       }
       
@@ -105,19 +102,6 @@ RESPONSE:''';
       case MoodStyle.microDare:
         return 'MICRO DARE - Give them one tiny, specific action to do in the next 60 seconds. Make it simple, achievable, and slightly fun.';
     }
-  }
-
-  String _cleanResponse(String response) {
-    // Remove any remaining prompt artifacts
-    response = response.trim();
-    
-    // Limit to reasonable length (max 100 words)
-    final words = response.split(' ');
-    if (words.length > 100) {
-      response = words.take(100).join(' ') + '...';
-    }
-    
-    return response;
   }
 
   String _getFallbackResponse(MoodStyle style, String language) {

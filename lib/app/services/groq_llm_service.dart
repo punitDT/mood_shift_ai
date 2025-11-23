@@ -19,6 +19,12 @@ class GroqLLMService extends GetxService {
   late final int _maxResponseWords;
   late final StorageService _storage;
 
+  // Track the last selected style for the 2x stronger feature
+  MoodStyle? _lastSelectedStyle;
+
+  // Track the last prosody settings from LLM
+  Map<String, String> _lastProsody = {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
+
   @override
   void onInit() {
     super.onInit();
@@ -63,13 +69,10 @@ class GroqLLMService extends GetxService {
     }
 
     try {
-      // Randomly select a mood style (rotate to avoid repetition)
-      final style = _getRotatedStyle();
+      // Build the prompt that asks LLM to determine the style
+      final prompt = _buildPromptWithStyleSelection(userInput, language);
 
-      // Build the prompt with safety, style, and history
-      final prompt = _buildPrompt(userInput, style, language);
-
-      print('🤖 [GROQ] Calling Groq API with model: $_model, style: $style');
+      print('🤖 [GROQ] Calling Groq API with model: $_model (LLM will determine style)');
 
       final response = await http.post(
         Uri.parse(_groqApiUrl),
@@ -82,7 +85,7 @@ class GroqLLMService extends GetxService {
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI, a compassionate ADHD companion. Keep responses under 2 minutes when spoken (maximum 300 words). Be warm, supportive, and actionable. CRITICAL: Respond ONLY in the language specified by the user. Do not mix languages.',
+              'content': 'You are MoodShift AI, a compassionate ADHD companion. You analyze user input and select the most appropriate coaching style, then respond in that style. Your response will be spoken aloud immediately.',
             },
             {
               'role': 'user',
@@ -108,17 +111,30 @@ class GroqLLMService extends GetxService {
         if (data['choices'] != null && data['choices'].isNotEmpty) {
           String generatedText = data['choices'][0]['message']['content'] ?? '';
 
+          // Parse the style, prosody, and response from the LLM output
+          final parsed = _parseStyleAndResponse(generatedText);
+          final selectedStyle = parsed['style'] as MoodStyle;
+          final prosody = parsed['prosody'] as Map<String, String>;
+          String finalResponse = parsed['response'] as String;
+
+          // Save the selected style and prosody for TTS
+          _lastSelectedStyle = selectedStyle;
+          _lastProsody = prosody;
+
+          print('🎯 [GROQ] LLM selected style: $selectedStyle');
+          print('🎵 [GROQ] LLM prosody: rate=${prosody['rate']}, pitch=${prosody['pitch']}, volume=${prosody['volume']}');
+
           // Clean up and limit length
-          generatedText = _cleanResponse(generatedText);
+          finalResponse = _cleanResponse(finalResponse);
 
           // Cache the response
-          _storage.addCachedResponse(userInput, generatedText, language);
+          _storage.addCachedResponse(userInput, finalResponse, language);
 
           // Save to history for anti-repetition
-          _storage.addAIResponseToHistory(generatedText);
+          _storage.addAIResponseToHistory(finalResponse);
 
-          print('✅ [GROQ] Response generated successfully (${generatedText.length} chars)');
-          return generatedText;
+          print('✅ [GROQ] Response generated successfully (${finalResponse.length} chars)');
+          return finalResponse;
         }
       } else {
         print('❌ [GROQ] API error: ${response.statusCode} - ${response.body}');
@@ -141,23 +157,22 @@ class GroqLLMService extends GetxService {
       final languageName = _getLanguageName(language);
 
       // Build the 2× stronger prompt
-      final prompt = '''You are MoodShift AI in MAXIMUM POWER MODE! 🔥⚡
+      final prompt = '''Take this message and amplify it to 2× STRONGER intensity:
 
-TASK: Take this response and make it 2× STRONGER – LOUDER energy, MORE intense, BIGGER hype!
-
-RULES:
-- Use MORE CAPS for emphasis
-- Add MORE !! and emojis 🔥⚡💪
-- Make dares/affirmations MORE intense and urgent
-- Increase excitement and energy level
-- Keep the core message but AMPLIFY everything
-- Stay in $languageName language
-- Keep it under 150 words (spoken in ~60 seconds)
-
-ORIGINAL RESPONSE:
 "$originalResponse"
 
-NOW MAKE IT 2× STRONGER! GO! 🚀''';
+Transform it with:
+- MORE CAPS for emphasis
+- MORE energy and urgency
+- MORE emojis (🔥⚡💪)
+- LOUDER, more intense tone
+- Keep core message but AMPLIFY everything
+- Stay in $languageName
+- Maximum 150 words
+
+Your amplified response will be spoken aloud immediately. Write ONLY the spoken words - no labels, no markers, no "end". Just the powerful, energized message.
+
+Begin now:''';
 
       print('⚡ [GROQ] Generating 2× STRONGER response...');
 
@@ -172,7 +187,7 @@ NOW MAKE IT 2× STRONGER! GO! 🚀''';
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify energy, intensity, and hype to the MAX!',
+              'content': 'You are MoodShift AI in MAXIMUM POWER MODE speaking directly to energize someone. Your response will be spoken aloud immediately. Write ONLY what should be said - pure energy, no labels, no markers, no meta-text. Maximum intensity and hype!',
             },
             {
               'role': 'user',
@@ -220,22 +235,8 @@ NOW MAKE IT 2× STRONGER! GO! 🚀''';
     return amplified;
   }
 
-  // Rotate styles to avoid repetition
-  MoodStyle _getRotatedStyle() {
-    final allStyles = MoodStyle.values;
-    final recentResponses = _storage.getRecentAIResponses();
-
-    // If we have history, try to pick a different style
-    if (recentResponses.isNotEmpty) {
-      // Simple rotation: pick random but avoid last used
-      return allStyles[_random.nextInt(allStyles.length)];
-    }
-
-    return allStyles[_random.nextInt(allStyles.length)];
-  }
-
-  String _buildPrompt(String userInput, MoodStyle style, String language) {
-    final stylePrompt = _getStylePrompt(style);
+  /// Build prompt that asks LLM to determine the style and respond
+  String _buildPromptWithStyleSelection(String userInput, String language) {
     final languageName = _getLanguageName(language);
     final streak = _storage.getCurrentStreak();
     final timeContext = _getTimeContext();
@@ -246,26 +247,177 @@ NOW MAKE IT 2× STRONGER! GO! 🚀''';
     final inputsText = recentInputs.isEmpty ? 'None' : recentInputs.join(', ');
     final responsesText = recentResponses.isEmpty ? 'None' : recentResponses.take(3).map((r) => r.substring(0, r.length > 50 ? 50 : r.length)).join(', ');
 
-    return '''You are MoodShift AI – empathetic voice companion. User is on Day $streak streak. Time: $timeContext.
+    return '''Context: User on Day $streak streak, $timeContext. Recent conversation history to avoid repetition:
+Previous inputs: $inputsText
+Previous responses: $responsesText
 
-NEVER REPEAT – remember last 5 user inputs/responses:
-Inputs: $inputsText
-Responses: $responsesText
+User just said: "$userInput"
 
-SAFETY: If harm (smoking, self-harm, suicide) → gently redirect with breathing/water/ice. Never judge.
+Your task has 2 steps:
 
-STYLE (pick one, rotate to avoid repetition):
-1. Chaos Energy: loud dares, caps, !!, emojis
-2. Gentle Grandma: soft, "sweetheart", breathing
-3. Permission Slip: funny official excuse to chill
-4. Reality Check: kind honest truth, "you've survived 100% of bad days"
-5. Micro Dare: tiny impossible-to-fail action
+STEP 1: Analyze the user's emotional state and select the BEST coaching style from these 5 options:
 
-User said: "$userInput"
-Respond in $languageName. 10–60 sec spoken (100–150 words).
+1. CHAOS ENERGY - For high energy, excitement, boredom, restlessness, need for action
+   → Use when they're: hyper, bouncing, excited, bored, stuck, restless, need to move
+   → Response style: Hyper, energetic dare or challenge. Wild, fun, urgent. Push them to do something unexpected RIGHT NOW!
 
-RESPONSE:''';
+2. GENTLE GRANDMA - For overwhelm, anxiety, stress, need for calm
+   → Use when they're: overwhelmed, anxious, stressed, panicked, scared, worried, tired, need calm/peace
+   → Response style: Soft, nurturing, loving. Guide through calming breathing exercise or gentle movement. Warm and soothing.
+
+3. PERMISSION SLIP - For guilt, obligation, procrastination, "should" statements
+   → Use when they're: feeling guilty, saying "should/supposed to/have to", procrastinating, can't start, avoiding
+   → Response style: Official permission to do (or not do) something. Formal yet playful. "You are hereby granted permission to..."
+
+4. REALITY CHECK - For negative self-talk, catastrophizing, hopelessness
+   → Use when they're: saying "always fail/never/can't do", feeling hopeless, worthless, broken, comparing to others
+   → Response style: Kind, honest truth. Direct but loving. Help them see things clearly without judgment.
+
+5. MICRO DARE - For general inputs, indecision, need for small action (DEFAULT)
+   → Use when: No strong emotional cues, or they need a simple actionable step
+   → Response style: One tiny, specific action to do in the next 60 seconds. Simple, achievable, slightly fun.
+
+STEP 2: Respond in $languageName using your selected style.
+
+Safety protocol: If user mentions harm/smoking/self-harm → gently suggest breathing, water, ice. No judgment.
+
+Requirements:
+- 50-75 words MAXIMUM (30 seconds when spoken)
+- Write ONLY the spoken words, nothing else
+- NO emojis in the response
+- No labels, markers, or meta-text
+- Vary vocabulary from previous responses
+
+STEP 3: Determine the speech prosody (rate, pitch, volume) for your response.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+STYLE: [write exactly one of: CHAOS_ENERGY, GENTLE_GRANDMA, PERMISSION_SLIP, REALITY_CHECK, MICRO_DARE]
+PROSODY: rate=[slow/medium/fast] pitch=[low/medium/high] volume=[soft/medium/loud]
+RESPONSE: [your spoken response here - NO EMOJIS]
+
+Prosody Guidelines:
+- CHAOS_ENERGY: rate=fast pitch=high volume=loud
+- GENTLE_GRANDMA: rate=slow pitch=low volume=soft
+- PERMISSION_SLIP: rate=medium pitch=medium volume=medium
+- REALITY_CHECK: rate=medium pitch=medium volume=medium
+- MICRO_DARE: rate=fast pitch=medium volume=medium
+
+Begin now:''';
   }
+
+  /// Parse the LLM output to extract style, prosody, and response
+  Map<String, dynamic> _parseStyleAndResponse(String llmOutput) {
+    try {
+      // Look for STYLE:, PROSODY:, and RESPONSE: markers
+      final styleMatch = RegExp(r'STYLE:\s*(CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE)', caseSensitive: false).firstMatch(llmOutput);
+      final prosodyMatch = RegExp(r'PROSODY:\s*rate=(\w+)\s+pitch=(\w+)\s+volume=(\w+)', caseSensitive: false).firstMatch(llmOutput);
+      final responseMatch = RegExp(r'RESPONSE:\s*(.+)', caseSensitive: false, dotAll: true).firstMatch(llmOutput);
+
+      MoodStyle selectedStyle = MoodStyle.microDare; // Default
+
+      if (styleMatch != null) {
+        final styleStr = styleMatch.group(1)?.toUpperCase() ?? '';
+        switch (styleStr) {
+          case 'CHAOS_ENERGY':
+            selectedStyle = MoodStyle.chaosEnergy;
+            break;
+          case 'GENTLE_GRANDMA':
+            selectedStyle = MoodStyle.gentleGrandma;
+            break;
+          case 'PERMISSION_SLIP':
+            selectedStyle = MoodStyle.permissionSlip;
+            break;
+          case 'REALITY_CHECK':
+            selectedStyle = MoodStyle.realityCheck;
+            break;
+          case 'MICRO_DARE':
+            selectedStyle = MoodStyle.microDare;
+            break;
+        }
+      }
+
+      // Extract prosody settings
+      Map<String, String> prosody = {
+        'rate': 'medium',
+        'pitch': 'medium',
+        'volume': 'medium',
+      };
+
+      if (prosodyMatch != null) {
+        prosody['rate'] = prosodyMatch.group(1)?.toLowerCase() ?? 'medium';
+        prosody['pitch'] = prosodyMatch.group(2)?.toLowerCase() ?? 'medium';
+        prosody['volume'] = prosodyMatch.group(3)?.toLowerCase() ?? 'medium';
+      } else {
+        // Fallback to style-based defaults if LLM doesn't provide prosody
+        prosody = _getDefaultProsody(selectedStyle);
+      }
+
+      String response = llmOutput;
+      if (responseMatch != null) {
+        response = responseMatch.group(1)?.trim() ?? llmOutput;
+      } else {
+        // If no RESPONSE: marker found, try to extract everything after PROSODY: line
+        final lines = llmOutput.split('\n');
+        if (lines.length > 2) {
+          response = lines.skip(2).join('\n').trim();
+        } else if (lines.length > 1) {
+          response = lines.skip(1).join('\n').trim();
+        }
+      }
+
+      // Clean up any remaining markers
+      response = response.replaceAll(RegExp(r'^RESPONSE:\s*', caseSensitive: false), '');
+      response = response.replaceAll(RegExp(r'^STYLE:.*$', caseSensitive: false, multiLine: true), '');
+      response = response.replaceAll(RegExp(r'^PROSODY:.*$', caseSensitive: false, multiLine: true), '');
+      response = response.trim();
+
+      // Remove all emojis from response
+      response = _removeEmojis(response);
+
+      return {
+        'style': selectedStyle,
+        'prosody': prosody,
+        'response': response,
+      };
+    } catch (e) {
+      print('⚠️ [GROQ] Error parsing style/response: $e, using defaults');
+      return {
+        'style': MoodStyle.microDare,
+        'prosody': {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'},
+        'response': _removeEmojis(llmOutput),
+      };
+    }
+  }
+
+  /// Get default prosody settings for a style (fallback if LLM doesn't provide)
+  Map<String, String> _getDefaultProsody(MoodStyle style) {
+    switch (style) {
+      case MoodStyle.chaosEnergy:
+        return {'rate': 'fast', 'pitch': 'high', 'volume': 'loud'};
+      case MoodStyle.gentleGrandma:
+        return {'rate': 'slow', 'pitch': 'low', 'volume': 'soft'};
+      case MoodStyle.permissionSlip:
+        return {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
+      case MoodStyle.realityCheck:
+        return {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
+      case MoodStyle.microDare:
+        return {'rate': 'fast', 'pitch': 'medium', 'volume': 'medium'};
+    }
+  }
+
+  /// Remove all emojis from text
+  String _removeEmojis(String text) {
+    // Remove emojis using Unicode ranges
+    return text.replaceAll(
+      RegExp(
+        r'[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F18E}]|[\u{3030}]|[\u{2B50}]|[\u{2B55}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23F3}]|[\u{25AA}-\u{25AB}]|[\u{25B6}]|[\u{25C0}]|[\u{25FB}-\u{25FE}]|[\u{2934}-\u{2935}]|[\u{2B05}-\u{2B07}]|[\u{2B1B}-\u{2B1C}]|[\u{3297}]|[\u{3299}]|[\u{00A9}]|[\u{00AE}]|[\u{203C}]|[\u{2049}]|[\u{2122}]|[\u{2139}]|[\u{2194}-\u{2199}]|[\u{21A9}-\u{21AA}]|[\u{231A}-\u{231B}]|[\u{2328}]|[\u{23CF}]|[\u{23ED}-\u{23EF}]|[\u{23F8}-\u{23FA}]|[\u{24C2}]|[\u{25AA}-\u{25AB}]|[\u{25B6}]|[\u{25C0}]|[\u{25FB}-\u{25FE}]|[\u{2600}-\u{2604}]|[\u{260E}]|[\u{2611}]|[\u{2614}-\u{2615}]|[\u{2618}]|[\u{2620}]|[\u{2622}-\u{2623}]|[\u{2626}]|[\u{262A}]|[\u{262E}-\u{262F}]|[\u{2638}-\u{263A}]|[\u{2640}]|[\u{2642}]|[\u{2648}-\u{2653}]|[\u{2660}]|[\u{2663}]|[\u{2665}-\u{2666}]|[\u{2668}]|[\u{267B}]|[\u{267F}]|[\u{2692}-\u{2697}]|[\u{2699}]|[\u{269B}-\u{269C}]|[\u{26A0}-\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26B0}-\u{26B1}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26C8}]|[\u{26CE}-\u{26CF}]|[\u{26D1}]|[\u{26D3}-\u{26D4}]|[\u{26E9}-\u{26EA}]|[\u{26F0}-\u{26F5}]|[\u{26F7}-\u{26FA}]|[\u{26FD}]',
+        unicode: true,
+      ),
+      '',
+    ).trim();
+  }
+
+
 
   String _getTimeContext() {
     final hour = DateTime.now().hour;
@@ -276,44 +428,14 @@ RESPONSE:''';
     return 'night';
   }
 
-  String _getStylePrompt(MoodStyle style) {
-    switch (style) {
-      case MoodStyle.chaosEnergy:
-        return 'CHAOS ENERGY - Give a hyper, energetic dare or challenge. Be wild, fun, and push them to do something unexpected RIGHT NOW. Use excitement and urgency!';
-      
-      case MoodStyle.gentleGrandma:
-        return 'GENTLE GRANDMA - Speak softly and lovingly. Guide them through a calming breathing exercise or gentle movement. Be warm, nurturing, and soothing.';
-      
-      case MoodStyle.permissionSlip:
-        return 'PERMISSION SLIP - Give them official permission to do (or not do) something. Be formal yet playful. "You are hereby granted permission to..."';
-      
-      case MoodStyle.realityCheck:
-        return 'REALITY CHECK - Give them a kind, honest truth. Be direct but loving. Help them see things clearly without judgment.';
-      
-      case MoodStyle.microDare:
-        return 'MICRO DARE - Give them one tiny, specific action to do in the next 60 seconds. Make it simple, achievable, and slightly fun.';
-    }
-  }
+
 
   String _cleanResponse(String response) {
-    // Remove any remaining prompt artifacts
+    // Basic cleanup only - let the prompt engineering handle quality
     response = response.trim();
 
-    // Remove common AI preambles
-    final preambles = [
-      'Here\'s a response:',
-      'Here is a response:',
-      'Response:',
-      'RESPONSE:',
-      'As MoodShift AI,',
-      'As an AI,',
-    ];
-
-    for (final preamble in preambles) {
-      if (response.toLowerCase().startsWith(preamble.toLowerCase())) {
-        response = response.substring(preamble.length).trim();
-      }
-    }
+    // Clean up extra whitespace
+    response = response.replaceAll(RegExp(r'\s+'), ' ').trim();
 
     // Limit to reasonable length (configurable max words for ~2 minutes)
     final words = response.split(' ');
@@ -340,6 +462,16 @@ RESPONSE:''';
 
   MoodStyle getRandomStyle() {
     return MoodStyle.values[_random.nextInt(MoodStyle.values.length)];
+  }
+
+  /// Get the last selected style (used for 2x stronger feature)
+  MoodStyle? getLastSelectedStyle() {
+    return _lastSelectedStyle;
+  }
+
+  /// Get the last prosody settings from LLM
+  Map<String, String> getLastProsody() {
+    return _lastProsody;
   }
 
   // 10 hardcoded fallbacks for offline/error scenarios (in all languages)

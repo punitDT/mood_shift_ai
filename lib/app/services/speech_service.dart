@@ -78,6 +78,8 @@ class SpeechService extends GetxService {
               recognizedText.value = result.recognizedWords;
               print('🎤 [SPEECH DEBUG] Partial result: ${result.recognizedWords} (final: ${result.finalResult})');
 
+              // Only process final results when user explicitly stops (via stopListening)
+              // Don't auto-finalize on pause to prevent premature processing
               if (result.finalResult) {
                 isListening.value = false;
                 print('✅ [SPEECH DEBUG] Final result: ${recognizedText.value}');
@@ -96,11 +98,11 @@ class SpeechService extends GetxService {
             }
           },
           localeId: localeId,
-          listenMode: ListenMode.confirmation,
+          listenMode: ListenMode.dictation, // Changed from confirmation to dictation for better continuous speech
           cancelOnError: true,
           partialResults: true,
           listenFor: Duration(seconds: _listenForSeconds),
-          pauseFor: Duration(seconds: _pauseForSeconds),
+          pauseFor: Duration(seconds: _pauseForSeconds), // Increased to 5 seconds in .env
         );
       } else {
         print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');

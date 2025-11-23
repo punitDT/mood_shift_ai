@@ -80,7 +80,7 @@ class PollyTTSService extends GetxService {
     });
 
     await _fallbackTts.setVolume(1.0);
-    await _fallbackTts.setSpeechRate(0.5);
+    await _fallbackTts.setSpeechRate(0.42); // Reduced from 0.5 for more natural pace
     await _fallbackTts.setPitch(1.0);
   }
 
@@ -94,7 +94,7 @@ class PollyTTSService extends GetxService {
     });
   }
 
-  Future<void> speak(String text, MoodStyle style) async {
+  Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -113,7 +113,7 @@ class PollyTTSService extends GetxService {
 
     // Try Amazon Polly
     try {
-      final audioFile = await _synthesizeWithPolly(text, languageCode, style);
+      final audioFile = await _synthesizeWithPolly(text, languageCode, style, prosody: prosody);
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
@@ -127,12 +127,12 @@ class PollyTTSService extends GetxService {
     // Fallback to flutter_tts
     print('🔄 [POLLY] Using flutter_tts fallback');
     isUsingOfflineMode.value = true;
-    await _speakWithFallback(text, languageCode, style);
+    await _speakWithFallback(text, languageCode, style, prosody: prosody);
   }
 
   /// Speak with 2× STRONGER amplification
   /// Uses SSML for Polly or amplified settings for fallback TTS
-  Future<void> speakStronger(String text, MoodStyle style) async {
+  Future<void> speakStronger(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -167,8 +167,9 @@ class PollyTTSService extends GetxService {
 
     await _fallbackTts.setVolume(1.0);
 
-    final baseRate = _getMoodRate(style);
-    final basePitch = _getMoodPitch(style);
+    // Get base values from LLM prosody
+    final baseRate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
+    final basePitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
 
     // Amplify by 1.3x for 2× STRONGER effect
     await _fallbackTts.setSpeechRate((baseRate * 1.3).clamp(0.3, 1.0));
@@ -248,14 +249,14 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<File?> _synthesizeWithPolly(String text, String languageCode, MoodStyle style) async {
+  Future<File?> _synthesizeWithPolly(String text, String languageCode, MoodStyle style, {Map<String, String>? prosody}) async {
     try {
       final voiceId = _getPollyVoice(languageCode);
 
-      // Use Golden SSML if golden voice is active, otherwise use normal SSML
+      // Use Golden SSML if golden voice is active, otherwise use normal SSML with LLM prosody
       final ssmlText = _storage.hasGoldenVoice()
           ? _buildGoldenSSML(text, style)
-          : _buildSSML(text, style);
+          : _buildSSML(text, prosody: prosody);
 
       final voiceMode = _storage.hasGoldenVoice() ? 'GOLDEN' : 'NORMAL';
       print('🎙️ [POLLY] Synthesizing with voice: $voiceId ($voiceMode mode)');
@@ -417,33 +418,17 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  String _buildSSML(String text, MoodStyle style) {
-    String prosody;
+  String _buildSSML(String text, {Map<String, String>? prosody}) {
+    // Use LLM-provided prosody or defaults
+    final rate = prosody?['rate'] ?? 'medium';
+    final pitch = prosody?['pitch'] ?? 'medium';
+    final volume = prosody?['volume'] ?? 'medium';
 
-    switch (style) {
-      case MoodStyle.chaosEnergy:
-        // Hype: fast, high pitch, energetic
-        prosody = '<prosody rate="fast" pitch="high" volume="loud">$text</prosody>';
-        break;
-      case MoodStyle.gentleGrandma:
-        // Gentle: slow, low pitch, soft
-        prosody = '<prosody rate="slow" pitch="low" volume="soft">$text</prosody>';
-        break;
-      case MoodStyle.permissionSlip:
-        // Permission: medium pace, formal tone
-        prosody = '<prosody rate="medium" pitch="medium">$text</prosody>';
-        break;
-      case MoodStyle.realityCheck:
-        // Reality: steady, clear, direct
-        prosody = '<prosody rate="medium" pitch="medium" volume="medium">$text</prosody>';
-        break;
-      case MoodStyle.microDare:
-        // Micro Dare: quick, upbeat, encouraging
-        prosody = '<prosody rate="fast" pitch="medium" volume="medium">$text</prosody>';
-        break;
-    }
+    // Escape XML special characters
+    final escapedText = _escapeXml(text);
 
-    return '<speak>$prosody</speak>';
+    final prosodyTag = '<prosody rate="$rate" pitch="$pitch" volume="$volume">$escapedText</prosody>';
+    return '<speak>$prosodyTag</speak>';
   }
 
   /// Build SSML for 2× STRONGER effect
@@ -545,9 +530,9 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<void> _speakWithFallback(String text, String languageCode, MoodStyle style) async {
+  Future<void> _speakWithFallback(String text, String languageCode, MoodStyle style, {Map<String, String>? prosody}) async {
     await _setLanguage(languageCode);
-    await _applyMoodStyle(style);
+    await _applyProsody(prosody);
     await _fallbackTts.speak(text);
   }
 
@@ -569,9 +554,11 @@ class PollyTTSService extends GetxService {
     await _fallbackTts.setLanguage(language);
   }
 
-  Future<void> _applyMoodStyle(MoodStyle style) async {
-    final rate = _getMoodRate(style);
-    final pitch = _getMoodPitch(style);
+  /// Apply LLM-provided prosody settings to fallback TTS
+  Future<void> _applyProsody(Map<String, String>? prosody) async {
+    // Convert LLM prosody to numeric values for flutter_tts
+    final rate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
+    final pitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
 
     if (_storage.hasGoldenVoice()) {
       await _fallbackTts.setSpeechRate(rate * 0.9);
@@ -582,23 +569,23 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  double _getMoodRate(MoodStyle style) {
-    switch (style) {
-      case MoodStyle.chaosEnergy: return 0.65;
-      case MoodStyle.gentleGrandma: return 0.4;
-      case MoodStyle.permissionSlip: return 0.5;
-      case MoodStyle.realityCheck: return 0.55;
-      case MoodStyle.microDare: return 0.6;
+  /// Convert LLM rate (slow/medium/fast) to numeric value
+  double _convertRateToNumeric(String rate) {
+    switch (rate.toLowerCase()) {
+      case 'slow': return 0.35;
+      case 'fast': return 0.50;
+      case 'medium':
+      default: return 0.42;
     }
   }
 
-  double _getMoodPitch(MoodStyle style) {
-    switch (style) {
-      case MoodStyle.chaosEnergy: return 1.2;
-      case MoodStyle.gentleGrandma: return 0.9;
-      case MoodStyle.permissionSlip: return 1.0;
-      case MoodStyle.realityCheck: return 1.0;
-      case MoodStyle.microDare: return 1.1;
+  /// Convert LLM pitch (low/medium/high) to numeric value
+  double _convertPitchToNumeric(String pitch) {
+    switch (pitch.toLowerCase()) {
+      case 'low': return 0.9;
+      case 'high': return 1.2;
+      case 'medium':
+      default: return 1.0;
     }
   }
 
