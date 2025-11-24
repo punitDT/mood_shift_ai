@@ -837,13 +837,15 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          widget.isListening ? 'Recording' : 'Speaking',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: const Color(0xFFA0A0FF),
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.5,
+                        FittedBox(
+                          child: Text(
+                            widget.isListening ? 'Recording' : 'Speaking',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: const Color(0xFFA0A0FF),
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                         SizedBox(width: 4.w),
@@ -866,14 +868,14 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
         alignment: Alignment.center,
         children: [
           // Sound wave bars (left and right)
-          Positioned(
-            left: 20.w,
-            child: _SoundWaveBar(delay: 0),
-          ),
-          Positioned(
-            right: 20.w,
-            child: _SoundWaveBar(delay: 200),
-          ),
+          // Positioned(
+          //   left: 20.w,
+          //   child: _SoundWaveBar(delay: 0),
+          // ),
+          // Positioned(
+          //   right: 20.w,
+          //   child: _SoundWaveBar(delay: 200),
+          // ),
           // Mic icon
           Icon(
             Icons.mic_none_rounded,
@@ -890,22 +892,22 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
         alignment: Alignment.center,
         children: [
           // Wavy sound bars around the icon
-          Positioned(
-            left: 15.w,
-            child: _SpeakingWaveBar(index: 0),
-          ),
-          Positioned(
-            left: 22.w,
-            child: _SpeakingWaveBar(index: 1),
-          ),
-          Positioned(
-            right: 15.w,
-            child: _SpeakingWaveBar(index: 2),
-          ),
-          Positioned(
-            right: 22.w,
-            child: _SpeakingWaveBar(index: 3),
-          ),
+          // Positioned(
+          //   left: 15.w,
+          //   child: _SpeakingWaveBar(index: 0),
+          // ),
+          // Positioned(
+          //   left: 22.w,
+          //   child: _SpeakingWaveBar(index: 1),
+          // ),
+          // Positioned(
+          //   right: 15.w,
+          //   child: _SpeakingWaveBar(index: 2),
+          // ),
+          // Positioned(
+          //   right: 22.w,
+          //   child: _SpeakingWaveBar(index: 3),
+          // ),
           // Volume icon
           Icon(
             Icons.volume_up_rounded,
