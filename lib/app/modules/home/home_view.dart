@@ -337,6 +337,7 @@ class HomeView extends GetView<HomeController> {
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
+      final isSpeaking = controller.currentState.value == AppState.speaking;
       final isGolden = rewardedController.hasGoldenVoice.value;
 
       return GestureDetector(
@@ -345,6 +346,7 @@ class HomeView extends GetView<HomeController> {
         onTapCancel: () => controller.onMicReleased(),
         child: _BreathingMicButton(
           isListening: isListening,
+          isSpeaking: isSpeaking,
           isActive: isActive,
           isGolden: isGolden,
         ),
@@ -607,11 +609,13 @@ class HomeView extends GetView<HomeController> {
 // Premium press-and-hold mic button with beautiful animations
 class _BreathingMicButton extends StatefulWidget {
   final bool isListening;
+  final bool isSpeaking;
   final bool isActive;
   final bool isGolden;
 
   const _BreathingMicButton({
     required this.isListening,
+    required this.isSpeaking,
     required this.isActive,
     required this.isGolden,
   });
@@ -662,10 +666,12 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
   void didUpdateWidget(_BreathingMicButton oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Start/stop pulse animation based on listening state
-    if (widget.isListening && !oldWidget.isListening) {
+    // Start/stop pulse animation based on listening or speaking state
+    if ((widget.isListening || widget.isSpeaking) &&
+        !(oldWidget.isListening || oldWidget.isSpeaking)) {
       _pulseController.repeat(reverse: true);
-    } else if (!widget.isListening && oldWidget.isListening) {
+    } else if (!(widget.isListening || widget.isSpeaking) &&
+               (oldWidget.isListening || oldWidget.isSpeaking)) {
       _pulseController.stop();
       _pulseController.reset();
     }
@@ -688,11 +694,11 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           animation: Listenable.merge([_breathingAnimation, _pulseAnimation]),
           builder: (context, child) {
             return Transform.scale(
-              scale: widget.isListening ? 1.0 : _breathingAnimation.value,
+              scale: (widget.isListening || widget.isSpeaking) ? 1.0 : _breathingAnimation.value,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Pulsing glow rings (only when recording)
+                  // Pulsing glow rings (when recording)
                   if (widget.isListening) ...[
                     // Outer glow ring
                     AnimatedBuilder(
@@ -744,12 +750,19 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     ),
                   ],
 
+                  // Wavy rings (when Polly is speaking)
+                  if (widget.isSpeaking) ...[
+                    _WaveRing(size: 140.w, delay: 0),
+                    _WaveRing(size: 120.w, delay: 300),
+                    _WaveRing(size: 100.w, delay: 600),
+                  ],
+
                   // Main button with size animation
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOut,
-                    width: widget.isListening ? 110.w : 86.w,
-                    height: widget.isListening ? 110.w : 86.w,
+                    width: (widget.isListening || widget.isSpeaking) ? 110.w : 86.w,
+                    height: (widget.isListening || widget.isSpeaking) ? 110.w : 86.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: widget.isGolden
@@ -763,12 +776,19 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                           spreadRadius: 2,
                           offset: const Offset(0, 4),
                         ),
-                        // Glow effect
+                        // Glow effect when listening
                         if (widget.isListening)
                           BoxShadow(
                             color: const Color(0xFF6D5FFD).withOpacity(0.4),
                             blurRadius: 30,
                             spreadRadius: 5,
+                          ),
+                        // Glow effect when speaking
+                        if (widget.isSpeaking)
+                          BoxShadow(
+                            color: const Color(0xFF6D5FFD).withOpacity(0.3),
+                            blurRadius: 25,
+                            spreadRadius: 3,
                           ),
                         if (widget.isGolden)
                           BoxShadow(
@@ -786,8 +806,8 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                   // Golden Voice sparkle overlay
                   if (widget.isGolden)
                     SizedBox(
-                      width: widget.isListening ? 130.w : 106.w,
-                      height: widget.isListening ? 130.w : 106.w,
+                      width: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,
+                      height: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,
                       child: Lottie.asset(
                         'assets/animations/sparkle.json',
                         repeat: true,
@@ -804,21 +824,21 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           },
         ),
 
-        // "Recording..." text (appears when listening)
+        // "Recording..." or "Speaking..." text
         AnimatedOpacity(
-          opacity: widget.isListening ? 1.0 : 0.0,
+          opacity: (widget.isListening || widget.isSpeaking) ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            height: widget.isListening ? 30.h : 0,
-            child: widget.isListening
+            height: (widget.isListening || widget.isSpeaking) ? 30.h : 0,
+            child: (widget.isListening || widget.isSpeaking)
                 ? Padding(
                     padding: EdgeInsets.only(top: 12.h),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Recording',
+                          widget.isListening ? 'Recording' : 'Speaking',
                           style: TextStyle(
                             fontSize: 14.sp,
                             color: const Color(0xFFA0A0FF),
@@ -838,7 +858,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
     );
   }
 
-  // Mic icon with sound wave animation when recording
+  // Mic icon with sound wave animation when recording or volume icon when speaking
   Widget _buildMicIcon() {
     if (widget.isListening) {
       // Show mic_none with subtle sound wave animation
@@ -857,6 +877,38 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           // Mic icon
           Icon(
             Icons.mic_none_rounded,
+            size: 40.sp,
+            color: widget.isGolden
+                ? Colors.white
+                : const Color(0xFF1E1E3F),
+          ),
+        ],
+      );
+    } else if (widget.isSpeaking) {
+      // Show volume icon with wavy bars when Polly is speaking
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          // Wavy sound bars around the icon
+          Positioned(
+            left: 15.w,
+            child: _SpeakingWaveBar(index: 0),
+          ),
+          Positioned(
+            left: 22.w,
+            child: _SpeakingWaveBar(index: 1),
+          ),
+          Positioned(
+            right: 15.w,
+            child: _SpeakingWaveBar(index: 2),
+          ),
+          Positioned(
+            right: 22.w,
+            child: _SpeakingWaveBar(index: 3),
+          ),
+          // Volume icon
+          Icon(
+            Icons.volume_up_rounded,
             size: 40.sp,
             color: widget.isGolden
                 ? Colors.white
@@ -1015,3 +1067,146 @@ class _PulsingDotState extends State<_PulsingDot>
     );
   }
 }
+
+// Wave ring animation for speaking state
+class _WaveRing extends StatefulWidget {
+  final double size;
+  final int delay;
+
+  const _WaveRing({
+    required this.size,
+    required this.delay,
+  });
+
+  @override
+  State<_WaveRing> createState() => _WaveRingState();
+}
+
+class _WaveRingState extends State<_WaveRing>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.4).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.6, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    // Start animation after delay
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        _controller.repeat();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF6D5FFD)
+                      .withOpacity(_opacityAnimation.value.clamp(0.0, 1.0)),
+                  width: 2.5,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Speaking wave bar animation (for volume icon)
+class _SpeakingWaveBar extends StatefulWidget {
+  final int index;
+
+  const _SpeakingWaveBar({required this.index});
+
+  @override
+  State<_SpeakingWaveBar> createState() => _SpeakingWaveBarState();
+}
+
+class _SpeakingWaveBarState extends State<_SpeakingWaveBar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 600 + (widget.index * 100)),
+      vsync: this,
+    );
+
+    _animation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Delay start based on index for wave effect
+    Future.delayed(Duration(milliseconds: widget.index * 100), () {
+      if (mounted) {
+        _controller.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        // Different heights for each bar to create wave effect
+        final baseHeight = [8.h, 14.h, 10.h, 12.h][widget.index];
+
+        return Container(
+          width: 2.5.w,
+          height: baseHeight * _animation.value,
+          decoration: BoxDecoration(
+            color: const Color(0xFF6D5FFD).withOpacity(0.7),
+            borderRadius: BorderRadius.circular(2.r),
+          ),
+        );
+      },
+    );
+  }
+}
+
