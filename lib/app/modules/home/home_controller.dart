@@ -9,6 +9,7 @@ import '../../services/polly_tts_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
+import '../../services/habit_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -295,6 +296,9 @@ class HomeController extends GetxController {
   }
 
   void _onShiftCompleted() {
+    // Record shift in HabitService (new smart tracking system)
+    HabitService.userDidAShiftToday();
+
     // Increment streak (handles total shifts + daily streak)
     _streakController.incrementStreak();
 

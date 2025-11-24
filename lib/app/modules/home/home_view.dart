@@ -6,6 +6,7 @@ import 'package:confetti/confetti.dart';
 import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
+import '../../services/habit_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -88,7 +89,7 @@ class HomeView extends GetView<HomeController> {
                     _buildMinimalTopBar(),
 
                     // Spacer - creates the 70-80% empty space
-                    const Spacer(flex: 3),
+                    const Spacer(flex: 1),
 
                     // Instructional text above mic button
                     Padding(
@@ -106,7 +107,7 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
 
-                    const Spacer(flex: 2),
+                    const Spacer(flex: 1),
 
                     // Mic Button (center of screen)
                     _buildPremiumMicButton(),
@@ -220,7 +221,6 @@ class HomeView extends GetView<HomeController> {
   // Minimal top bar - clean and spacious
   Widget _buildMinimalTopBar() {
     final rewardedController = Get.find<RewardedController>();
-    final streakController = Get.find<StreakController>();
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
@@ -301,22 +301,9 @@ class HomeView extends GetView<HomeController> {
             ],
           ),
 
-          // Streak info - moved from bottom to top
-          SizedBox(height: 8.h),
-          Obx(() {
-            final current = streakController.currentStreak.value;
-            final total = streakController.totalShifts.value;
-
-            return Text(
-              'Day $current • $total shifts',
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: const Color(0xFF9B7FDB).withOpacity(0.6), // Soft purple
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.5,
-              ),
-            );
-          }),
+          // Habit stats - clean and informative
+          SizedBox(height: 12.h),
+          _buildHabitStats(),
         ],
       ),
     );
@@ -570,6 +557,73 @@ class HomeView extends GetView<HomeController> {
       child: adService.bannerAd != null
           ? AdWidget(ad: adService.bannerAd!)
           : const SizedBox.shrink(),
+    );
+  }
+
+  // Habit stats widget - shows streak, today's shifts, total shifts, active days
+  Widget _buildHabitStats() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Day X with fire emoji (big)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Day ${HabitService.streak}',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              if (HabitService.streak >= 3) ...[
+                SizedBox(width: 8.w),
+                Text(
+                  '🔥',
+                  style: TextStyle(fontSize: 24.sp),
+                ),
+              ],
+            ],
+          ),
+
+          SizedBox(height: 8.h),
+
+          // Today's shifts
+          Text(
+            'Today: ${HabitService.todayShifts} shift${HabitService.todayShifts == 1 ? '' : 's'}',
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: const Color(0xFF9B7FDB).withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+
+          SizedBox(height: 4.h),
+
+          // Total shifts and active days
+          Text(
+            'Total: ${HabitService.totalShifts} shifts • ${HabitService.activeDays} active day${HabitService.activeDays == 1 ? '' : 's'}',
+            style: TextStyle(
+              fontSize: 11.sp,
+              color: Colors.white.withOpacity(0.5),
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

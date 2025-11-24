@@ -13,6 +13,7 @@ import 'app/translations/app_translations.dart';
 import 'app/services/remote_config_service.dart';
 import 'app/services/ad_service.dart';
 import 'app/services/storage_service.dart';
+import 'app/services/habit_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
 import 'firebase_options.dart';
@@ -40,12 +41,14 @@ void main() async {
 
   // Initialize GetStorage
   await GetStorage.init();
-  
+
   // Initialize Mobile Ads
   await MobileAds.instance.initialize();
-  
+
   // Initialize Services
   await Get.putAsync(() => StorageService().init());
+  // Initialize HabitService (handles notifications + streak tracking)
+  await Get.putAsync(() => HabitService().init());
   // Initialize RemoteConfig in background without blocking app startup
   Get.putAsync(() => RemoteConfigService().init());
   Get.put(AdService());
