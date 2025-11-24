@@ -14,6 +14,7 @@ class SettingsController extends GetxController {
 
   final languages = [
     {'code': 'en', 'country': 'US', 'name': 'english'},
+    {'code': 'en', 'country': 'GB', 'name': 'english_uk'},
     {'code': 'hi', 'country': 'IN', 'name': 'hindi'},
     {'code': 'es', 'country': 'ES', 'name': 'spanish'},
     {'code': 'zh', 'country': 'CN', 'name': 'chinese'},
@@ -38,8 +39,9 @@ class SettingsController extends GetxController {
 
   void _loadCurrentLanguage() {
     final currentCode = _storage.getLanguageCode();
+    final currentCountry = _storage.getCountryCode();
     final lang = languages.firstWhere(
-      (l) => l['code'] == currentCode,
+      (l) => l['code'] == currentCode && l['country'] == currentCountry,
       orElse: () => languages[0],
     );
     selectedLanguage.value = lang['name']!.tr;

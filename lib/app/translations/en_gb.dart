@@ -1,4 +1,4 @@
-const Map<String, String> enUS = {
+const Map<String, String> enGB = {
   // App
   'app_name': 'MoodShift AI',
   

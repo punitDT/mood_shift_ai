@@ -99,10 +99,10 @@ class PollyTTSService extends GetxService {
 
     await stop();
 
-    final languageCode = _storage.getLanguageCode();
+    final fullLocale = _storage.getFullLocale();
     final gender = _storage.getVoiceGender();
     final isGolden = _storage.hasGoldenVoice();
-    final cacheKey = _getCacheKey(text, languageCode, style, gender: gender, isGolden: isGolden);
+    final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isGolden: isGolden);
     final cachedFile = await _getCachedAudio(cacheKey);
 
     // Try to use cached audio first
@@ -114,7 +114,7 @@ class PollyTTSService extends GetxService {
 
     // Try Amazon Polly
     try {
-      final audioFile = await _synthesizeWithPolly(text, languageCode, style, prosody: prosody);
+      final audioFile = await _synthesizeWithPolly(text, fullLocale, style, prosody: prosody);
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
@@ -128,7 +128,7 @@ class PollyTTSService extends GetxService {
     // Fallback to flutter_tts
     print('🔄 [POLLY] Using flutter_tts fallback');
     isUsingOfflineMode.value = true;
-    await _speakWithFallback(text, languageCode, style, prosody: prosody);
+    await _speakWithFallback(text, fullLocale, style, prosody: prosody);
   }
 
   /// Speak with 2× STRONGER amplification
@@ -138,9 +138,9 @@ class PollyTTSService extends GetxService {
 
     await stop();
 
-    final languageCode = _storage.getLanguageCode();
+    final fullLocale = _storage.getFullLocale();
     final gender = _storage.getVoiceGender();
-    final cacheKey = _getCacheKey(text, languageCode, style, gender: gender, isStronger: true);
+    final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isStronger: true);
     final cachedFile = await _getCachedAudio(cacheKey);
 
     // Try to use cached audio first
@@ -152,7 +152,7 @@ class PollyTTSService extends GetxService {
 
     // Try Amazon Polly with 2× STRONGER SSML
     try {
-      final audioFile = await _synthesizeStrongerWithPolly(text, languageCode, style);
+      final audioFile = await _synthesizeStrongerWithPolly(text, fullLocale, style);
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
@@ -174,16 +174,15 @@ class PollyTTSService extends GetxService {
 
     await _fallbackTts.setSpeechRate(extremeSettings['rate']!);
     await _fallbackTts.setPitch(extremeSettings['pitch']!);
-    await _setLanguage(languageCode);
+    await _setLanguage(fullLocale);
 
     await _fallbackTts.speak(text);
   }
 
   /// Synthesize 2× STRONGER audio with Polly using EXTREME style-specific SSML
-  Future<File?> _synthesizeStrongerWithPolly(String text, String languageCode, MoodStyle style) async {
+  Future<File?> _synthesizeStrongerWithPolly(String text, String fullLocale, MoodStyle style) async {
     try {
-      final voiceId = _getPollyVoice(languageCode);
-      final fullLocale = _convertToFullLocale(languageCode);
+      final voiceId = _getPollyVoice(fullLocale);
       final ssmlText = _buildStrongerSSML(text, style); // Pass style for extreme SSML
 
       print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId, language: $fullLocale, style: $style');
@@ -251,10 +250,9 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<File?> _synthesizeWithPolly(String text, String languageCode, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<File?> _synthesizeWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
     try {
-      final voiceId = _getPollyVoice(languageCode);
-      final fullLocale = _convertToFullLocale(languageCode);
+      final voiceId = _getPollyVoice(fullLocale);
 
       // Use Golden SSML if golden voice is active, otherwise use normal SSML with LLM prosody
       final ssmlText = _storage.hasGoldenVoice()
@@ -398,12 +396,9 @@ class PollyTTSService extends GetxService {
 
   String _pad(int n) => n.toString().padLeft(2, '0');
 
-  String _getPollyVoice(String lang) {
+  String _getPollyVoice(String fullLocale) {
     // Use injected storage service for consistency
     final String gender = _storage.getVoiceGender();
-
-    // Convert short language codes to full locale codes
-    final String fullLocale = _convertToFullLocale(lang);
 
     // Updated Amazon Polly Voice IDs (Neural + Standard – November 2025)
     // Reference: https://docs.aws.amazon.com/polly/latest/dg/available-voices.html
@@ -516,25 +511,6 @@ class PollyTTSService extends GetxService {
 
     // Ultimate fallback to en-US
     return gender == "male" ? "Matthew" : "Joanna";
-  }
-
-  /// Convert short language codes (en, hi, es) to full locale codes (en-US, hi-IN, es-ES)
-  String _convertToFullLocale(String languageCode) {
-    switch (languageCode) {
-      case 'en': return 'en-US';
-      case 'hi': return 'hi-IN';
-      case 'es': return 'es-ES';
-      case 'zh': return 'zh-CN';
-      case 'fr': return 'fr-FR';
-      case 'de': return 'de-DE';
-      case 'ar': return 'ar-SA';
-      case 'ja': return 'ja-JP';
-      default:
-        // If already a full locale code, return as is
-        if (languageCode.contains('-')) return languageCode;
-        // Otherwise default to en-US
-        return 'en-US';
-    }
   }
 
   String _buildSSML(String text, {Map<String, String>? prosody}) {
@@ -716,28 +692,15 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<void> _speakWithFallback(String text, String languageCode, MoodStyle style, {Map<String, String>? prosody}) async {
-    await _setLanguage(languageCode);
+  Future<void> _speakWithFallback(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
+    await _setLanguage(fullLocale);
     await _applyProsody(prosody);
     await _fallbackTts.speak(text);
   }
 
-  Future<void> _setLanguage(String languageCode) async {
-    String language;
-
-    switch (languageCode) {
-      case 'en': language = 'en-US'; break;
-      case 'hi': language = 'hi-IN'; break;
-      case 'es': language = 'es-ES'; break;
-      case 'zh': language = 'zh-CN'; break;
-      case 'fr': language = 'fr-FR'; break;
-      case 'de': language = 'de-DE'; break;
-      case 'ar': language = 'ar-SA'; break;
-      case 'ja': language = 'ja-JP'; break;
-      default: language = 'en-US';
-    }
-
-    await _fallbackTts.setLanguage(language);
+  Future<void> _setLanguage(String fullLocale) async {
+    // fullLocale is already in format like 'en-US', 'en-GB', etc.
+    await _fallbackTts.setLanguage(fullLocale);
   }
 
   /// Apply LLM-provided prosody settings to fallback TTS

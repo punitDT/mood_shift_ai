@@ -62,11 +62,11 @@ class SpeechService extends GetxService {
         isListening.value = true;
 
         // Get user's language with null safety
-        final languageCode = _storage.getLanguageCode();
-        if (languageCode.isEmpty) {
-          print('⚠️  [SPEECH DEBUG] Empty language code, using default');
+        final fullLocale = _storage.getFullLocale();
+        if (fullLocale.isEmpty) {
+          print('⚠️  [SPEECH DEBUG] Empty locale, using default');
         }
-        final localeId = _getLocaleId(languageCode);
+        final localeId = _convertLocaleToId(fullLocale);
 
         print('🎤 [SPEECH DEBUG] Starting to listen with locale: $localeId (max ${maxRecordingSeconds}s)');
 
@@ -127,27 +127,9 @@ class SpeechService extends GetxService {
     }
   }
 
-  String _getLocaleId(String languageCode) {
-    switch (languageCode) {
-      case 'en':
-        return 'en_US';
-      case 'hi':
-        return 'hi_IN';
-      case 'es':
-        return 'es_ES';
-      case 'zh':
-        return 'zh_CN';
-      case 'fr':
-        return 'fr_FR';
-      case 'de':
-        return 'de_DE';
-      case 'ar':
-        return 'ar_SA';
-      case 'ja':
-        return 'ja_JP';
-      default:
-        return 'en_US';
-    }
+  String _convertLocaleToId(String fullLocale) {
+    // Convert from 'en-US' format to 'en_US' format
+    return fullLocale.replaceAll('-', '_');
   }
 
   @override

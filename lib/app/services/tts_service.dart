@@ -44,8 +44,8 @@ class TTSService extends GetxService {
     await stop();
 
     // Set language
-    final languageCode = _storage.getLanguageCode();
-    await _setLanguage(languageCode);
+    final fullLocale = _storage.getFullLocale();
+    await _setLanguage(fullLocale);
 
     // Apply LLM-provided prosody
     await _applyProsody(prosody);
@@ -59,8 +59,8 @@ class TTSService extends GetxService {
 
     await stop();
 
-    final languageCode = _storage.getLanguageCode();
-    await _setLanguage(languageCode);
+    final fullLocale = _storage.getFullLocale();
+    await _setLanguage(fullLocale);
 
     // EXTREME 2× STRONGER - style-specific amplification
     await _tts.setVolume(1.0);
@@ -106,39 +106,9 @@ class TTSService extends GetxService {
     }
   }
 
-  Future<void> _setLanguage(String languageCode) async {
-    String language;
-    
-    switch (languageCode) {
-      case 'en':
-        language = 'en-US';
-        break;
-      case 'hi':
-        language = 'hi-IN';
-        break;
-      case 'es':
-        language = 'es-ES';
-        break;
-      case 'zh':
-        language = 'zh-CN';
-        break;
-      case 'fr':
-        language = 'fr-FR';
-        break;
-      case 'de':
-        language = 'de-DE';
-        break;
-      case 'ar':
-        language = 'ar-SA';
-        break;
-      case 'ja':
-        language = 'ja-JP';
-        break;
-      default:
-        language = 'en-US';
-    }
-
-    await _tts.setLanguage(language);
+  Future<void> _setLanguage(String fullLocale) async {
+    // fullLocale is already in format like 'en-US', 'en-GB', etc.
+    await _tts.setLanguage(fullLocale);
   }
 
   /// Apply LLM-provided prosody settings

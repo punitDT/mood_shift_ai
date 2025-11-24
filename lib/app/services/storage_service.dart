@@ -26,6 +26,16 @@ class StorageService extends GetxService {
     return _box.read('language_code') ?? 'en';
   }
 
+  String getCountryCode() {
+    return _box.read('country_code') ?? 'US';
+  }
+
+  String getFullLocale() {
+    final languageCode = getLanguageCode();
+    final countryCode = getCountryCode();
+    return '$languageCode-$countryCode';
+  }
+
   // Voice Gender
   String getVoiceGender() {
     return _box.read('voice_gender') ?? 'female';
