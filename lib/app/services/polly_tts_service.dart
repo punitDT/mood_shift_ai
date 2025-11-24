@@ -400,16 +400,40 @@ class PollyTTSService extends GetxService {
   String _getPollyVoice(String lang) {
     final String gender = GetStorage().read('voice_gender') ?? 'female';
 
-    // Amazon Polly Neural voice IDs (not locale-prefixed)
+    // Updated Amazon Polly Neural voice IDs (locale-prefixed, Neural only)
     final Map<String, Map<String, String>> voices = {
-      "en": {"male": "Matthew",   "female": "Joanna"},
-      "hi": {"male": "Aditi",     "female": "Aditi"},  // Hindi only has Aditi
-      "es": {"male": "Enrique",   "female": "Conchita"},
-      "zh": {"male": "Zhiyu",     "female": "Zhiyu"},  // Chinese only has Zhiyu
-      "fr": {"male": "Mathieu",   "female": "Celine"},
-      "de": {"male": "Hans",      "female": "Marlene"},
-      "ar": {"male": "Zeina",     "female": "Zeina"},  // Arabic only has Zeina
-      "ja": {"male": "Takumi",    "female": "Mizuki"},
+      "en-US": {
+        "male": "en-US-MatthewNeural",    // Warm, energetic male
+        "female": "en-US-JoannaNeural",   // Soothing, empathetic female
+      },
+      "hi-IN": {
+        "male": "hi-IN-KajalNeural",      // Only female available – use as male fallback
+        "female": "hi-IN-KajalNeural",    // Natural Hindi female
+      },
+      "es-ES": {
+        "male": "es-ES-SergioNeural",     // Dynamic male
+        "female": "es-ES-LuciaNeural",    // Warm female
+      },
+      "zh-CN": {
+        "male": "zh-CN-ZhiyuNeural",      // Only female available – use as male fallback
+        "female": "zh-CN-ZhiyuNeural",    // Clear Mandarin female
+      },
+      "fr-FR": {
+        "male": "fr-FR-RemiNeural",       // Friendly male
+        "female": "fr-FR-LeaNeural",      // Soft female
+      },
+      "de-DE": {
+        "male": "de-DE-DanielNeural",     // Clear male
+        "female": "de-DE-VickiNeural",    // Natural female
+      },
+      "ar-SA": {
+        "male": "en-US-MatthewNeural",    // No Neural for ar-SA – fallback to English male
+        "female": "en-US-JoannaNeural",   // Fallback to English female
+      },
+      "ja-JP": {
+        "male": "ja-JP-TakumiNeural",     // Energetic male
+        "female": "ja-JP-KazuhaNeural",   // Gentle female (preferred over Tomoko for warmth)
+      },
     };
 
     return voices[lang]?[gender] ?? (gender == "male" ? "Matthew" : "Joanna");
