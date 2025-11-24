@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
+import '../utils/snackbar_utils.dart';
 
 class AdService extends GetxService {
   final StorageService _storage = Get.find<StorageService>();
@@ -203,7 +204,10 @@ class AdService extends GetxService {
 
     if (rewardedAdStronger == null || !isRewardedStrongerLoaded.value) {
       print('❌ [AD DEBUG] Ad not ready, attempting to reload...');
-      Get.snackbar('Loading...', 'Please wait a moment and try again');
+      SnackbarUtils.showInfo(
+        title: 'Loading...',
+        message: 'Please wait a moment and try again',
+      );
 
       // Try to reload the ad immediately
       RewardedAd.load(
@@ -256,7 +260,10 @@ class AdService extends GetxService {
       onAdFailedToShowFullScreenContent: (ad, error) {
         print('❌ [AD DEBUG] Failed to show 2x Stronger ad: $error');
         ad.dispose();
-        Get.snackbar('Error', 'Failed to show ad. Please try again.');
+        SnackbarUtils.showError(
+          title: 'Error',
+          message: 'Failed to show ad. Please try again.',
+        );
         // Reload on failure
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
@@ -290,7 +297,10 @@ class AdService extends GetxService {
 
     if (rewardedAdGolden == null || !isRewardedGoldenLoaded.value) {
       print('❌ [AD DEBUG] Golden Voice ad not ready, attempting to reload...');
-      Get.snackbar('Loading...', 'Please wait a moment and try again');
+      SnackbarUtils.showInfo(
+        title: 'Loading...',
+        message: 'Please wait a moment and try again',
+      );
 
       // Try to reload the ad immediately
       RewardedAd.load(
@@ -342,7 +352,10 @@ class AdService extends GetxService {
       onAdFailedToShowFullScreenContent: (ad, error) {
         print('❌ [AD DEBUG] Failed to show Golden Voice ad: $error');
         ad.dispose();
-        Get.snackbar('Error', 'Failed to show ad. Please try again.');
+        SnackbarUtils.showError(
+          title: 'Error',
+          message: 'Failed to show ad. Please try again.',
+        );
         // Reload on failure
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
@@ -376,7 +389,10 @@ class AdService extends GetxService {
 
     if (rewardedAdRemoveAds == null || !isRewardedRemoveAdsLoaded.value) {
       print('❌ [AD DEBUG] Remove Ads ad not ready, attempting to reload...');
-      Get.snackbar('Loading...', 'Please wait a moment and try again');
+      SnackbarUtils.showInfo(
+        title: 'Loading...',
+        message: 'Please wait a moment and try again',
+      );
 
       // Try to reload the ad immediately
       RewardedAd.load(
@@ -428,7 +444,10 @@ class AdService extends GetxService {
       onAdFailedToShowFullScreenContent: (ad, error) {
         print('❌ [AD DEBUG] Failed to show Remove Ads ad: $error');
         ad.dispose();
-        Get.snackbar('Error', 'Failed to show ad. Please try again.');
+        SnackbarUtils.showError(
+          title: 'Error',
+          message: 'Failed to show ad. Please try again.',
+        );
         // Reload on failure
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,

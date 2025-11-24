@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../services/storage_service.dart';
+import '../../utils/snackbar_utils.dart';
 
 class SettingsController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
@@ -97,7 +98,7 @@ class SettingsController extends GetxController {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.male, color: Colors.blue),
+                leading: const Icon(Icons.male, color: Color(0xFF7C4DFF)),
                 title: Text('male'.tr),
                 onTap: () {
                   Get.back(); // Close dialog first
@@ -128,13 +129,13 @@ class SettingsController extends GetxController {
         ? 'voice_changed_to_male'.tr
         : 'voice_changed_to_female'.tr;
 
-    Get.snackbar(
-      'voice_gender'.tr,
-      message,
-      backgroundColor: Colors.deepPurple.withOpacity(0.9),
-      colorText: Colors.white,
+    SnackbarUtils.showCustom(
+      title: 'voice_gender'.tr,
+      message: message,
+      backgroundColor: const Color(0xFF6D5FFD),
+      textColor: Colors.white,
+      icon: Icons.record_voice_over_rounded,
       duration: const Duration(seconds: 3),
-      snackPosition: SnackPosition.BOTTOM,
     );
   }
 
@@ -146,7 +147,10 @@ class SettingsController extends GetxController {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      Get.snackbar('Error', 'Could not open privacy policy');
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: 'Could not open privacy policy',
+      );
     }
   }
 
@@ -161,7 +165,10 @@ class SettingsController extends GetxController {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      Get.snackbar('Error', 'Could not open app store');
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: 'Could not open app store',
+      );
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
+import '../utils/snackbar_utils.dart';
 
 class SpeechService extends GetxService {
   final SpeechToText _speech = SpeechToText();
@@ -25,7 +26,10 @@ class SpeechService extends GetxService {
     final status = await Permission.microphone.request();
     
     if (!status.isGranted) {
-      Get.snackbar('Error', 'mic_permission_denied'.tr);
+      SnackbarUtils.showError(
+        title: 'Permission Denied',
+        message: 'mic_permission_denied'.tr,
+      );
       return false;
     }
 

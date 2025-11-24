@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
+import '../utils/snackbar_utils.dart';
 
 /// Controller for managing rewarded ad features:
 /// - 2× Stronger: Replay response with amplified energy (UNLIMITED!)
@@ -80,23 +81,13 @@ class RewardedController extends GetxController {
   }
 
   void _showGoldenExpiredNotification() {
-    Get.snackbar(
-      '✨ Golden Voice Expired',
-      'Golden Voice expired – renew?',
-      backgroundColor: Colors.amber.withOpacity(0.8),
-      colorText: Colors.black,
-      icon: const Icon(Icons.star_border, color: Colors.black),
+    SnackbarUtils.showCustom(
+      title: '✨ Golden Voice Expired',
+      message: 'Golden Voice expired – renew?',
+      backgroundColor: const Color(0xFFFFC107),
+      textColor: Colors.black87,
+      icon: Icons.star_border,
       duration: const Duration(seconds: 4),
-      mainButton: TextButton(
-        onPressed: () {
-          Get.back(); // Close snackbar
-          // Trigger golden voice unlock (handled by home controller)
-        },
-        child: const Text(
-          'Renew',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-      ),
     );
   }
 
@@ -110,12 +101,12 @@ class RewardedController extends GetxController {
     showGoldenSparkle.value = false;
 
     // Show success snackbar
-    Get.snackbar(
-      '✨ Golden Voice Unlocked!',
-      'Premium warmth for 1 hour',
-      backgroundColor: Colors.amber.withOpacity(0.9),
-      colorText: Colors.black,
-      icon: const Icon(Icons.star, color: Colors.amber),
+    SnackbarUtils.showCustom(
+      title: '✨ Golden Voice Unlocked!',
+      message: 'Premium warmth for 1 hour',
+      backgroundColor: const Color(0xFFD4AF37),
+      textColor: Colors.white,
+      icon: Icons.star,
       duration: const Duration(seconds: 3),
     );
   }

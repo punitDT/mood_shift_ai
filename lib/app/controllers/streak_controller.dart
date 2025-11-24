@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../services/storage_service.dart';
+import '../utils/snackbar_utils.dart';
 
 class StreakController extends GetxController {
   static StreakController get to => Get.find();
@@ -101,7 +102,7 @@ class StreakController extends GetxController {
       // First day
       title = 'Welcome! 🌟';
       message = 'Day 1 – Your journey begins!';
-      backgroundColor = Colors.blue.withOpacity(0.9);
+      backgroundColor = const Color(0xFF7C4DFF).withValues(alpha: 0.9);
       icon = Icons.rocket_launch_rounded;
     } else if (current == 3) {
       // First fire emoji day
@@ -130,19 +131,13 @@ class StreakController extends GetxController {
     }
 
     // Show snackbar
-    Get.snackbar(
-      title,
-      message,
+    SnackbarUtils.showCustom(
+      title: title,
+      message: message,
       backgroundColor: backgroundColor,
-      colorText: Colors.white,
-      icon: Icon(icon, color: Colors.white, size: 28),
+      textColor: Colors.white,
+      icon: icon,
       duration: const Duration(seconds: 3),
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(16),
-      borderRadius: 12,
-      isDismissible: true,
-      dismissDirection: DismissDirection.horizontal,
-      forwardAnimationCurve: Curves.easeOutBack,
     );
   }
 

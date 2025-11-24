@@ -14,6 +14,7 @@ import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
 import '../../routes/app_routes.dart';
+import '../../utils/snackbar_utils.dart';
 
 enum AppState {
   idle,
@@ -144,7 +145,10 @@ class HomeController extends GetxController {
 
         if (recognizedText.isEmpty || recognizedText.trim().length < 2) {
           print('⚠️  [MIC DEBUG] Empty or too short speech detected, resetting to idle');
-          Get.snackbar('Error', _tr('no_speech_detected', fallback: 'No speech detected'));
+          SnackbarUtils.showWarning(
+            title: 'No Speech',
+            message: _tr('no_speech_detected', fallback: 'No speech detected'),
+          );
           _resetToIdle();
           return;
         }
@@ -156,7 +160,10 @@ class HomeController extends GetxController {
       print('❌ [MIC DEBUG] Stack trace: $stackTrace');
       _listeningTimeoutTimer?.cancel();
       _stopListeningProgress();
-      Get.snackbar('Error', 'Failed to start listening. Please try again.');
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: 'Failed to start listening. Please try again.',
+      );
       _resetToIdle();
     }
   }
@@ -183,7 +190,10 @@ class HomeController extends GetxController {
         // If state hasn't changed from listening, it means callback was never called
         if (currentState.value == stateBeforeStop && currentState.value == AppState.listening) {
           print('⚠️  [MIC DEBUG] No speech result received after 1.5s, resetting to idle');
-          Get.snackbar('Info', _tr('no_speech_detected', fallback: 'No speech detected'));
+          SnackbarUtils.showInfo(
+            title: 'No Speech',
+            message: _tr('no_speech_detected', fallback: 'No speech detected'),
+          );
           _resetToIdle();
         }
       });
@@ -258,7 +268,10 @@ class HomeController extends GetxController {
       slowResponseTimer.cancel();
 
       if (response.isEmpty) {
-        Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));
+        SnackbarUtils.showError(
+          title: 'Error',
+          message: _tr('ai_error', fallback: 'AI service error'),
+        );
         _resetToIdle();
         return;
       }
@@ -306,7 +319,10 @@ class HomeController extends GetxController {
       _stopSpeakingProgress();
       print('❌ [MIC DEBUG] Error processing input: $e');
       print('❌ [MIC DEBUG] Stack trace: $stackTrace');
-      Get.snackbar('Error', _tr('ai_error', fallback: 'AI service error'));
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: _tr('ai_error', fallback: 'AI service error'),
+      );
       _resetToIdle();
     }
   }
@@ -374,12 +390,12 @@ class HomeController extends GetxController {
           _rewardedController.playStrongerEffects();
 
           // Show power activated overlay
-          Get.snackbar(
-            '⚡ 2× POWER ACTIVATED! ⚡',
-            'Amplifying your response...',
-            backgroundColor: const Color(0xFF0099FF).withOpacity(0.9), // Electric blue
-            colorText: Colors.white,
-            icon: const Icon(Icons.bolt, color: Colors.white),
+          SnackbarUtils.showCustom(
+            title: '⚡ 2× POWER ACTIVATED! ⚡',
+            message: 'Amplifying your response...',
+            backgroundColor: const Color(0xFF7C4DFF),
+            textColor: Colors.white,
+            icon: Icons.bolt,
             duration: const Duration(seconds: 2),
           );
 
@@ -403,11 +419,9 @@ class HomeController extends GetxController {
           print('⚡ [STRONGER] 2× stronger response played successfully');
         } catch (e) {
           print('❌ [STRONGER] Error: $e');
-          Get.snackbar(
-            'Error',
-            'Failed to generate 2× stronger response',
-            backgroundColor: Colors.red.withOpacity(0.9),
-            colorText: Colors.white,
+          SnackbarUtils.showError(
+            title: 'Error',
+            message: 'Failed to generate 2× stronger response',
           );
         }
       }
@@ -430,16 +444,13 @@ class HomeController extends GetxController {
       confettiController.play();
 
       // Show beautiful snackbar
-      Get.snackbar(
-        '🕊️ Peace Mode Activated!',
-        'peace_mode_activated'.tr,
-        backgroundColor: Colors.green.withOpacity(0.9),
-        colorText: Colors.white,
-        icon: const Icon(Icons.spa_rounded, color: Colors.white),
+      SnackbarUtils.showCustom(
+        title: '🕊️ Peace Mode Activated!',
+        message: 'peace_mode_activated'.tr,
+        backgroundColor: const Color(0xFF4CAF50),
+        textColor: Colors.white,
+        icon: Icons.spa_rounded,
         duration: const Duration(seconds: 4),
-        snackPosition: SnackPosition.TOP,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 12,
       );
     });
   }

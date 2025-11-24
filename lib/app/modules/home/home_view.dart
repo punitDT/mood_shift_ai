@@ -39,12 +39,12 @@ class HomeView extends GetView<HomeController> {
             ),
           ),
 
-          // 2× STRONGER Electric Blue Flash Effect
+          // 2× STRONGER Electric Purple Flash Effect
           Obx(() => rewardedController.showStrongerFlash.value
               ? Container(
                   width: double.infinity,
                   height: double.infinity,
-                  color: const Color(0xFF00D4FF).withOpacity(0.3), // Electric cyan
+                  color: const Color(0xFF9D7FFF).withOpacity(0.3), // Electric purple
                 )
               : const SizedBox.shrink()),
 
@@ -160,7 +160,7 @@ class HomeView extends GetView<HomeController> {
               colors: const [
                 Color(0xFF6B4FBB), // Soft purple
                 Color(0xFF9B7FDB), // Lavender
-                Color(0xFF4A90E2), // Soft blue
+                Color(0xFF8B7FDB), // Light purple
               ],
             ),
           ),
@@ -190,11 +190,11 @@ class HomeView extends GetView<HomeController> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 20.h),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0099FF).withOpacity(0.95), // Electric blue
+                      color: const Color(0xFF7C4DFF).withOpacity(0.95), // Electric purple
                       borderRadius: BorderRadius.circular(20.r),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00D4FF).withOpacity(0.6), // Electric cyan glow
+                          color: const Color(0xFF9D7FFF).withOpacity(0.6), // Electric purple glow
                           blurRadius: 30,
                           spreadRadius: 10,
                         ),
