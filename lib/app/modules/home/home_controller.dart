@@ -141,11 +141,12 @@ class HomeController extends GetxController {
       });
 
       await _speechService.startListening((recognizedText) async {
-        print('🎤 [MIC DEBUG] Speech recognized: $recognizedText');
+        print('🎤 [MIC DEBUG] Speech callback triggered with: "$recognizedText"');
         _listeningTimeoutTimer?.cancel();
         _stopListeningProgress();
 
         if (recognizedText.isEmpty || recognizedText.trim().length < 2) {
+          print('⚠️  [MIC DEBUG] Empty or too short speech detected, resetting to idle');
           Get.snackbar('Error', _tr('no_speech_detected', fallback: 'No speech detected'));
           _resetToIdle();
           return;
@@ -166,11 +167,29 @@ class HomeController extends GetxController {
   Future<void> onMicReleased() async {
     print('🎤 [MIC DEBUG] Mic released - stopping recording');
     _listeningTimeoutTimer?.cancel();
+    _stopListeningProgress(); // Stop the circular progress immediately
 
     if (currentState.value == AppState.listening) {
+      // Mark that we're waiting for a result
+      bool callbackReceived = false;
+
+      // Store the current state to check later
+      final stateBeforeStop = currentState.value;
+
       // Stop listening immediately when button is released
       await _speechService.stopListening();
       // The callback in startListening will be triggered with the final result
+
+      // Safety timeout: If no result is received within 1.5 seconds, reset to idle
+      // This prevents the app from getting stuck when no speech is detected
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        // If state hasn't changed from listening, it means callback was never called
+        if (currentState.value == stateBeforeStop && currentState.value == AppState.listening) {
+          print('⚠️  [MIC DEBUG] No speech result received after 1.5s, resetting to idle');
+          Get.snackbar('Info', _tr('no_speech_detected', fallback: 'No speech detected'));
+          _resetToIdle();
+        }
+      });
     }
   }
 
@@ -296,14 +315,18 @@ class HomeController extends GetxController {
   }
 
   void _onShiftCompleted() {
+    // Increment streak FIRST (handles total shifts + daily streak)
+    // IMPORTANT: Must be called before HabitService.userDidAShiftToday()
+    // because incrementStreak() checks hasShiftedToday() which relies on last_shift_date
+    _streakController.incrementStreak();
+
     // Record shift in HabitService (new smart tracking system)
     HabitService.userDidAShiftToday();
 
-    // Increment streak (handles total shifts + daily streak)
-    _streakController.incrementStreak();
-
     // Update shift counter for ads
+    print('🎯 [SHIFT DEBUG] Counter BEFORE increment: ${_storage.getShiftCounter()}');
     _storage.incrementShiftCounter();
+    print('🎯 [SHIFT DEBUG] Counter AFTER increment: ${_storage.getShiftCounter()}');
     _updateStats();
 
     // Show confetti (StreakController also shows confetti, but this is for the main shift completion)

@@ -49,8 +49,8 @@ void main() async {
   await Get.putAsync(() => StorageService().init());
   // Initialize HabitService (handles notifications + streak tracking)
   await Get.putAsync(() => HabitService().init());
-  // Initialize RemoteConfig in background without blocking app startup
-  Get.putAsync(() => RemoteConfigService().init());
+  // Initialize RemoteConfig (await to ensure it's ready before app starts)
+  await Get.putAsync(() => RemoteConfigService().init());
   Get.put(AdService());
   Get.put(AdFreeController());
   Get.put(StreakController());
@@ -99,7 +99,7 @@ class MyApp extends StatelessWidget {
           translations: AppTranslations(),
           locale: storageService.getLocale(),
           fallbackLocale: const Locale('en', 'US'),
-          initialRoute: AppRoutes.SPLASH,
+          initialRoute: AppRoutes.HOME,
           getPages: AppPages.pages,
         );
       },

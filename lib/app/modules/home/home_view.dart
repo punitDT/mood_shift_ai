@@ -562,7 +562,9 @@ class HomeView extends GetView<HomeController> {
 
   // Habit stats widget - shows streak, today's shifts, total shifts, active days
   Widget _buildHabitStats() {
-    return Container(
+    final streakController = Get.find<StreakController>();
+
+    return Obx(() => Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
@@ -579,7 +581,7 @@ class HomeView extends GetView<HomeController> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Day ${HabitService.streak}',
+                'Day ${streakController.currentStreak.value}',
                 style: TextStyle(
                   fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
@@ -587,7 +589,7 @@ class HomeView extends GetView<HomeController> {
                   letterSpacing: 0.5,
                 ),
               ),
-              if (HabitService.streak >= 3) ...[
+              if (streakController.currentStreak.value >= 3) ...[
                 SizedBox(width: 8.w),
                 Text(
                   '🔥',
@@ -614,7 +616,7 @@ class HomeView extends GetView<HomeController> {
 
           // Total shifts and active days
           Text(
-            'Total: ${HabitService.totalShifts} shifts • ${HabitService.activeDays} active day${HabitService.activeDays == 1 ? '' : 's'}',
+            'Total: ${streakController.totalShifts.value} shifts • ${HabitService.activeDays} active day${HabitService.activeDays == 1 ? '' : 's'}',
             style: TextStyle(
               fontSize: 11.sp,
               color: Colors.white.withOpacity(0.5),
@@ -624,7 +626,7 @@ class HomeView extends GetView<HomeController> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

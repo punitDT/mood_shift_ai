@@ -125,61 +125,60 @@ class HabitService extends GetxService {
   void _recordShift() {
     final now = DateTime.now();
     final lastShiftDate = _box.read(_keyLastShiftDate);
-    
-    // Increment total shifts (always)
-    final totalShifts = (_box.read(_keyTotalShifts) ?? 0) + 1;
-    _box.write(_keyTotalShifts, totalShifts);
-    
+
+    // Note: Total shifts is incremented by StreakController, not here
+    // to avoid double-counting
+
     // Check if this is first shift today
-    final isFirstShiftToday = lastShiftDate == null || 
+    final isFirstShiftToday = lastShiftDate == null ||
         !_isSameDay(DateTime.parse(lastShiftDate), now);
-    
+
     if (isFirstShiftToday) {
       // First shift of the day
       _updateDailyStreak(now, lastShiftDate);
       _box.write(_keyTodayShifts, 1);
-      
+
       // Increment active days
       final activeDays = (_box.read(_keyActiveDays) ?? 0) + 1;
       _box.write(_keyActiveDays, activeDays);
-      
+
       print('🔥 [HABIT] First shift today! Streak: ${streak}, Active days: ${activeDays}');
     } else {
       // Additional shift today
       final todayShifts = (_box.read(_keyTodayShifts) ?? 0) + 1;
       _box.write(_keyTodayShifts, todayShifts);
-      
-      print('📊 [HABIT] Shift #$todayShifts today. Total: $totalShifts');
+
+      print('📊 [HABIT] Shift #$todayShifts today');
     }
-    
+
     // Update last shift date
     _box.write(_keyLastShiftDate, now.toIso8601String());
-    
+
     // Schedule next notification
     _scheduleSmartNotification();
   }
   
   void _updateDailyStreak(DateTime now, String? lastShiftDate) {
     int currentStreak = _box.read(_keyCurrentStreak) ?? 0;
-    
+
     if (lastShiftDate == null) {
-      // First shift ever
+      // First shift ever - start at Day 1
       currentStreak = 1;
     } else {
       final last = DateTime.parse(lastShiftDate);
       final yesterday = DateTime(now.year, now.month, now.day - 1);
       final lastDay = DateTime(last.year, last.month, last.day);
-      
+
       if (_isSameDay(lastDay, yesterday)) {
         // Consecutive day - increment streak
         currentStreak++;
       } else {
-        // Streak broken - reset to 1
+        // Streak broken - reset to Day 1
         currentStreak = 1;
         print('💔 [HABIT] Streak broken. Starting fresh at Day 1');
       }
     }
-    
+
     _box.write(_keyCurrentStreak, currentStreak);
     print('🔥 [HABIT] Streak updated: Day $currentStreak');
   }

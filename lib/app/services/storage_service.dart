@@ -179,11 +179,14 @@ class StorageService extends GetxService {
 
   void incrementShiftCounter() {
     final current = getShiftCounter();
-    _box.write('shift_counter', current + 1);
+    final newValue = current + 1;
+    _box.write('shift_counter', newValue);
+    print('🎯 [COUNTER DEBUG] Shift counter incremented: $current → $newValue');
   }
 
   void resetShiftCounter() {
     _box.write('shift_counter', 0);
+    print('🔄 [COUNTER DEBUG] Shift counter reset to 0');
   }
 
   // Ad-free period
