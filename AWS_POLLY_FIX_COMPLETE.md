@@ -174,9 +174,25 @@ All AWS Polly integration issues have been resolved:
 
 The app will now use AWS Polly successfully without falling back to flutter_tts.
 
+## ⚠️ Known Limitations
+
+### Languages Without Male Voices
+AWS Polly does **NOT** provide male voices for the following languages:
+
+1. **Hindi (hi-IN)** - Only female voices available (Aditi, Kajal)
+2. **Chinese Mandarin (cmn-CN)** - Only female voice available (Zhiyu)
+3. **Arabic (arb)** - Only female voice available (Zeina)
+
+**Behavior**: When user selects "male" voice for these languages, the app will use the female voice and log a warning:
+```
+⚠️ [POLLY] Hindi does not have male voices in AWS Polly. Using female voice: Aditi
+```
+
+**See**: `AWS_POLLY_VOICE_LIMITATIONS.md` for detailed information and recommendations.
+
 ## 📁 Files Modified
 
-1. `lib/app/services/polly_tts_service.dart` - SSML generation and voice mapping
+1. `lib/app/services/polly_tts_service.dart` - SSML generation, voice mapping, and male voice warnings
 2. `lib/app/services/storage_service.dart` - Locale mapping for AWS Polly
 3. `test/polly_integration_test.dart` - Comprehensive integration tests
 4. `test/polly_ssml_validation_test.dart` - SSML structure validation tests

@@ -46,7 +46,7 @@ class RewardedController extends GetxController {
   }
 
   Future<void> playStrongerEffects() async {
-    // Orange flash effect
+    // Electric blue flash effect
     showStrongerFlash.value = true;
     await Future.delayed(const Duration(milliseconds: 300));
     showStrongerFlash.value = false;

@@ -158,14 +158,14 @@ In Xcode, add `-FIRAnalyticsDebugEnabled` to launch arguments.
 1. Use 2× Stronger
 2. Check console for:
    ```
-   [Analytics] rewarded_ad_watched: {ad_type: stronger, reward_earned: true}
-   [Analytics] stronger_used: {uses_remaining: 2, session_date: 2024-...}
+   [Analytics] rewarded_ad_watched: {ad_type: stronger, reward_earned: 1}
+   [Analytics] stronger_used: {timestamp: 2024-...}
    ```
 
 3. Activate golden voice
 4. Check console for:
    ```
-   [Analytics] rewarded_ad_watched: {ad_type: golden_voice, reward_earned: true}
+   [Analytics] rewarded_ad_watched: {ad_type: golden_voice, reward_earned: 1}
    [Analytics] golden_voice_activated: {duration_minutes: 60, activation_time: 2024-...}
    ```
 

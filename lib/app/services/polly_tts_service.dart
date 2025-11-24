@@ -500,12 +500,20 @@ class PollyTTSService extends GetxService {
     final voiceId = voices[fullLocale]?[engine]?[gender];
 
     if (voiceId != null) {
+      // Special warning for languages without male voices
+      if (gender == 'male' && fullLocale == 'hi-IN') {
+        print('⚠️ [POLLY] Hindi does not have male voices in AWS Polly. Using female voice: $voiceId');
+      }
       return voiceId;
     }
 
     // Fallback to Standard if Neural not available
     final standardVoice = voices[fullLocale]?['Standard']?[gender];
     if (standardVoice != null) {
+      // Special warning for languages without male voices
+      if (gender == 'male' && fullLocale == 'hi-IN') {
+        print('⚠️ [POLLY] Hindi does not have male voices in AWS Polly. Using female voice: $standardVoice');
+      }
       return standardVoice;
     }
 

@@ -346,14 +346,14 @@ class HomeController extends GetxController {
           // Track usage (no decrement, just analytics)
           _rewardedController.useStronger();
 
-          // Play visual effects (orange flash + power overlay)
+          // Play visual effects (electric blue flash + power overlay)
           _rewardedController.playStrongerEffects();
 
           // Show power activated overlay
           Get.snackbar(
             '⚡ 2× POWER ACTIVATED! ⚡',
             'Amplifying your response...',
-            backgroundColor: Colors.orange.withOpacity(0.9),
+            backgroundColor: const Color(0xFF0099FF).withOpacity(0.9), // Electric blue
             colorText: Colors.white,
             icon: const Icon(Icons.bolt, color: Colors.white),
             duration: const Duration(seconds: 2),

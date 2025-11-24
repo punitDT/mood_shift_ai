@@ -38,12 +38,12 @@ class HomeView extends GetView<HomeController> {
             ),
           ),
 
-          // 2× STRONGER Orange Flash Effect
+          // 2× STRONGER Electric Blue Flash Effect
           Obx(() => rewardedController.showStrongerFlash.value
               ? Container(
                   width: double.infinity,
                   height: double.infinity,
-                  color: Colors.orange.withOpacity(0.3),
+                  color: const Color(0xFF00D4FF).withOpacity(0.3), // Electric cyan
                 )
               : const SizedBox.shrink()),
 
@@ -114,9 +114,6 @@ class HomeView extends GetView<HomeController> {
                     // Spacer
                     const Spacer(flex: 5),
 
-                    // Bottom Stats (very subtle)
-                    _buildBottomStats(),
-
                     SizedBox(height: 20.h),
 
                     // Banner Ad Space (only if loaded and not ad-free)
@@ -176,11 +173,11 @@ class HomeView extends GetView<HomeController> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 20.h),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.95),
+                      color: const Color(0xFF0099FF).withOpacity(0.95), // Electric blue
                       borderRadius: BorderRadius.circular(20.r),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withOpacity(0.5),
+                          color: const Color(0xFF00D4FF).withOpacity(0.6), // Electric cyan glow
                           blurRadius: 30,
                           spreadRadius: 10,
                         ),
@@ -223,40 +220,41 @@ class HomeView extends GetView<HomeController> {
   // Minimal top bar - clean and spacious
   Widget _buildMinimalTopBar() {
     final rewardedController = Get.find<RewardedController>();
+    final streakController = Get.find<StreakController>();
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      child: Row(
+      child: Column(
         children: [
-          // Golden Voice Timer (left side) - flexible to prevent overflow
-          Obx(() {
-            final timerText = rewardedController.getGoldenTimerDisplay();
-            if (timerText.isEmpty) {
-              return SizedBox(width: 8.w);
-            }
+          Row(
+            children: [
+              // Golden Voice Timer (left side) - flexible to prevent overflow
+              Obx(() {
+                final timerText = rewardedController.getGoldenTimerDisplay();
+                if (timerText.isEmpty) {
+                  return const SizedBox.shrink();
+                }
 
-            return Flexible(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD4AF37).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(
-                    color: const Color(0xFFD4AF37).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.star,
-                      color: const Color(0xFFD4AF37),
-                      size: 13.sp,
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withOpacity(0.3),
+                      width: 1,
                     ),
-                    SizedBox(width: 4.w),
-                    Flexible(
-                      child: Text(
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.star,
+                        color: const Color(0xFFD4AF37),
+                        size: 13.sp,
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
                         timerText,
                         style: TextStyle(
                           fontSize: 11.sp,
@@ -267,98 +265,66 @@ class HomeView extends GetView<HomeController> {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
+                    ],
+                  ),
+                );
+              }),
+
+              // App name - centered, flexible
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'MoodShift AI',
+                    style: TextStyle(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w300,
+                      color: Colors.white,
+                      letterSpacing: 1.0,
                     ),
-                  ],
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
               ),
-            );
-          }),
 
-          // App name - centered, flexible
-          Expanded(
-            child: Center(
-              child: Text(
-                'MoodShift AI',
-                style: TextStyle(
-                  fontSize: 17.sp,
-                  fontWeight: FontWeight.w300,
-                  color: Colors.white,
-                  letterSpacing: 1.0,
+              // Settings icon - stays on the right
+              IconButton(
+                onPressed: controller.goToSettings,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(
+                  Icons.settings_outlined,
+                  color: Colors.white.withOpacity(0.6),
+                  size: 22.sp,
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
               ),
-            ),
+            ],
           ),
 
-          // Settings icon - tiny, subtle
-          IconButton(
-            onPressed: controller.goToSettings,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(
-              Icons.settings_outlined,
-              color: Colors.white.withOpacity(0.6),
-              size: 22.sp,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Bottom stats - very subtle and small
-  Widget _buildBottomStats() {
-    final streakController = Get.find<StreakController>();
-
-    return Obx(() {
-      final current = streakController.currentStreak.value;
-      final total = streakController.totalShifts.value;
-
-      return Text(
-        'Day $current • $total shifts',
-        style: TextStyle(
-          fontSize: 14.sp,
-          color: const Color(0xFF6B6B8B), // Subtle gray-purple
-          fontWeight: FontWeight.w300,
-          letterSpacing: 0.5,
-        ),
-      );
-    });
-  }
-
-  // Active state indicators - subtle, non-intrusive
-  Widget _buildActiveStateIndicators() {
-    final adFreeController = Get.find<AdFreeController>();
-
-    return Positioned(
-      bottom: 80.h,
-      right: 20.w,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // Ad-free indicator (tiny leaf icon)
+          // Streak info - moved from bottom to top
+          SizedBox(height: 8.h),
           Obx(() {
-            if (!adFreeController.isAdFree.value) {
-              return const SizedBox.shrink();
-            }
+            final current = streakController.currentStreak.value;
+            final total = streakController.totalShifts.value;
 
-            return Container(
-              padding: EdgeInsets.all(6.w),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.spa_rounded,
-                color: const Color(0xFF4CAF50).withOpacity(0.4),
-                size: 16.sp,
+            return Text(
+              'Day $current • $total shifts',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: const Color(0xFF9B7FDB).withOpacity(0.6), // Soft purple
+                fontWeight: FontWeight.w400,
+                letterSpacing: 0.5,
               ),
             );
           }),
         ],
       ),
     );
+  }
+
+  // Active state indicators - removed as requested
+  Widget _buildActiveStateIndicators() {
+    return const SizedBox.shrink();
   }
 
   // Premium mic button - elegant, soft glow, breathing animation with Lottie and circular progress

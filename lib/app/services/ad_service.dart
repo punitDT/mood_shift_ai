@@ -241,7 +241,7 @@ class AdService extends GetxService {
             name: 'rewarded_ad_watched',
             parameters: {
               'ad_type': 'stronger',
-              'reward_earned': true,
+              'reward_earned': 1, // Firebase Analytics requires string or number, not boolean
             },
           );
 
@@ -338,7 +338,7 @@ class AdService extends GetxService {
             name: 'rewarded_ad_watched',
             parameters: {
               'ad_type': 'golden_voice',
-              'reward_earned': true,
+              'reward_earned': 1, // Firebase Analytics requires string or number, not boolean
             },
           );
 
