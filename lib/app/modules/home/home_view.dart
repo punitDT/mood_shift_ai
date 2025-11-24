@@ -93,17 +93,33 @@ class HomeView extends GetView<HomeController> {
 
                     // Instructional text above mic button
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 32.w),
-                      child: Text(
-                        'mic_instruction'.tr,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          color: Colors.white.withOpacity(0.7),
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 0.3,
-                          height: 1.4,
-                        ),
+                      padding: EdgeInsets.symmetric(horizontal: 25.w),
+                      child: Column(
+                        children: [
+                          Text(
+                            'mic_instruction_line1'.tr,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              color: Colors.white.withOpacity(0.7),
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.3,
+                              height: 1.4,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'mic_instruction_line2'.tr,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              color: Colors.white.withOpacity(0.7),
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.3,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -223,7 +239,7 @@ class HomeView extends GetView<HomeController> {
     final rewardedController = Get.find<RewardedController>();
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Column(
         children: [
           Row(
@@ -314,65 +330,23 @@ class HomeView extends GetView<HomeController> {
     return const SizedBox.shrink();
   }
 
-  // Premium mic button - elegant, soft glow, breathing animation with Lottie and circular progress
+  // Premium mic button - elegant, soft glow, breathing animation
   Widget _buildPremiumMicButton() {
     final rewardedController = Get.find<RewardedController>();
 
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
-      final isSpeaking = controller.currentState.value == AppState.speaking;
       final isGolden = rewardedController.hasGoldenVoice.value;
-      final showGoldenGlow = rewardedController.showGoldenGlow.value;
-      final listeningProgress = controller.listeningProgress.value;
-      final speakingProgress = controller.speakingProgress.value;
-      final showLottie = controller.showLottieAnimation.value;
 
       return GestureDetector(
         onTapDown: (_) => controller.onMicPressed(),
         onTapUp: (_) => controller.onMicReleased(),
         onTapCancel: () => controller.onMicReleased(),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Circular progress for listening (60s max)
-            if (isListening && listeningProgress > 0)
-              SizedBox(
-                width: 160.w,
-                height: 160.w,
-                child: CircularProgressIndicator(
-                  value: listeningProgress,
-                  strokeWidth: 4.w,
-                  backgroundColor: Colors.white.withOpacity(0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    const Color(0xFF6B4FBB).withOpacity(0.8),
-                  ),
-                ),
-              ),
-
-            // Circular progress for speaking (60s max)
-            if (isSpeaking && speakingProgress > 0)
-              SizedBox(
-                width: 160.w,
-                height: 160.w,
-                child: CircularProgressIndicator(
-                  value: speakingProgress,
-                  strokeWidth: 4.w,
-                  backgroundColor: Colors.white.withOpacity(0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    const Color(0xFF4A90E2).withOpacity(0.8),
-                  ),
-                ),
-              ),
-
-            // Main mic button
-            _BreathingMicButton(
-              isListening: isListening,
-              isActive: isActive,
-              isGolden: isGolden,
-              showLottie: showLottie,
-            ),
-          ],
+        child: _BreathingMicButton(
+          isListening: isListening,
+          isActive: isActive,
+          isGolden: isGolden,
         ),
       );
     });
@@ -630,18 +604,16 @@ class HomeView extends GetView<HomeController> {
   }
 }
 
-// Separate StatefulWidget for breathing animation to avoid TweenAnimationBuilder issues
+// Premium press-and-hold mic button with beautiful animations
 class _BreathingMicButton extends StatefulWidget {
   final bool isListening;
   final bool isActive;
   final bool isGolden;
-  final bool showLottie;
 
   const _BreathingMicButton({
     required this.isListening,
     required this.isActive,
     required this.isGolden,
-    this.showLottie = false,
   });
 
   @override
@@ -649,136 +621,394 @@ class _BreathingMicButton extends StatefulWidget {
 }
 
 class _BreathingMicButtonState extends State<_BreathingMicButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
+    with TickerProviderStateMixin {
+  late AnimationController _breathingController;
+  late AnimationController _pulseController;
+  late Animation<double> _breathingAnimation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+
+    // Subtle breathing animation when idle
+    _breathingController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+    _breathingAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
       CurvedAnimation(
-        parent: _animationController,
+        parent: _breathingController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Pulsing glow ring animation when recording
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(
+        parent: _pulseController,
         curve: Curves.easeInOut,
       ),
     );
   }
 
   @override
+  void didUpdateWidget(_BreathingMicButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Start/stop pulse animation based on listening state
+    if (widget.isListening && !oldWidget.isListening) {
+      _pulseController.repeat(reverse: true);
+    } else if (!widget.isListening && oldWidget.isListening) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
   void dispose() {
-    _animationController.dispose();
+    _breathingController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Main button with animations
+        AnimatedBuilder(
+          animation: Listenable.merge([_breathingAnimation, _pulseAnimation]),
+          builder: (context, child) {
+            return Transform.scale(
+              scale: widget.isListening ? 1.0 : _breathingAnimation.value,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Pulsing glow rings (only when recording)
+                  if (widget.isListening) ...[
+                    // Outer glow ring
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: Container(
+                            width: 130.w,
+                            height: 130.w,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  const Color(0xFF6D5FFD).withOpacity(0.0),
+                                  const Color(0xFF6D5FFD).withOpacity(0.3),
+                                  const Color(0xFF1E1E3F).withOpacity(0.5),
+                                ],
+                                stops: const [0.0, 0.7, 1.0],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    // Middle glow ring
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: 1.0 + (_pulseAnimation.value - 1.0) * 0.6,
+                          child: Container(
+                            width: 120.w,
+                            height: 120.w,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  const Color(0xFF6D5FFD).withOpacity(0.0),
+                                  const Color(0xFF6D5FFD).withOpacity(0.4),
+                                  const Color(0xFF1E1E3F).withOpacity(0.6),
+                                ],
+                                stops: const [0.0, 0.6, 1.0],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+
+                  // Main button with size animation
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    width: widget.isListening ? 110.w : 86.w,
+                    height: widget.isListening ? 110.w : 86.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.isGolden
+                          ? const Color(0xFFD4AF37)
+                          : Colors.white,
+                      boxShadow: [
+                        // Soft shadow
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 4),
+                        ),
+                        // Glow effect
+                        if (widget.isListening)
+                          BoxShadow(
+                            color: const Color(0xFF6D5FFD).withOpacity(0.4),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                        if (widget.isGolden)
+                          BoxShadow(
+                            color: const Color(0xFFD4AF37).withOpacity(0.5),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                      ],
+                    ),
+                    child: Center(
+                      child: _buildMicIcon(),
+                    ),
+                  ),
+
+                  // Golden Voice sparkle overlay
+                  if (widget.isGolden)
+                    SizedBox(
+                      width: widget.isListening ? 130.w : 106.w,
+                      height: widget.isListening ? 130.w : 106.w,
+                      child: Lottie.asset(
+                        'assets/animations/sparkle.json',
+                        repeat: true,
+                        animate: true,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        // "Recording..." text (appears when listening)
+        AnimatedOpacity(
+          opacity: widget.isListening ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: widget.isListening ? 30.h : 0,
+            child: widget.isListening
+                ? Padding(
+                    padding: EdgeInsets.only(top: 12.h),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Recording',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: const Color(0xFFA0A0FF),
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        _buildPulsingDots(),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Mic icon with sound wave animation when recording
+  Widget _buildMicIcon() {
+    if (widget.isListening) {
+      // Show mic_none with subtle sound wave animation
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          // Sound wave bars (left and right)
+          Positioned(
+            left: 20.w,
+            child: _SoundWaveBar(delay: 0),
+          ),
+          Positioned(
+            right: 20.w,
+            child: _SoundWaveBar(delay: 200),
+          ),
+          // Mic icon
+          Icon(
+            Icons.mic_none_rounded,
+            size: 40.sp,
+            color: widget.isGolden
+                ? Colors.white
+                : const Color(0xFF1E1E3F),
+          ),
+        ],
+      );
+    } else {
+      // Idle state - simple mic icon
+      return Icon(
+        Icons.mic_none_rounded,
+        size: 36.sp,
+        color: widget.isGolden
+            ? Colors.white
+            : const Color(0xFF1E1E3F),
+      );
+    }
+  }
+
+  // Pulsing dots animation for "Recording..."
+  Widget _buildPulsingDots() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _PulsingDot(delay: 0),
+        SizedBox(width: 2.w),
+        _PulsingDot(delay: 150),
+        SizedBox(width: 2.w),
+        _PulsingDot(delay: 300),
+      ],
+    );
+  }
+}
+
+// Sound wave bar animation
+class _SoundWaveBar extends StatefulWidget {
+  final int delay;
+
+  const _SoundWaveBar({required this.delay});
+
+  @override
+  State<_SoundWaveBar> createState() => _SoundWaveBarState();
+}
+
+class _SoundWaveBarState extends State<_SoundWaveBar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Delay start based on position
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        _controller.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _scaleAnimation,
+      animation: _animation,
       builder: (context, child) {
-        return Transform.scale(
-          scale: widget.isListening ? 1.0 : _scaleAnimation.value,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Background container with gradient and glow
-              Container(
-                width: 140.w,
-                height: 140.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: widget.isGolden
-                        ? [
-                            const Color(0xFFD4AF37).withOpacity(0.9), // Soft gold
-                            const Color(0xFFB8941E).withOpacity(0.8),
-                          ]
-                        : widget.isListening
-                            ? [
-                                const Color(0xFF6B4FBB).withOpacity(0.9), // Soft purple
-                                const Color(0xFF4A3580).withOpacity(0.8),
-                              ]
-                            : [
-                                const Color(0xFF5A4A8A).withOpacity(0.7), // Very soft purple
-                                const Color(0xFF3D2F5F).withOpacity(0.6),
-                              ],
-                  ),
-                  boxShadow: [
-                    // Soft outer glow
-                    BoxShadow(
-                      color: widget.isGolden
-                          ? const Color(0xFFD4AF37).withOpacity(0.15)
-                          : const Color(0xFF6B4FBB).withOpacity(0.12),
-                      blurRadius: widget.isGolden ? 40 : 30,
-                      spreadRadius: widget.isGolden ? 8 : 5,
-                    ),
-                    // Inner subtle glow
-                    BoxShadow(
-                      color: widget.isGolden
-                          ? const Color(0xFFFFE082).withOpacity(0.1)
-                          : const Color(0xFF9B7FDB).withOpacity(0.08),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-              ),
-              // Golden Voice looping sparkle overlay (subtle, always on during Golden mode)
-              if (widget.isGolden)
-                Positioned.fill(
-                  child: SizedBox(
-                    width: 160.w,
-                    height: 160.w,
-                    child: Lottie.asset(
-                      'assets/animations/sparkle.json',
-                      repeat: true,
-                      animate: true,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        // Fallback to subtle golden ring if Lottie fails
-                        return Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFD4AF37).withOpacity(0.3),
-                              width: 2,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              // Lottie animation overlay when showing animation or listening
-              if (widget.showLottie || widget.isListening)
-                SizedBox(
-                  width: 100.w,
-                  height: 100.w,
-                  child: Lottie.asset(
-                    'assets/animations/microphone_pulse.json',
-                    repeat: true,
-                    animate: true,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to icon if Lottie fails to load
-                      return Icon(
-                        Icons.mic,
-                        size: 48.sp,
-                        color: Colors.white.withOpacity(0.95),
-                      );
-                    },
-                  ),
-                )
-              else
-                Icon(
-                  widget.isActive ? Icons.mic : Icons.mic_none_rounded,
-                  size: 48.sp,
-                  color: Colors.white.withOpacity(0.95),
-                ),
-            ],
+        return Container(
+          width: 3.w,
+          height: 12.h * _animation.value,
+          decoration: BoxDecoration(
+            color: (widget.delay == 0 ? const Color(0xFF6D5FFD) : const Color(0xFF1E1E3F))
+                .withOpacity(0.6),
+            borderRadius: BorderRadius.circular(2.r),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Pulsing dot for "Recording..." text
+class _PulsingDot extends StatefulWidget {
+  final int delay;
+
+  const _PulsingDot({required this.delay});
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Delay start based on position
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        _controller.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: 4.w,
+          height: 4.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFFA0A0FF).withOpacity(_animation.value),
           ),
         );
       },

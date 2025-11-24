@@ -115,19 +115,16 @@ class HomeController extends GetxController {
   Future<void> onMicPressed() async {
     if (currentState.value != AppState.idle) return;
 
-    print('🎤 [MIC DEBUG] Mic pressed - starting listening');
+    print('🎤 [MIC DEBUG] Mic pressed - starting listening immediately');
 
     try {
-      // Show Lottie animation for 1 second
-      showLottieAnimation.value = true;
-      await Future.delayed(const Duration(milliseconds: 1000));
-      showLottieAnimation.value = false;
-
+      // Start listening immediately - no delay to capture first words
       currentState.value = AppState.listening;
       statusText.value = _tr('listening', fallback: 'Listening...');
       showRewardButtons.value = false;
+      showLottieAnimation.value = true;
 
-      // Start circular progress for listening (60 seconds max)
+      // Start progress tracking for listening (60 seconds max)
       _startListeningProgress();
 
       // Set a timeout to prevent getting stuck in listening state (60 seconds max)

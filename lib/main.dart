@@ -1,9 +1,12 @@
+import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -39,6 +42,23 @@ void main() async {
     }
   }
 
+  // ========== FIREBASE CRASHLYTICS SETUP (RELEASE MODE ONLY) ==========
+  // Only activate Crashlytics in release builds to avoid noise during development
+  if (kReleaseMode) {
+    // Pass all uncaught Flutter errors to Crashlytics
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+    // Pass all uncaught asynchronous errors to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+
+    print('🔥 [CRASHLYTICS] Activated in release mode');
+  } else {
+    print('🔥 [CRASHLYTICS] Disabled in debug mode');
+  }
+
   // Initialize GetStorage
   await GetStorage.init();
 
@@ -54,7 +74,19 @@ void main() async {
   Get.put(AdService());
   Get.put(AdFreeController());
   Get.put(StreakController());
-  
+
+  // ========== SET CRASHLYTICS CUSTOM KEYS (RELEASE MODE ONLY) ==========
+  if (kReleaseMode) {
+    final storage = Get.find<StorageService>();
+
+    // Set custom keys for better crash context
+    await FirebaseCrashlytics.instance.setCustomKey('voice_gender', storage.getVoiceGender());
+    await FirebaseCrashlytics.instance.setCustomKey('selected_lang', storage.getLanguageCode());
+    await FirebaseCrashlytics.instance.setCustomKey('current_streak', storage.getCurrentStreak());
+
+    print('🔥 [CRASHLYTICS] Custom keys set: voice_gender=${storage.getVoiceGender()}, lang=${storage.getLanguageCode()}, streak=${storage.getCurrentStreak()}');
+  }
+
   // Set portrait orientation only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

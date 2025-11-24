@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import '../services/storage_service.dart';
 
 /// Controller for managing rewarded ad features:
@@ -9,7 +8,6 @@ import '../services/storage_service.dart';
 /// - Golden Voice: Premium warm voice for 1 hour
 class RewardedController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   // 2× Stronger Feature (UNLIMITED - no counter!)
   final showStrongerFlash = false.obs;
@@ -35,14 +33,6 @@ class RewardedController extends GetxController {
   // More ad views = more revenue!
   void useStronger() {
     print('⚡ [STRONGER] Activated! (UNLIMITED)');
-
-    // Track analytics
-    _analytics.logEvent(
-      name: 'stronger_used',
-      parameters: {
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
   }
 
   Future<void> playStrongerEffects() async {
@@ -128,15 +118,6 @@ class RewardedController extends GetxController {
       icon: const Icon(Icons.star, color: Colors.amber),
       duration: const Duration(seconds: 3),
     );
-
-    // Track analytics
-    _analytics.logEvent(
-      name: 'golden_voice_activated',
-      parameters: {
-        'duration_minutes': 60,
-        'activation_time': DateTime.now().toIso8601String(),
-      },
-    );
   }
 
   String getGoldenTimerDisplay() {
@@ -149,16 +130,6 @@ class RewardedController extends GetxController {
     if (!hasGoldenVoice.value) return '';
     // Full format for bottom sheet
     return 'Golden Voice: ${goldenTimeRemaining.value}';
-  }
-
-  // ========== ANALYTICS HELPERS ==========
-
-  Map<String, dynamic> getGoldenAnalyticsData() {
-    return {
-      'is_active': hasGoldenVoice.value,
-      'time_remaining_seconds': _storage.getRemainingGoldenTime().inSeconds,
-      'expiry_time': _storage.getGoldenVoiceEndTime(),
-    };
   }
 
   @override

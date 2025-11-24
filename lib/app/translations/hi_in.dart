@@ -7,7 +7,8 @@ const Map<String, String> hiIN = {
   
   // Home
   'hold_to_speak': 'बोलने के लिए दबाएं',
-  'mic_instruction': 'माइक दबाएं और कुछ भी कहें — 10 सेकंड में बेहतर महसूस करें',
+  'mic_instruction_line1': 'माइक दबाएं और अपने मन की बात साझा करें',
+  'mic_instruction_line2': 'जब आप करते हैं तो बदलाव होता है',
   'listening': 'सुन रहा हूं...',
   'processing': 'प्रोसेस हो रहा है...',
   'speaking': 'AI जवाब दे रहा है...',
@@ -46,6 +47,7 @@ const Map<String, String> hiIN = {
   
   // Languages
   'english': 'English',
+  'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',
   'spanish': 'Español (Spanish)',
   'chinese': '中文 (Chinese)',
