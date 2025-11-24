@@ -33,7 +33,16 @@ class StorageService extends GetxService {
   String getFullLocale() {
     final languageCode = getLanguageCode();
     final countryCode = getCountryCode();
-    return '$languageCode-$countryCode';
+    final locale = '$languageCode-$countryCode';
+
+    // Map to AWS Polly language codes
+    // AWS Polly uses different codes for Chinese and Arabic
+    final pollyLocaleMap = {
+      'zh-CN': 'cmn-CN',  // Chinese Mandarin
+      'ar-SA': 'arb',     // Arabic (Modern Standard)
+    };
+
+    return pollyLocaleMap[locale] ?? locale;
   }
 
   // Voice Gender

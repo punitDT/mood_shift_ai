@@ -443,7 +443,7 @@ class PollyTTSService extends GetxService {
           "female": "Conchita",     // Basic female
         },
       },
-      "zh-CN": {
+      "cmn-CN": {  // Changed from zh-CN to cmn-CN (correct AWS Polly language code)
         "Neural": {
           "male": "Zhiyu",          // Clear male (2025 addition)
           "female": "Zhiyu",        // Soft female (generative)
@@ -473,14 +473,14 @@ class PollyTTSService extends GetxService {
           "female": "Marlene",      // Basic female
         },
       },
-      "ar-SA": {
+      "arb": {  // Changed from ar-SA to arb (correct AWS Polly language code)
         "Neural": {
-          "male": "Zayd",           // Expressive male (2025 addition)
-          "female": "Hala",         // Soft female
+          "male": "Zeina",          // Only female available for Standard
+          "female": "Zeina",        // Only female available for Standard
         },
         "Standard": {
-          "male": "Zayd",           // Basic male
-          "female": "Hala",         // Basic female
+          "male": "Zeina",          // Only female available
+          "female": "Zeina",        // Basic female
         },
       },
       "ja-JP": {
@@ -539,83 +539,71 @@ class PollyTTSService extends GetxService {
 
   /// Get 2× STRONGER SSML with style-specific extreme prosody
   /// Makes it feel like the AI just LEVELED UP!
+  /// NOTE: Only uses SSML tags that work with BOTH neural and standard engines
+  /// IMPORTANT: DRC is NOT supported by neural voices, so we only use prosody
   String _get2xStrongerSSML(String text, MoodStyle style) {
     switch (style) {
       case MoodStyle.chaosEnergy:
-        // CHAOS ENERGY: x-fast, super high pitch, LOUD, breathy + vocal tract boost
+        // CHAOS ENERGY: x-fast, super high pitch, LOUD
+        // Removed DRC (not supported by neural voices)
         return '<speak>'
             '<prosody rate="x-fast" pitch="+30%" volume="+10dB">'
-            '<amazon:effect name="drc">'
-            '<amazon:effect phonation="breathy">'
-            '<amazon:effect vocal-tract-length="+15%">'
             '$text'
-            '</amazon:effect>'
-            '</amazon:effect>'
-            '</amazon:effect>'
             '</prosody>'
             '</speak>';
 
       case MoodStyle.gentleGrandma:
-        // GENTLE GRANDMA: medium pace, higher pitch, louder, soft phonation
+        // GENTLE GRANDMA: medium pace, higher pitch, louder
+        // Removed DRC (not supported by neural voices)
         return '<speak>'
             '<prosody rate="medium" pitch="+25%" volume="+8dB">'
-            '<amazon:effect phonation="soft">'
             '$text'
-            '</amazon:effect>'
             '</prosody>'
             '</speak>';
 
       case MoodStyle.permissionSlip:
         // PERMISSION SLIP: fast, high pitch, loud, playful
+        // Removed DRC (not supported by neural voices)
         return '<speak>'
             '<prosody rate="fast" pitch="+28%" volume="+9dB">'
-            '<amazon:effect name="drc">'
             '$text'
-            '</amazon:effect>'
             '</prosody>'
             '</speak>';
 
       case MoodStyle.realityCheck:
         // REALITY CHECK: fast, confident pitch, loud, clear
+        // Removed DRC (not supported by neural voices)
         return '<speak>'
             '<prosody rate="fast" pitch="+22%" volume="+9dB">'
-            '<amazon:effect name="drc">'
             '$text'
-            '</amazon:effect>'
             '</prosody>'
             '</speak>';
 
       case MoodStyle.microDare:
         // MICRO DARE: fast, energetic pitch, loud
+        // Removed DRC (not supported by neural voices)
         return '<speak>'
             '<prosody rate="fast" pitch="+25%" volume="+9dB">'
-            '<amazon:effect name="drc">'
             '$text'
-            '</amazon:effect>'
             '</prosody>'
             '</speak>';
     }
   }
 
   /// Build SSML for Golden Voice effect
-  /// Premium SSML with DRC, conversational style, and soft phonation
-  /// EXACT SPEC: <amazon:effect name="drc"> + <prosody style="conversational"> + <amazon:effect phonation="soft">
+  /// Premium SSML for enhanced audio quality
+  /// NOTE: DRC is NOT supported by neural voices, so we only use prosody
   String _buildGoldenSSML(String text, MoodStyle style) {
     // Escape XML special characters
     final escapedText = _escapeXml(text);
 
-    // Premium Golden SSML - EXACT SPEC
-    return '''
-    <speak>
-      <amazon:effect name="drc">
-        <prosody style="conversational" rate="medium" pitch="medium" volume="medium">
-          <amazon:effect phonation="soft">
-            $escapedText
-          </amazon:effect>
-        </prosody>
-      </amazon:effect>
-    </speak>
-    ''';
+    // Premium Golden SSML - Using only valid SSML tags
+    // Removed DRC (not supported by neural voices)
+    return '<speak>'
+        '<prosody rate="medium" pitch="medium" volume="medium">'
+        '$escapedText'
+        '</prosody>'
+        '</speak>';
   }
 
   /// Escape XML special characters for SSML
