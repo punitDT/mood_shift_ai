@@ -53,7 +53,7 @@ class SettingsView extends GetView<SettingsController> {
                     ),
 
                     SizedBox(height: 12.h),
-                    
+
                     _buildSettingItem(
                       icon: Icons.language_rounded,
                       title: 'language'.tr,
@@ -77,7 +77,33 @@ class SettingsView extends GetView<SettingsController> {
                       ),
                       onTap: controller.showLanguageSelector,
                     ),
-                    
+
+                    SizedBox(height: 12.h),
+
+                    _buildSettingItem(
+                      icon: Icons.record_voice_over_rounded,
+                      title: 'voice_gender'.tr,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Obx(() => Text(
+                                controller.selectedVoiceGender.value,
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
+                              )),
+                          SizedBox(width: 8.w),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16.sp,
+                            color: Colors.white.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                      onTap: controller.showVoiceGenderSelector,
+                    ),
+
                     SizedBox(height: 12.h),
                     
                     _buildSettingItem(

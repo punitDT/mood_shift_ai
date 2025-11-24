@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
@@ -100,8 +101,9 @@ class PollyTTSService extends GetxService {
     await stop();
 
     final languageCode = _storage.getLanguageCode();
+    final gender = _storage.getVoiceGender();
     final isGolden = _storage.hasGoldenVoice();
-    final cacheKey = _getCacheKey(text, languageCode, style, isGolden: isGolden);
+    final cacheKey = _getCacheKey(text, languageCode, style, gender: gender, isGolden: isGolden);
     final cachedFile = await _getCachedAudio(cacheKey);
 
     // Try to use cached audio first
@@ -138,7 +140,8 @@ class PollyTTSService extends GetxService {
     await stop();
 
     final languageCode = _storage.getLanguageCode();
-    final cacheKey = _getCacheKey(text, languageCode, style, isStronger: true);
+    final gender = _storage.getVoiceGender();
+    final cacheKey = _getCacheKey(text, languageCode, style, gender: gender, isStronger: true);
     final cachedFile = await _getCachedAudio(cacheKey);
 
     // Try to use cached audio first
@@ -394,28 +397,22 @@ class PollyTTSService extends GetxService {
 
   String _pad(int n) => n.toString().padLeft(2, '0');
 
-  String _getPollyVoice(String languageCode) {
-    // Use premium Golden Voice if active
-    if (_storage.hasGoldenVoice()) {
-      switch (languageCode) {
-        case 'en': return 'Matthew'; // Premium male voice
-        case 'hi': return 'Aditi';
-        case 'es': return 'Lucia';
-        default: return 'Matthew';
-      }
-    }
-    
-    // Standard Neural voices
-    switch (languageCode) {
-      case 'en': return 'Joanna';
-      case 'hi': return 'Aditi';
-      case 'es': return 'Conchita';
-      case 'fr': return 'Lea';
-      case 'de': return 'Vicki';
-      case 'ja': return 'Mizuki';
-      case 'zh': return 'Zhiyu';
-      default: return 'Joanna';
-    }
+  String _getPollyVoice(String lang) {
+    final String gender = GetStorage().read('voice_gender') ?? 'female';
+
+    // Amazon Polly Neural voice IDs (not locale-prefixed)
+    final Map<String, Map<String, String>> voices = {
+      "en": {"male": "Matthew",   "female": "Joanna"},
+      "hi": {"male": "Aditi",     "female": "Aditi"},  // Hindi only has Aditi
+      "es": {"male": "Enrique",   "female": "Conchita"},
+      "zh": {"male": "Zhiyu",     "female": "Zhiyu"},  // Chinese only has Zhiyu
+      "fr": {"male": "Mathieu",   "female": "Celine"},
+      "de": {"male": "Hans",      "female": "Marlene"},
+      "ar": {"male": "Zeina",     "female": "Zeina"},  // Arabic only has Zeina
+      "ja": {"male": "Takumi",    "female": "Mizuki"},
+    };
+
+    return voices[lang]?[gender] ?? (gender == "male" ? "Matthew" : "Joanna");
   }
 
   String _buildSSML(String text, {Map<String, String>? prosody}) {
@@ -466,9 +463,9 @@ class PollyTTSService extends GetxService {
         .replaceAll("'", '&apos;');
   }
 
-  String _getCacheKey(String text, String languageCode, MoodStyle style, {bool isStronger = false, bool isGolden = false}) {
+  String _getCacheKey(String text, String languageCode, MoodStyle style, {String gender = 'female', bool isStronger = false, bool isGolden = false}) {
     final modifier = isStronger ? '-stronger' : (isGolden ? '-golden' : '');
-    final combined = '$text-$languageCode-${style.toString()}$modifier';
+    final combined = '$text-$languageCode-${style.toString()}-$gender$modifier';
     return sha256.convert(utf8.encode(combined)).toString();
   }
 

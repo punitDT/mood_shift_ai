@@ -10,6 +10,7 @@ class SettingsController extends GetxController {
 
   final appVersion = ''.obs;
   final selectedLanguage = 'English'.obs;
+  final selectedVoiceGender = 'Female'.obs;
 
   final languages = [
     {'code': 'en', 'country': 'US', 'name': 'english'},
@@ -27,6 +28,7 @@ class SettingsController extends GetxController {
     super.onInit();
     _loadAppVersion();
     _loadCurrentLanguage();
+    _loadCurrentVoiceGender();
   }
 
   Future<void> _loadAppVersion() async {
@@ -41,6 +43,11 @@ class SettingsController extends GetxController {
       orElse: () => languages[0],
     );
     selectedLanguage.value = lang['name']!.tr;
+  }
+
+  void _loadCurrentVoiceGender() {
+    final currentGender = _storage.getVoiceGender();
+    selectedVoiceGender.value = currentGender == 'male' ? 'male'.tr : 'female'.tr;
   }
 
   void showLanguageSelector() {
@@ -76,6 +83,57 @@ class SettingsController extends GetxController {
     _storage.setLocale(code, country);
     Get.updateLocale(Locale(code, country));
     selectedLanguage.value = name.tr;
+  }
+
+  void showVoiceGenderSelector() {
+    Get.dialog(
+      AlertDialog(
+        title: Text('voice_gender'.tr),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.male, color: Colors.blue),
+                title: Text('male'.tr),
+                onTap: () {
+                  Get.back(); // Close dialog first
+                  _changeVoiceGender('male');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.female, color: Colors.pink),
+                title: Text('female'.tr),
+                onTap: () {
+                  Get.back(); // Close dialog first
+                  _changeVoiceGender('female');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _changeVoiceGender(String gender) {
+    _storage.setVoiceGender(gender);
+    selectedVoiceGender.value = gender.tr;
+
+    // Show snackbar with descriptive message
+    final message = gender == 'male'
+        ? 'voice_changed_to_male'.tr
+        : 'voice_changed_to_female'.tr;
+
+    Get.snackbar(
+      'voice_gender'.tr,
+      message,
+      backgroundColor: Colors.deepPurple.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   Future<void> openPrivacyPolicy() async {

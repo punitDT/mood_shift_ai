@@ -26,6 +26,15 @@ class StorageService extends GetxService {
     return _box.read('language_code') ?? 'en';
   }
 
+  // Voice Gender
+  String getVoiceGender() {
+    return _box.read('voice_gender') ?? 'female';
+  }
+
+  void setVoiceGender(String gender) {
+    _box.write('voice_gender', gender);
+  }
+
   // ========== NEW STREAK SYSTEM ==========
 
   // Get current streak (read-only, doesn't modify)
