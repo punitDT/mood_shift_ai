@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
@@ -164,31 +163,30 @@ class PollyTTSService extends GetxService {
       print('❌ [POLLY] Polly 2× stronger synthesis failed: $e');
     }
 
-    // Fallback to flutter_tts with amplified settings
-    print('🔄 [POLLY] Using flutter_tts fallback for 2× STRONGER');
+    // Fallback to flutter_tts with EXTREME amplified settings
+    print('🔄 [POLLY] Using flutter_tts fallback for 2× STRONGER with style: $style');
     isUsingOfflineMode.value = true;
 
     await _fallbackTts.setVolume(1.0);
 
-    // Get base values from LLM prosody
-    final baseRate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
-    final basePitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
+    // Get style-specific extreme settings
+    final extremeSettings = _getExtremeSettings(style, prosody);
 
-    // Amplify by 1.3x for 2× STRONGER effect
-    await _fallbackTts.setSpeechRate((baseRate * 1.3).clamp(0.3, 1.0));
-    await _fallbackTts.setPitch((basePitch * 1.3).clamp(0.8, 1.5));
+    await _fallbackTts.setSpeechRate(extremeSettings['rate']!);
+    await _fallbackTts.setPitch(extremeSettings['pitch']!);
     await _setLanguage(languageCode);
 
     await _fallbackTts.speak(text);
   }
 
-  /// Synthesize 2× STRONGER audio with Polly using amplified SSML
+  /// Synthesize 2× STRONGER audio with Polly using EXTREME style-specific SSML
   Future<File?> _synthesizeStrongerWithPolly(String text, String languageCode, MoodStyle style) async {
     try {
       final voiceId = _getPollyVoice(languageCode);
-      final ssmlText = _buildStrongerSSML(text);
+      final fullLocale = _convertToFullLocale(languageCode);
+      final ssmlText = _buildStrongerSSML(text, style); // Pass style for extreme SSML
 
-      print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId');
+      print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId, language: $fullLocale, style: $style');
 
       final engines = _pollyEngine == 'neural' ? ['neural', 'standard'] : ['standard'];
 
@@ -201,6 +199,7 @@ class PollyTTSService extends GetxService {
             'Text': ssmlText,
             'TextType': 'ssml',
             'VoiceId': voiceId,
+            'LanguageCode': fullLocale,
             'Engine': engine,
             'OutputFormat': _pollyOutputFormat,
           });
@@ -255,6 +254,7 @@ class PollyTTSService extends GetxService {
   Future<File?> _synthesizeWithPolly(String text, String languageCode, MoodStyle style, {Map<String, String>? prosody}) async {
     try {
       final voiceId = _getPollyVoice(languageCode);
+      final fullLocale = _convertToFullLocale(languageCode);
 
       // Use Golden SSML if golden voice is active, otherwise use normal SSML with LLM prosody
       final ssmlText = _storage.hasGoldenVoice()
@@ -262,7 +262,7 @@ class PollyTTSService extends GetxService {
           : _buildSSML(text, prosody: prosody);
 
       final voiceMode = _storage.hasGoldenVoice() ? 'GOLDEN' : 'NORMAL';
-      print('🎙️ [POLLY] Synthesizing with voice: $voiceId ($voiceMode mode)');
+      print('🎙️ [POLLY] Synthesizing with voice: $voiceId, language: $fullLocale ($voiceMode mode)');
 
       // Try with configured engine first (neural), then fallback to standard
       final engines = _pollyEngine == 'neural' ? ['neural', 'standard'] : ['standard'];
@@ -276,6 +276,7 @@ class PollyTTSService extends GetxService {
             'Text': ssmlText,
             'TextType': 'ssml',
             'VoiceId': voiceId,
+            'LanguageCode': fullLocale,
             'Engine': engine,
             'OutputFormat': _pollyOutputFormat,
           });
@@ -398,45 +399,69 @@ class PollyTTSService extends GetxService {
   String _pad(int n) => n.toString().padLeft(2, '0');
 
   String _getPollyVoice(String lang) {
-    final String gender = GetStorage().read('voice_gender') ?? 'female';
+    // Use injected storage service for consistency
+    final String gender = _storage.getVoiceGender();
 
-    // Updated Amazon Polly Neural voice IDs (locale-prefixed, Neural only)
+    // Convert short language codes to full locale codes
+    final String fullLocale = _convertToFullLocale(lang);
+
+    // Amazon Polly Neural voice IDs (correct format without locale prefix)
+    // Reference: https://docs.aws.amazon.com/polly/latest/dg/available-voices.html
     final Map<String, Map<String, String>> voices = {
       "en-US": {
-        "male": "en-US-MatthewNeural",    // Warm, energetic male
-        "female": "en-US-JoannaNeural",   // Soothing, empathetic female
+        "male": "Matthew",      // Neural - Warm, energetic male
+        "female": "Joanna",     // Neural - Soothing, empathetic female
       },
       "hi-IN": {
-        "male": "hi-IN-KajalNeural",      // Only female available – use as male fallback
-        "female": "hi-IN-KajalNeural",    // Natural Hindi female
+        "male": "Kajal",        // Neural - Only female available, use for both
+        "female": "Kajal",      // Neural - Natural Hindi female
       },
       "es-ES": {
-        "male": "es-ES-SergioNeural",     // Dynamic male
-        "female": "es-ES-LuciaNeural",    // Warm female
+        "male": "Sergio",       // Neural - Dynamic male
+        "female": "Lucia",      // Neural - Warm female
       },
       "zh-CN": {
-        "male": "zh-CN-ZhiyuNeural",      // Only female available – use as male fallback
-        "female": "zh-CN-ZhiyuNeural",    // Clear Mandarin female
+        "male": "Zhiyu",        // Neural - Only female available, use for both
+        "female": "Zhiyu",      // Neural - Clear Mandarin female (cmn-CN)
       },
       "fr-FR": {
-        "male": "fr-FR-RemiNeural",       // Friendly male
-        "female": "fr-FR-LeaNeural",      // Soft female
+        "male": "Remi",         // Neural - Friendly male (Rémi)
+        "female": "Lea",        // Neural - Soft female (Léa)
       },
       "de-DE": {
-        "male": "de-DE-DanielNeural",     // Clear male
-        "female": "de-DE-VickiNeural",    // Natural female
+        "male": "Daniel",       // Neural - Clear male
+        "female": "Vicki",      // Neural - Natural female
       },
       "ar-SA": {
-        "male": "en-US-MatthewNeural",    // No Neural for ar-SA – fallback to English male
-        "female": "en-US-JoannaNeural",   // Fallback to English female
+        "male": "Zayd",         // Neural - Arabic Gulf male (ar-AE)
+        "female": "Hala",       // Neural - Arabic Gulf female (ar-AE)
       },
       "ja-JP": {
-        "male": "ja-JP-TakumiNeural",     // Energetic male
-        "female": "ja-JP-KazuhaNeural",   // Gentle female (preferred over Tomoko for warmth)
+        "male": "Takumi",       // Neural - Energetic male
+        "female": "Kazuha",     // Neural - Gentle female
       },
     };
 
-    return voices[lang]?[gender] ?? (gender == "male" ? "Matthew" : "Joanna");
+    return voices[fullLocale]?[gender] ?? (gender == "male" ? "Matthew" : "Joanna");
+  }
+
+  /// Convert short language codes (en, hi, es) to full locale codes (en-US, hi-IN, es-ES)
+  String _convertToFullLocale(String languageCode) {
+    switch (languageCode) {
+      case 'en': return 'en-US';
+      case 'hi': return 'hi-IN';
+      case 'es': return 'es-ES';
+      case 'zh': return 'zh-CN';
+      case 'fr': return 'fr-FR';
+      case 'de': return 'de-DE';
+      case 'ar': return 'ar-SA';
+      case 'ja': return 'ja-JP';
+      default:
+        // If already a full locale code, return as is
+        if (languageCode.contains('-')) return languageCode;
+        // Otherwise default to en-US
+        return 'en-US';
+    }
   }
 
   String _buildSSML(String text, {Map<String, String>? prosody}) {
@@ -452,15 +477,75 @@ class PollyTTSService extends GetxService {
     return '<speak>$prosodyTag</speak>';
   }
 
-  /// Build SSML for 2× STRONGER effect
-  /// Faster rate (1.3x), higher pitch (1.2x), louder volume (1.2x)
-  String _buildStrongerSSML(String text) {
+  /// Build EXTREME SSML for 2× STRONGER effect
+  /// Style-specific extreme prosody to make it feel 10× more powerful
+  String _buildStrongerSSML(String text, MoodStyle style) {
     // Escape XML special characters
     final escapedText = _escapeXml(text);
 
-    // 2× STRONGER: rate="130%" pitch="+20%" volume="loud"
-    // Using percentage and semitone notation for better control
-    return '<speak><prosody rate="130%" pitch="+20%" volume="loud">$escapedText</prosody></speak>';
+    // Get style-specific extreme SSML
+    final ssml = _get2xStrongerSSML(escapedText, style);
+    return ssml;
+  }
+
+  /// Get 2× STRONGER SSML with style-specific extreme prosody
+  /// Makes it feel like the AI just LEVELED UP!
+  String _get2xStrongerSSML(String text, MoodStyle style) {
+    switch (style) {
+      case MoodStyle.chaosEnergy:
+        // CHAOS ENERGY: x-fast, super high pitch, LOUD, breathy + vocal tract boost
+        return '<speak>'
+            '<prosody rate="x-fast" pitch="+30%" volume="+10dB">'
+            '<amazon:effect name="drc">'
+            '<amazon:effect phonation="breathy">'
+            '<amazon:effect vocal-tract-length="+15%">'
+            '$text'
+            '</amazon:effect>'
+            '</amazon:effect>'
+            '</amazon:effect>'
+            '</prosody>'
+            '</speak>';
+
+      case MoodStyle.gentleGrandma:
+        // GENTLE GRANDMA: medium pace, higher pitch, louder, soft phonation
+        return '<speak>'
+            '<prosody rate="medium" pitch="+25%" volume="+8dB">'
+            '<amazon:effect phonation="soft">'
+            '$text'
+            '</amazon:effect>'
+            '</prosody>'
+            '</speak>';
+
+      case MoodStyle.permissionSlip:
+        // PERMISSION SLIP: fast, high pitch, loud, playful
+        return '<speak>'
+            '<prosody rate="fast" pitch="+28%" volume="+9dB">'
+            '<amazon:effect name="drc">'
+            '$text'
+            '</amazon:effect>'
+            '</prosody>'
+            '</speak>';
+
+      case MoodStyle.realityCheck:
+        // REALITY CHECK: fast, confident pitch, loud, clear
+        return '<speak>'
+            '<prosody rate="fast" pitch="+22%" volume="+9dB">'
+            '<amazon:effect name="drc">'
+            '$text'
+            '</amazon:effect>'
+            '</prosody>'
+            '</speak>';
+
+      case MoodStyle.microDare:
+        // MICRO DARE: fast, energetic pitch, loud
+        return '<speak>'
+            '<prosody rate="fast" pitch="+25%" volume="+9dB">'
+            '<amazon:effect name="drc">'
+            '$text'
+            '</amazon:effect>'
+            '</prosody>'
+            '</speak>';
+    }
   }
 
   /// Build SSML for Golden Voice effect
@@ -607,6 +692,38 @@ class PollyTTSService extends GetxService {
       case 'high': return 1.2;
       case 'medium':
       default: return 1.0;
+    }
+  }
+
+  /// Get extreme settings for 2× STRONGER fallback TTS
+  /// Style-specific amplification for maximum impact
+  Map<String, double> _getExtremeSettings(MoodStyle style, Map<String, String>? prosody) {
+    final baseRate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
+    final basePitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
+
+    switch (style) {
+      case MoodStyle.chaosEnergy:
+        // CHAOS: x-fast rate, super high pitch
+        return {
+          'rate': (baseRate * 1.6).clamp(0.5, 1.0),
+          'pitch': (basePitch * 1.5).clamp(1.2, 1.5),
+        };
+
+      case MoodStyle.gentleGrandma:
+        // GENTLE: medium-fast rate, higher pitch
+        return {
+          'rate': (baseRate * 1.3).clamp(0.4, 0.8),
+          'pitch': (basePitch * 1.4).clamp(1.1, 1.4),
+        };
+
+      case MoodStyle.permissionSlip:
+      case MoodStyle.realityCheck:
+      case MoodStyle.microDare:
+        // DEFAULT: fast rate, high pitch
+        return {
+          'rate': (baseRate * 1.4).clamp(0.45, 0.9),
+          'pitch': (basePitch * 1.4).clamp(1.1, 1.5),
+        };
     }
   }
 

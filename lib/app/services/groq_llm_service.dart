@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'ai_service.dart'; // For MoodStyle enum
@@ -152,30 +151,35 @@ class GroqLLMService extends GetxService {
   }
 
   /// Generate a 2× STRONGER version of the original response
-  /// This amplifies the energy, intensity, and hype of the original message
-  Future<String> generateStrongerResponse(String originalResponse, String language) async {
+  /// NEW APPROACH: Makes a fresh LLM call with the original response + style
+  /// to create a dramatically more intense, emotional, and powerful version
+  Future<String> generateStrongerResponse(
+    String originalResponse,
+    MoodStyle originalStyle,
+    String language,
+  ) async {
     try {
       final languageName = _getLanguageName(language);
+      final styleStr = _getStyleString(originalStyle);
 
-      // Build the 2× stronger prompt
-      final prompt = '''Take this message and amplify it to 2× STRONGER intensity:
+      // Build the NEW 2× stronger prompt that preserves style
+      final prompt = '''ORIGINAL RESPONSE: "$originalResponse"
+ORIGINAL STYLE: $styleStr
 
-"$originalResponse"
-
-Transform it with:
-- MORE CAPS for emphasis
-- MORE energy and urgency
-- MORE emojis (🔥⚡💪)
-- LOUDER, more intense tone
-- Keep core message but AMPLIFY everything
+TRANSFORM THIS INTO 2× STRONGER VERSION:
+- Keep exact same style and core message
+- Make it dramatically MORE intense, emotional, urgent
+- Use stronger verbs, CAPS, !!, deeper affirmations, bigger dares
+- Add one short power phrase (e.g., "You are UNSTOPPABLE", "This is YOUR moment")
+- Same length (50–75 words)
 - Stay in $languageName
-- Maximum 150 words
+- Output exact same format: STYLE: ... PROSODY: ... RESPONSE: ...
 
-Your amplified response will be spoken aloud immediately. Write ONLY the spoken words - no labels, no markers, no "end". Just the powerful, energized message.
+Your response will be spoken aloud immediately. Make it feel like the AI just LEVELED UP!
 
 Begin now:''';
 
-      print('⚡ [GROQ] Generating 2× STRONGER response...');
+      print('⚡ [GROQ] Generating 2× STRONGER response with style: $styleStr');
 
       final response = await http.post(
         Uri.parse(_groqApiUrl),
@@ -188,18 +192,18 @@ Begin now:''';
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI in MAXIMUM POWER MODE speaking directly to energize someone. Your response will be spoken aloud immediately. Write ONLY what should be said - pure energy, no labels, no markers, no meta-text. Maximum intensity and hype!',
+              'content': 'You are MoodShift AI in MAXIMUM POWER MODE. You take responses and amplify them to 2× intensity while preserving the original style. Your response will be spoken aloud immediately.',
             },
             {
               'role': 'user',
               'content': prompt,
             },
           ],
-          'temperature': 1.0, // Higher temperature for more energy
+          'temperature': 1.1, // Higher temperature for more energy
           'max_tokens': _maxTokens,
           'top_p': 1,
-          'frequency_penalty': 0.3, // Lower to allow more repetition of power words
-          'presence_penalty': 0.7, // Higher for more variety
+          'frequency_penalty': 0.2, // Lower to allow more repetition of power words
+          'presence_penalty': 0.8, // Higher for more variety
         }),
       ).timeout(Duration(seconds: _timeoutSeconds));
 
@@ -207,10 +211,25 @@ Begin now:''';
         final data = jsonDecode(response.body);
         if (data['choices'] != null && data['choices'].isNotEmpty) {
           String generatedText = data['choices'][0]['message']['content'] ?? '';
-          generatedText = _cleanResponse(generatedText);
 
-          print('✅ [GROQ] 2× STRONGER response generated: ${generatedText.length} chars');
-          return generatedText;
+          // Parse the style, prosody, and response from the LLM output
+          final parsed = _parseStyleAndResponse(generatedText);
+          final selectedStyle = parsed['style'] as MoodStyle;
+          final prosody = parsed['prosody'] as Map<String, String>;
+          String finalResponse = parsed['response'] as String;
+
+          // Save the selected style and prosody for TTS
+          _lastSelectedStyle = selectedStyle;
+          _lastProsody = prosody;
+
+          print('🎯 [GROQ] 2× STRONGER style: $selectedStyle');
+          print('🎵 [GROQ] 2× STRONGER prosody: rate=${prosody['rate']}, pitch=${prosody['pitch']}, volume=${prosody['volume']}');
+
+          // Clean up
+          finalResponse = _cleanResponse(finalResponse);
+
+          print('✅ [GROQ] 2× STRONGER response generated: ${finalResponse.length} chars');
+          return finalResponse;
         }
       } else {
         print('❌ [GROQ] 2× Stronger API error: ${response.statusCode}');
@@ -221,6 +240,22 @@ Begin now:''';
     } catch (e) {
       print('❌ [GROQ] Error generating 2× stronger: $e');
       return _amplifyResponseManually(originalResponse);
+    }
+  }
+
+  /// Convert MoodStyle enum to string for prompts
+  String _getStyleString(MoodStyle style) {
+    switch (style) {
+      case MoodStyle.chaosEnergy:
+        return 'CHAOS_ENERGY';
+      case MoodStyle.gentleGrandma:
+        return 'GENTLE_GRANDMA';
+      case MoodStyle.permissionSlip:
+        return 'PERMISSION_SLIP';
+      case MoodStyle.realityCheck:
+        return 'REALITY_CHECK';
+      case MoodStyle.microDare:
+        return 'MICRO_DARE';
     }
   }
 
@@ -248,7 +283,8 @@ Begin now:''';
     final inputsText = recentInputs.isEmpty ? 'None' : recentInputs.join(', ');
     final responsesText = recentResponses.isEmpty ? 'None' : recentResponses.take(3).map((r) => r.length > 50 ? '${r.substring(0, 50)}...' : r).join(', ');
 
-    final String voiceGender = GetStorage().read('voice_gender') ?? 'female';
+    // Use injected storage service for consistency
+    final String voiceGender = _storage.getVoiceGender();
     final String genderLine = "Voice gender: $voiceGender (Male = caring dad/hype coach | Female = gentle grandma/cheerleader)";
 
     return '''

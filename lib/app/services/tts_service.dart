@@ -62,18 +62,48 @@ class TTSService extends GetxService {
     final languageCode = _storage.getLanguageCode();
     await _setLanguage(languageCode);
 
-    // Make it 2x stronger - increase volume, rate, and pitch
+    // EXTREME 2× STRONGER - style-specific amplification
     await _tts.setVolume(1.0);
 
-    // Get base values from LLM prosody
+    // Get style-specific extreme settings
+    final extremeSettings = _getExtremeSettings(style, prosody);
+
+    await _tts.setSpeechRate(extremeSettings['rate']!);
+    await _tts.setPitch(extremeSettings['pitch']!);
+
+    await _tts.speak(text);
+  }
+
+  /// Get extreme settings for 2× STRONGER
+  /// Style-specific amplification for maximum impact
+  Map<String, double> _getExtremeSettings(MoodStyle style, Map<String, String>? prosody) {
     final baseRate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
     final basePitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
 
-    // Amplify by 1.3x (not too much to avoid distortion)
-    await _tts.setSpeechRate((baseRate * 1.3).clamp(0.3, 1.0));
-    await _tts.setPitch((basePitch * 1.3).clamp(0.8, 1.5));
+    switch (style) {
+      case MoodStyle.chaosEnergy:
+        // CHAOS: x-fast rate, super high pitch
+        return {
+          'rate': (baseRate * 1.6).clamp(0.5, 1.0),
+          'pitch': (basePitch * 1.5).clamp(1.2, 1.5),
+        };
 
-    await _tts.speak(text);
+      case MoodStyle.gentleGrandma:
+        // GENTLE: medium-fast rate, higher pitch
+        return {
+          'rate': (baseRate * 1.3).clamp(0.4, 0.8),
+          'pitch': (basePitch * 1.4).clamp(1.1, 1.4),
+        };
+
+      case MoodStyle.permissionSlip:
+      case MoodStyle.realityCheck:
+      case MoodStyle.microDare:
+        // DEFAULT: fast rate, high pitch
+        return {
+          'rate': (baseRate * 1.4).clamp(0.45, 0.9),
+          'pitch': (basePitch * 1.4).clamp(1.1, 1.5),
+        };
+    }
   }
 
   Future<void> _setLanguage(String languageCode) async {

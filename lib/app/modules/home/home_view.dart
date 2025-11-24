@@ -476,17 +476,14 @@ class HomeView extends GetView<HomeController> {
                         final rewardedController = Get.find<RewardedController>();
                         final isGolden = rewardedController.hasGoldenVoice.value;
                         final isAdFree = adFreeController.isAdFree.value;
-                        final strongerUsesRemaining = rewardedController.strongerUsesRemaining.value;
 
                         return Column(
                           children: [
                             _buildSuperpowerCard(
-                              strongerUsesRemaining > 0
-                                  ? '2× Stronger ($strongerUsesRemaining left)'
-                                  : '2× Stronger (0 left)',
+                              '2× Stronger!', // UNLIMITED - always available!
                               Icons.bolt_outlined,
-                              strongerUsesRemaining > 0 ? controller.onMakeStronger : null,
-                              isActive: strongerUsesRemaining == 0,
+                              controller.onMakeStronger, // Always enabled
+                              isActive: false, // Never disabled
                             ),
                             SizedBox(height: 12.h),
                             _buildSuperpowerCard(

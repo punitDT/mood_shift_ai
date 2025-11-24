@@ -349,41 +349,10 @@ class StorageService extends GetxService {
     _box.write('first_launch', false);
   }
 
-  // ========== 2× STRONGER FEATURE ==========
+  // ========== 2× STRONGER FEATURE (UNLIMITED!) ==========
 
-  // Get remaining uses for 2× stronger feature (resets daily)
-  int getStrongerUsesRemaining() {
-    return _box.read('stronger_uses_remaining') ?? 3;
-  }
-
-  void setStrongerUsesRemaining(int uses) {
-    _box.write('stronger_uses_remaining', uses);
-    print('⚡ [STRONGER] Uses remaining: $uses');
-  }
-
-  // Get last session date (for resetting daily limits)
-  String? getLastSessionDate() {
-    return _box.read('last_session_date');
-  }
-
-  void setLastSessionDate(String date) {
-    _box.write('last_session_date', date);
-    print('📅 [SESSION] Last session date: $date');
-  }
-
-  // Store original response and style for 2× stronger replay
-  void setStrongerOriginalResponse(String response, String style) {
-    _box.write('stronger_original_response', response);
-    _box.write('stronger_original_style', style);
-  }
-
-  String? getStrongerOriginalResponse() {
-    return _box.read('stronger_original_response');
-  }
-
-  String? getStrongerOriginalStyle() {
-    return _box.read('stronger_original_style');
-  }
+  // No storage needed - feature is now unlimited!
+  // All limit-related methods have been removed
 }
 
 

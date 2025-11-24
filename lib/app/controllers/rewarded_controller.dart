@@ -5,105 +5,42 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import '../services/storage_service.dart';
 
 /// Controller for managing rewarded ad features:
-/// - 2× Stronger: Replay response with amplified energy (3 uses/session limit)
+/// - 2× Stronger: Replay response with amplified energy (UNLIMITED!)
 /// - Golden Voice: Premium warm voice for 1 hour
 class RewardedController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
-  // 2× Stronger Feature
-  final strongerUsesRemaining = 3.obs;
+  // 2× Stronger Feature (UNLIMITED - no counter!)
   final showStrongerFlash = false.obs;
   final showStrongerOverlay = false.obs;
-  
+
   // Golden Voice Feature
   final hasGoldenVoice = false.obs;
   final goldenTimeRemaining = ''.obs;
   final showGoldenGlow = false.obs;
   final showGoldenSparkle = false.obs;
-  
+
   Timer? _goldenVoiceTimer;
-  Timer? _sessionResetTimer;
 
   @override
   void onInit() {
     super.onInit();
-    _initializeStrongerSession();
     _startGoldenVoiceTimer();
-    _startSessionResetTimer();
   }
 
-  // ========== 2× STRONGER FEATURE ==========
+  // ========== 2× STRONGER FEATURE (UNLIMITED!) ==========
 
-  void _initializeStrongerSession() {
-    // Reset stronger uses at start of session
-    final lastSessionDate = _storage.getLastSessionDate();
-    final today = DateTime.now();
-    
-    if (lastSessionDate == null || 
-        !_isSameDay(DateTime.parse(lastSessionDate), today)) {
-      // New session - reset uses
-      strongerUsesRemaining.value = 3;
-      _storage.setStrongerUsesRemaining(3);
-      _storage.setLastSessionDate(today.toIso8601String());
-    } else {
-      // Same session - load saved uses
-      strongerUsesRemaining.value = _storage.getStrongerUsesRemaining();
-    }
-    
-    print('⚡ [STRONGER] Session initialized: ${strongerUsesRemaining.value} uses remaining');
-  }
-
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
-  }
-
-  void _startSessionResetTimer() {
-    // Check every hour if we need to reset the session
-    _sessionResetTimer = Timer.periodic(const Duration(hours: 1), (timer) {
-      final lastSessionDate = _storage.getLastSessionDate();
-      final today = DateTime.now();
-      
-      if (lastSessionDate != null && 
-          !_isSameDay(DateTime.parse(lastSessionDate), today)) {
-        // New day - reset uses
-        strongerUsesRemaining.value = 3;
-        _storage.setStrongerUsesRemaining(3);
-        _storage.setLastSessionDate(today.toIso8601String());
-        print('⚡ [STRONGER] Session reset: 3 uses available');
-      }
-    });
-  }
-
-  bool canUseStronger() {
-    return strongerUsesRemaining.value > 0;
-  }
-
+  // No limits! Users can use this as many times as they want
+  // More ad views = more revenue!
   void useStronger() {
-    if (!canUseStronger()) {
-      Get.snackbar(
-        '⚡ Limit Reached',
-        'You\'ve used all 3 "2× Stronger" boosts for today. Come back tomorrow!',
-        backgroundColor: Colors.orange.withOpacity(0.9),
-        colorText: Colors.white,
-        icon: const Icon(Icons.bolt, color: Colors.white),
-        duration: const Duration(seconds: 3),
-      );
-      return;
-    }
-
-    strongerUsesRemaining.value--;
-    _storage.setStrongerUsesRemaining(strongerUsesRemaining.value);
-    print('⚡ [STRONGER] Used! Remaining: ${strongerUsesRemaining.value}');
+    print('⚡ [STRONGER] Activated! (UNLIMITED)');
 
     // Track analytics
     _analytics.logEvent(
       name: 'stronger_used',
       parameters: {
-        'uses_remaining': strongerUsesRemaining.value,
-        'session_date': _storage.getLastSessionDate(),
+        'timestamp': DateTime.now().toIso8601String(),
       },
     );
   }
@@ -209,13 +146,6 @@ class RewardedController extends GetxController {
 
   // ========== ANALYTICS HELPERS ==========
 
-  Map<String, dynamic> getStrongerAnalyticsData() {
-    return {
-      'uses_remaining': strongerUsesRemaining.value,
-      'session_date': _storage.getLastSessionDate() ?? '',
-    };
-  }
-
   Map<String, dynamic> getGoldenAnalyticsData() {
     return {
       'is_active': hasGoldenVoice.value,
@@ -227,7 +157,6 @@ class RewardedController extends GetxController {
   @override
   void onClose() {
     _goldenVoiceTimer?.cancel();
-    _sessionResetTimer?.cancel();
     super.onClose();
   }
 }

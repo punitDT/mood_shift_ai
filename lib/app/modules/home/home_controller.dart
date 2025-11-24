@@ -334,16 +334,14 @@ class HomeController extends GetxController {
 
   // Rewarded Ad Actions
   Future<void> onMakeStronger() async {
-    // Check if user has uses remaining
-    if (!_rewardedController.canUseStronger()) {
-      return; // Controller will show limit reached snackbar
-    }
+    // UNLIMITED! No limit checks - users can spam this as much as they want
+    // More rewarded ads = more revenue!
 
     _adService.showRewardedAdStronger(() async {
       // User watched ad - now generate and play 2× stronger response
       if (lastResponse != null && lastStyle != null) {
         try {
-          // Use the stronger use
+          // Track usage (no decrement, just analytics)
           _rewardedController.useStronger();
 
           // Play visual effects (orange flash + power overlay)
@@ -359,10 +357,11 @@ class HomeController extends GetxController {
             duration: const Duration(seconds: 2),
           );
 
-          // Generate 2× stronger response from LLM
+          // Generate 2× stronger response from LLM with NEW PROMPT
           final languageCode = _storage.getLanguageCode();
           final strongerResponse = await _llmService.generateStrongerResponse(
             lastResponse!,
+            lastStyle!,
             languageCode,
           );
 
@@ -372,7 +371,7 @@ class HomeController extends GetxController {
           // Play confetti
           confettiController.play();
 
-          // Speak the stronger response with amplified TTS
+          // Speak the stronger response with EXTREME SSML
           await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody);
 
           print('⚡ [STRONGER] 2× stronger response played successfully');
