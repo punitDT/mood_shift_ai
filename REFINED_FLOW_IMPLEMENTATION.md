@@ -249,7 +249,8 @@ Respond in {selectedLang}. 10–60 sec spoken (100–150 words).
 ## 📊 Performance Metrics
 
 - **Lottie Animation**: 1 second
-- **Listening Timeout**: 120 seconds max
+- **Listening Timeout**: 60 seconds max (1 minute)
+- **Recording**: Stops when user releases button or after 60 seconds
 - **Speaking Estimation**: Based on word count (~150 words/min)
 - **Progress Update Interval**: 100ms (smooth animation)
 - **History Storage**: Last 5 inputs + 5 responses

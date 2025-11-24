@@ -225,71 +225,82 @@ class HomeView extends GetView<HomeController> {
     final rewardedController = Get.find<RewardedController>();
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Golden Voice Timer (left side)
+          // Golden Voice Timer (left side) - flexible to prevent overflow
           Obx(() {
             final timerText = rewardedController.getGoldenTimerDisplay();
             if (timerText.isEmpty) {
-              return SizedBox(width: 24.w);
+              return SizedBox(width: 8.w);
             }
 
-            return Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD4AF37).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: const Color(0xFFD4AF37).withOpacity(0.3),
-                  width: 1,
+            return Flexible(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: const Color(0xFFD4AF37).withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.star,
-                    color: const Color(0xFFD4AF37),
-                    size: 14.sp,
-                  ),
-                  SizedBox(width: 6.w),
-                  Text(
-                    timerText,
-                    style: TextStyle(
-                      fontSize: 12.sp,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.star,
                       color: const Color(0xFFD4AF37),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5,
+                      size: 13.sp,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 4.w),
+                    Flexible(
+                      child: Text(
+                        timerText,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }),
 
-          // App name - centered, clean sans-serif
-          Text(
-            'MoodShift AI',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w300,
-              color: Colors.white,
-              letterSpacing: 1.2,
+          // App name - centered, flexible
+          Expanded(
+            child: Center(
+              child: Text(
+                'MoodShift AI',
+                style: TextStyle(
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w300,
+                  color: Colors.white,
+                  letterSpacing: 1.0,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
           ),
 
           // Settings icon - tiny, subtle
           IconButton(
             onPressed: controller.goToSettings,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
             icon: Icon(
               Icons.settings_outlined,
               color: Colors.white.withOpacity(0.6),
-              size: 24.sp,
+              size: 22.sp,
             ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -371,7 +382,7 @@ class HomeView extends GetView<HomeController> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Circular progress for listening (120s max)
+            // Circular progress for listening (60s max)
             if (isListening && listeningProgress > 0)
               SizedBox(
                 width: 160.w,
@@ -488,7 +499,7 @@ class HomeView extends GetView<HomeController> {
                             SizedBox(height: 12.h),
                             _buildSuperpowerCard(
                               isGolden
-                                  ? 'Golden Voice • ${rewardedController.goldenTimeRemaining.value}'
+                                  ? 'Golden • ${rewardedController.goldenTimeRemaining.value}'
                                   : 'Golden Voice',
                               Icons.star_outline_rounded,
                               isGolden ? null : controller.onUnlockGolden,
@@ -694,6 +705,32 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                   ],
                 ),
               ),
+              // Golden Voice looping sparkle overlay (subtle, always on during Golden mode)
+              if (widget.isGolden)
+                Positioned.fill(
+                  child: SizedBox(
+                    width: 160.w,
+                    height: 160.w,
+                    child: Lottie.asset(
+                      'assets/animations/sparkle.json',
+                      repeat: true,
+                      animate: true,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to subtle golden ring if Lottie fails
+                        return Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37).withOpacity(0.3),
+                              width: 2,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               // Lottie animation overlay when showing animation or listening
               if (widget.showLottie || widget.isListening)
                 SizedBox(

@@ -126,17 +126,16 @@ class HomeController extends GetxController {
       statusText.value = _tr('listening', fallback: 'Listening...');
       showRewardButtons.value = false;
 
-      // Start circular progress for listening (120 seconds max)
+      // Start circular progress for listening (60 seconds max)
       _startListeningProgress();
 
-      // Set a timeout to prevent getting stuck in listening state (120 seconds)
+      // Set a timeout to prevent getting stuck in listening state (60 seconds max)
       _listeningTimeoutTimer?.cancel();
-      _listeningTimeoutTimer = Timer(const Duration(seconds: 120), () {
-        print('⏱️  [MIC DEBUG] Listening timeout - resetting to idle');
+      _listeningTimeoutTimer = Timer(const Duration(seconds: 60), () {
+        print('⏱️  [MIC DEBUG] Listening timeout (60s) - stopping recording');
         if (currentState.value == AppState.listening) {
           _speechService.stopListening();
-          Get.snackbar('Timeout', 'No speech detected. Please try again.');
-          _resetToIdle();
+          // The callback will be triggered by stopListening, which will process the text
         }
       });
 
@@ -164,10 +163,13 @@ class HomeController extends GetxController {
   }
 
   Future<void> onMicReleased() async {
-    print('🎤 [MIC DEBUG] Mic released');
+    print('🎤 [MIC DEBUG] Mic released - stopping recording');
+    _listeningTimeoutTimer?.cancel();
+
     if (currentState.value == AppState.listening) {
+      // Stop listening immediately when button is released
       await _speechService.stopListening();
-      // Don't reset to idle here - wait for the callback or timeout
+      // The callback in startListening will be triggered with the final result
     }
   }
 
@@ -175,7 +177,7 @@ class HomeController extends GetxController {
     listeningProgress.value = 0.0;
     _listeningProgressTimer?.cancel();
 
-    const maxSeconds = 120;
+    const maxSeconds = 60; // Changed to 60 seconds (1 minute max)
     const updateInterval = 100; // Update every 100ms
     var elapsed = 0;
 

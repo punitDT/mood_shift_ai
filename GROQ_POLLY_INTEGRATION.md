@@ -46,11 +46,11 @@ If Groq fails (timeout/error), uses one of 10 universal fallback responses:
 
 **Benefits**:
 - 🎙️ **Premium voices**: Neural TTS (sounds human, not robotic)
-- 🌍 **Multi-language**: Joanna (EN), Aditi (HI), Conchita (ES), etc.
+- 🌍 **Multi-language**: Matthew/Joanna (EN-US), Kajal (HI-IN), Sergio/Lucia (ES-ES), etc.
 - 🎭 **SSML mood modulation**:
   - Chaos → `<prosody rate="fast" pitch="high">`
   - Gentle → `<prosody rate="slow" pitch="low">`
-- ✨ **Golden Voice**: Premium voices (Matthew, Lucia) when active
+- ✨ **Neural + Standard**: Automatically tries Neural voices first, falls back to Standard
 - 💾 **Audio caching**: Saves MP3 files locally (instant replay)
 - 🔄 **Smart fallback**: Uses flutter_tts if Polly fails
 

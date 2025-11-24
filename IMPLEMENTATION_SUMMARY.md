@@ -158,10 +158,10 @@ Follow the checklist in `TEST_INTEGRATION.md`:
 - Total response time: <3 seconds (first time)
 
 ### 2. **Premium Voice Quality** 🎙️
-- Amazon Polly Neural: Human-like, natural speech
-- Multi-language: Joanna (EN), Aditi (HI), Conchita (ES), etc.
+- Amazon Polly Neural + Standard: Human-like, natural speech
+- Multi-language: Matthew/Joanna (EN-US), Kajal (HI-IN), Sergio/Lucia (ES-ES), etc.
 - SSML modulation: Fast/high for Chaos, slow/low for Gentle
-- Golden Voice: Premium voices (Matthew, Lucia)
+- Smart fallback: Neural → Standard → flutter_tts
 
 ### 3. **Unbreakable Reliability** 🛡️
 - 10-second timeout: Never hangs

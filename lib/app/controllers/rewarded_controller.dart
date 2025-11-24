@@ -92,7 +92,7 @@ class RewardedController extends GetxController {
   void _showGoldenExpiredNotification() {
     Get.snackbar(
       '✨ Golden Voice Expired',
-      'Your premium voice has ended. Watch an ad to renew?',
+      'Golden Voice expired – renew?',
       backgroundColor: Colors.amber.withOpacity(0.8),
       colorText: Colors.black,
       icon: const Icon(Icons.star_border, color: Colors.black),
@@ -141,7 +141,14 @@ class RewardedController extends GetxController {
 
   String getGoldenTimerDisplay() {
     if (!hasGoldenVoice.value) return '';
-    return 'Golden: ${goldenTimeRemaining.value}';
+    // Compact format for top bar to prevent overflow
+    return '${goldenTimeRemaining.value}';
+  }
+
+  String getGoldenTimerDisplayFull() {
+    if (!hasGoldenVoice.value) return '';
+    // Full format for bottom sheet
+    return 'Golden Voice: ${goldenTimeRemaining.value}';
   }
 
   // ========== ANALYTICS HELPERS ==========

@@ -11,15 +11,13 @@ class SpeechService extends GetxService {
   final isListening = false.obs;
   final recognizedText = ''.obs;
 
-  late final int _listenForSeconds;
-  late final int _pauseForSeconds;
+  // Maximum recording time: 60 seconds (1 minute)
+  static const int maxRecordingSeconds = 60;
 
   @override
   void onInit() {
     super.onInit();
-    _listenForSeconds = int.tryParse(dotenv.env['SPEECH_LISTEN_FOR_SECONDS'] ?? '30') ?? 30;
-    _pauseForSeconds = int.tryParse(dotenv.env['SPEECH_PAUSE_FOR_SECONDS'] ?? '3') ?? 3;
-    print('🎤 [SPEECH] Listen for: ${_listenForSeconds}s, Pause for: ${_pauseForSeconds}s');
+    print('🎤 [SPEECH] Max recording time: ${maxRecordingSeconds}s');
   }
 
   Future<bool> initialize() async {
@@ -70,16 +68,17 @@ class SpeechService extends GetxService {
         }
         final localeId = _getLocaleId(languageCode);
 
-        print('🎤 [SPEECH DEBUG] Starting to listen with locale: $localeId (from languageCode: $languageCode)');
+        print('🎤 [SPEECH DEBUG] Starting to listen with locale: $localeId (max ${maxRecordingSeconds}s)');
 
         await _speech.listen(
           onResult: (result) {
             try {
+              // Update recognized text continuously
               recognizedText.value = result.recognizedWords;
               print('🎤 [SPEECH DEBUG] Partial result: ${result.recognizedWords} (final: ${result.finalResult})');
 
-              // Only process final results when user explicitly stops (via stopListening)
-              // Don't auto-finalize on pause to prevent premature processing
+              // Process final result only when user releases button (stopListening is called)
+              // This callback will be triggered by stopListening()
               if (result.finalResult) {
                 isListening.value = false;
                 print('✅ [SPEECH DEBUG] Final result: ${recognizedText.value}');
@@ -98,11 +97,13 @@ class SpeechService extends GetxService {
             }
           },
           localeId: localeId,
-          listenMode: ListenMode.dictation, // Changed from confirmation to dictation for better continuous speech
+          listenMode: ListenMode.dictation,
           cancelOnError: true,
           partialResults: true,
-          listenFor: Duration(seconds: _listenForSeconds),
-          pauseFor: Duration(seconds: _pauseForSeconds), // Increased to 5 seconds in .env
+          // Maximum recording time: 60 seconds
+          listenFor: Duration(seconds: maxRecordingSeconds),
+          // Don't auto-stop on pause - only stop when user releases button
+          pauseFor: Duration(seconds: maxRecordingSeconds),
         );
       } else {
         print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');

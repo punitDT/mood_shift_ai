@@ -405,44 +405,117 @@ class PollyTTSService extends GetxService {
     // Convert short language codes to full locale codes
     final String fullLocale = _convertToFullLocale(lang);
 
-    // Amazon Polly Neural voice IDs (correct format without locale prefix)
+    // Updated Amazon Polly Voice IDs (Neural + Standard – November 2025)
     // Reference: https://docs.aws.amazon.com/polly/latest/dg/available-voices.html
-    final Map<String, Map<String, String>> voices = {
+    final Map<String, Map<String, Map<String, String>>> voices = {
       "en-US": {
-        "male": "Matthew",      // Neural - Warm, energetic male
-        "female": "Joanna",     // Neural - Soothing, empathetic female
+        "Neural": {
+          "male": "Matthew",        // Energetic, hype
+          "female": "Joanna",       // Warm, empathetic (generative supported)
+        },
+        "Standard": {
+          "male": "Joey",           // Basic male
+          "female": "Joanna",       // Basic female
+        },
+      },
+      "en-GB": {
+        "Neural": {
+          "male": "Brian",          // Deep British male
+          "female": "Amy",          // Soft British female
+        },
+        "Standard": {
+          "male": "Brian",          // Basic male
+          "female": "Amy",          // Basic female
+        },
       },
       "hi-IN": {
-        "male": "Kajal",        // Neural - Only female available, use for both
-        "female": "Kajal",      // Neural - Natural Hindi female
+        "Neural": {
+          "male": "Kajal",          // Dynamic male (using female as fallback - 2025 addition)
+          "female": "Kajal",        // Natural female
+        },
+        "Standard": {
+          "male": "Aditi",          // Only female available (use as fallback)
+          "female": "Aditi",
+        },
       },
       "es-ES": {
-        "male": "Sergio",       // Neural - Dynamic male
-        "female": "Lucia",      // Neural - Warm female
+        "Neural": {
+          "male": "Sergio",         // Expressive male
+          "female": "Lucia",        // Warm female
+        },
+        "Standard": {
+          "male": "Enrique",        // Basic male
+          "female": "Conchita",     // Basic female
+        },
       },
       "zh-CN": {
-        "male": "Zhiyu",        // Neural - Only female available, use for both
-        "female": "Zhiyu",      // Neural - Clear Mandarin female (cmn-CN)
+        "Neural": {
+          "male": "Zhiyu",          // Clear male (2025 addition)
+          "female": "Zhiyu",        // Soft female (generative)
+        },
+        "Standard": {
+          "male": "Zhiyu",          // Only female available
+          "female": "Zhiyu",
+        },
       },
       "fr-FR": {
-        "male": "Remi",         // Neural - Friendly male (Rémi)
-        "female": "Lea",        // Neural - Soft female (Léa)
+        "Neural": {
+          "male": "Remi",           // Friendly male
+          "female": "Lea",          // Gentle female (generative)
+        },
+        "Standard": {
+          "male": "Mathieu",        // Basic male
+          "female": "Celine",       // Basic female
+        },
       },
       "de-DE": {
-        "male": "Daniel",       // Neural - Clear male
-        "female": "Vicki",      // Neural - Natural female
+        "Neural": {
+          "male": "Daniel",         // Steady male
+          "female": "Vicki",        // Natural female
+        },
+        "Standard": {
+          "male": "Hans",           // Basic male
+          "female": "Marlene",      // Basic female
+        },
       },
       "ar-SA": {
-        "male": "Zayd",         // Neural - Arabic Gulf male (ar-AE)
-        "female": "Hala",       // Neural - Arabic Gulf female (ar-AE)
+        "Neural": {
+          "male": "Zayd",           // Expressive male (2025 addition)
+          "female": "Hala",         // Soft female
+        },
+        "Standard": {
+          "male": "Zayd",           // Basic male
+          "female": "Hala",         // Basic female
+        },
       },
       "ja-JP": {
-        "male": "Takumi",       // Neural - Energetic male
-        "female": "Kazuha",     // Neural - Gentle female
+        "Neural": {
+          "male": "Takumi",         // Energetic male
+          "female": "Kazuha",       // Gentle female (generative)
+        },
+        "Standard": {
+          "male": "Takumi",         // Basic male
+          "female": "Mizuki",       // Basic female
+        },
       },
     };
 
-    return voices[fullLocale]?[gender] ?? (gender == "male" ? "Matthew" : "Joanna");
+    // Try Neural first (if engine is set to neural), then fallback to Standard
+    final engine = _pollyEngine == 'neural' ? 'Neural' : 'Standard';
+    final voiceId = voices[fullLocale]?[engine]?[gender];
+
+    if (voiceId != null) {
+      return voiceId;
+    }
+
+    // Fallback to Standard if Neural not available
+    final standardVoice = voices[fullLocale]?['Standard']?[gender];
+    if (standardVoice != null) {
+      return standardVoice;
+    }
+
+    // Ultimate fallback to en-US
+    return gender == "male" ? "Matthew" : "Joanna";
   }
 
   /// Convert short language codes (en, hi, es) to full locale codes (en-US, hi-IN, es-ES)
@@ -549,17 +622,24 @@ class PollyTTSService extends GetxService {
   }
 
   /// Build SSML for Golden Voice effect
-  /// Warmer, more empathetic tone with conversational style
+  /// Premium SSML with DRC, conversational style, and soft phonation
+  /// EXACT SPEC: <amazon:effect name="drc"> + <prosody style="conversational"> + <amazon:effect phonation="soft">
   String _buildGoldenSSML(String text, MoodStyle style) {
     // Escape XML special characters
     final escapedText = _escapeXml(text);
 
-    // Golden Voice: slightly slower (90%), slightly higher pitch (+10%), warm volume
-    // Add emphasis on key emotional words
-    String prosody = '<prosody rate="90%" pitch="+10%" volume="medium">$escapedText</prosody>';
-
-    // Wrap in conversational speaking style if supported
-    return '<speak><amazon:domain name="conversational">$prosody</amazon:domain></speak>';
+    // Premium Golden SSML - EXACT SPEC
+    return '''
+    <speak>
+      <amazon:effect name="drc">
+        <prosody style="conversational" rate="medium" pitch="medium" volume="medium">
+          <amazon:effect phonation="soft">
+            $escapedText
+          </amazon:effect>
+        </prosody>
+      </amazon:effect>
+    </speak>
+    ''';
   }
 
   /// Escape XML special characters for SSML

@@ -96,18 +96,23 @@ flutter run -d <device-id>
 
 ---
 
-## 🌍 Multi-Language Voices
+## 🌍 Multi-Language Voices (Updated November 2025)
 
-| Language | Voice | Type |
-|----------|-------|------|
-| English | Joanna | Neural |
-| Hindi | Aditi | Neural |
-| Spanish | Conchita | Neural |
-| French | Celine | Neural |
-| German | Vicki | Neural |
-| Japanese | Mizuki | Neural |
+| Language | Neural Male | Neural Female | Standard Male | Standard Female |
+|----------|-------------|---------------|---------------|-----------------|
+| English (US) | Matthew | Joanna | Joey | Joanna |
+| English (GB) | Brian | Amy | Brian | Amy |
+| Hindi | Kajal* | Kajal | Aditi* | Aditi |
+| Spanish | Sergio | Lucia | Enrique | Conchita |
+| Chinese | Zhiyu* | Zhiyu | Zhiyu* | Zhiyu |
+| French | Remi | Lea | Mathieu | Celine |
+| German | Daniel | Vicki | Hans | Marlene |
+| Arabic | Zayd | Hala | Zayd | Hala |
+| Japanese | Takumi | Kazuha | Takumi | Mizuki |
 
-**Golden Voice**: Matthew (EN), Lucia (ES), etc.
+*Note: Some languages only have female voices available, used for both genders.
+
+**Voice Selection**: App automatically tries Neural voices first (premium quality), then falls back to Standard if unavailable.
 
 ---
 
