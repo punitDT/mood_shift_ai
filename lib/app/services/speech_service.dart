@@ -12,6 +12,10 @@ class SpeechService extends GetxService {
   final isListening = false.obs;
   final recognizedText = ''.obs;
 
+  // Available locales on the device
+  List<LocaleName> _availableLocales = [];
+  LocaleName? _systemLocale;
+
   // Maximum recording time: 90 seconds (1.5 minutes to allow for pauses)
   static const int maxRecordingSeconds = 90;
 
@@ -24,7 +28,7 @@ class SpeechService extends GetxService {
   Future<bool> initialize() async {
     // Request microphone permission
     final status = await Permission.microphone.request();
-    
+
     if (!status.isGranted) {
       SnackbarUtils.showError(
         title: 'Permission Denied',
@@ -36,16 +40,33 @@ class SpeechService extends GetxService {
     // Initialize speech recognition
     final available = await _speech.initialize(
       onError: (error) {
-        print('Speech recognition error: $error');
+        print('❌ [SPEECH ERROR] Speech recognition error: $error');
         isListening.value = false;
       },
       onStatus: (status) {
-        print('Speech recognition status: $status');
+        print('📊 [SPEECH STATUS] Speech recognition status: $status');
         if (status == 'done' || status == 'notListening') {
           isListening.value = false;
         }
       },
     );
+
+    if (available) {
+      // Get available locales
+      _availableLocales = await _speech.locales();
+      _systemLocale = await _speech.systemLocale();
+
+      print('🌍 [SPEECH] Available locales: ${_availableLocales.length}');
+      print('🌍 [SPEECH] System locale: ${_systemLocale?.localeId}');
+
+      // Print first few locales for debugging
+      if (_availableLocales.isNotEmpty) {
+        final firstFew = _availableLocales.take(5).map((l) => l.localeId).join(', ');
+        print('🌍 [SPEECH] Sample locales: $firstFew');
+      }
+    } else {
+      print('❌ [SPEECH] Speech recognition not available on this device');
+    }
 
     return available;
   }
@@ -72,14 +93,22 @@ class SpeechService extends GetxService {
         }
         final localeId = _convertLocaleToId(fullLocale);
 
-        print('🎤 [SPEECH DEBUG] Starting to listen with locale: $localeId (max ${maxRecordingSeconds}s)');
+        // Validate and get best matching locale
+        final bestLocale = _getBestMatchingLocale(localeId);
+
+        print('🎤 [SPEECH DEBUG] Requested locale: $localeId');
+        print('🎤 [SPEECH DEBUG] Using locale: $bestLocale (max ${maxRecordingSeconds}s)');
+        print('🎤 [SPEECH DEBUG] System locale: ${_systemLocale?.localeId}');
 
         await _speech.listen(
           onResult: (result) {
             try {
               // ALWAYS update recognized text continuously (for display and manual processing)
               recognizedText.value = result.recognizedWords;
-              print('🎤 [SPEECH DEBUG] Partial result: ${result.recognizedWords} (final: ${result.finalResult})');
+
+              if (result.recognizedWords.isNotEmpty) {
+                print('🎤 [SPEECH DEBUG] Partial result: "${result.recognizedWords}" (final: ${result.finalResult})');
+              }
 
               // COMPLETELY IGNORE finalResult - we process manually in controller
               // This prevents premature processing during pauses
@@ -91,7 +120,7 @@ class SpeechService extends GetxService {
               print('❌ [SPEECH DEBUG] Stack trace: $stackTrace');
             }
           },
-          localeId: localeId,
+          localeId: bestLocale,
           listenMode: ListenMode.dictation,
           cancelOnError: true,
           partialResults: true,
@@ -101,6 +130,8 @@ class SpeechService extends GetxService {
           // This ensures user can pause as long as they want between sentences
           pauseFor: Duration(seconds: maxRecordingSeconds),
         );
+
+        print('✅ [SPEECH DEBUG] Listen command sent successfully');
       } else {
         print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');
         if (isListening.value) {
@@ -113,6 +144,50 @@ class SpeechService extends GetxService {
       isListening.value = false;
       rethrow;
     }
+  }
+
+  /// Get the best matching locale from available locales
+  /// Falls back to system locale or first available locale if requested locale not found
+  String _getBestMatchingLocale(String requestedLocale) {
+    // If no locales available, return requested locale (will use system default)
+    if (_availableLocales.isEmpty) {
+      print('⚠️  [SPEECH] No available locales, using requested: $requestedLocale');
+      return requestedLocale;
+    }
+
+    // Try exact match first
+    final exactMatch = _availableLocales.firstWhere(
+      (locale) => locale.localeId == requestedLocale,
+      orElse: () => LocaleName('', ''),
+    );
+
+    if (exactMatch.localeId.isNotEmpty) {
+      print('✅ [SPEECH] Found exact match: ${exactMatch.localeId}');
+      return exactMatch.localeId;
+    }
+
+    // Try language-only match (e.g., 'en' for 'en_US')
+    final languageCode = requestedLocale.split('_')[0];
+    final languageMatch = _availableLocales.firstWhere(
+      (locale) => locale.localeId.startsWith(languageCode),
+      orElse: () => LocaleName('', ''),
+    );
+
+    if (languageMatch.localeId.isNotEmpty) {
+      print('✅ [SPEECH] Found language match: ${languageMatch.localeId} for $requestedLocale');
+      return languageMatch.localeId;
+    }
+
+    // Fall back to system locale
+    if (_systemLocale != null && _systemLocale!.localeId.isNotEmpty) {
+      print('⚠️  [SPEECH] No match found, using system locale: ${_systemLocale!.localeId}');
+      return _systemLocale!.localeId;
+    }
+
+    // Last resort: use first available locale
+    final fallback = _availableLocales.first.localeId;
+    print('⚠️  [SPEECH] No match found, using first available: $fallback');
+    return fallback;
   }
 
   Future<void> stopListening() async {

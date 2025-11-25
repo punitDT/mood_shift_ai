@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -375,6 +376,34 @@ class StorageService extends GetxService {
 
   // No storage needed - feature is now unlimited!
   // All limit-related methods have been removed
+
+  // ========== POLLY VOICE MAP ==========
+
+  /// Get the discovered Polly voice map
+  Map<String, dynamic>? getPollyVoiceMap() {
+    final jsonString = _box.read('polly_voice_map');
+    if (jsonString == null) return null;
+
+    try {
+      return Map<String, dynamic>.from(jsonDecode(jsonString));
+    } catch (e) {
+      print('❌ [STORAGE] Error parsing polly_voice_map: $e');
+      return null;
+    }
+  }
+
+  /// Save the discovered Polly voice map
+  void setPollyVoiceMap(Map<String, dynamic> voiceMap) {
+    final jsonString = jsonEncode(voiceMap);
+    _box.write('polly_voice_map', jsonString);
+    print('✅ [STORAGE] Polly voice map saved (${voiceMap.length} languages)');
+  }
+
+  /// Clear the Polly voice map (force re-discovery)
+  void clearPollyVoiceMap() {
+    _box.remove('polly_voice_map');
+    print('🔄 [STORAGE] Polly voice map cleared');
+  }
 }
 
 

@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/mood_shift_ai.iml" filepath="$PROJECT_DIR$/.idea/mood_shift_ai.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/mood_shift_ai_android.iml" filepath="$PROJECT_DIR$/android/mood_shift_ai_android.iml" />
     </modules>
   </component>
 </project>
