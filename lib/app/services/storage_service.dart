@@ -404,6 +404,17 @@ class StorageService extends GetxService {
     _box.remove('polly_voice_map');
     print('🔄 [STORAGE] Polly voice map cleared');
   }
+
+  /// Get the Polly voice map version
+  int? getPollyVoiceMapVersion() {
+    return _box.read('polly_voice_map_version');
+  }
+
+  /// Set the Polly voice map version
+  void setPollyVoiceMapVersion(int version) {
+    _box.write('polly_voice_map_version', version);
+    print('✅ [STORAGE] Polly voice map version set to $version');
+  }
 }
 
 

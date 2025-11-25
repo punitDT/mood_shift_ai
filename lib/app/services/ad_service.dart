@@ -57,7 +57,7 @@ class AdService extends GetxService {
     print('📱 [AD] Interstitial ID: $interstitialAdUnitId');
     print('📱 [AD] Rewarded ID: $rewardedAdUnitId');
     loadBannerAd();
-    loadTopBannerAd(); // Load top banner
+    // Top banner removed - no longer needed
     loadInterstitialAd();
     loadRewardedAds();
   }

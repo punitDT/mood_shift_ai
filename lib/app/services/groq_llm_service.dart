@@ -112,11 +112,20 @@ class GroqLLMService extends GetxService {
         if (data['choices'] != null && data['choices'].isNotEmpty) {
           String generatedText = data['choices'][0]['message']['content'] ?? '';
 
+          // DEBUG: Log raw LLM output
+          print('🔍 [GROQ DEBUG] Raw LLM output:');
+          print('---START---');
+          print(generatedText);
+          print('---END---');
+
           // Parse the style, prosody, and response from the LLM output
           final parsed = _parseStyleAndResponse(generatedText);
           final selectedStyle = parsed['style'] as MoodStyle;
           final prosody = parsed['prosody'] as Map<String, String>;
           String finalResponse = parsed['response'] as String;
+
+          // DEBUG: Log parsed response before cleaning
+          print('🔍 [GROQ DEBUG] Parsed response (before cleaning): "$finalResponse"');
 
           // Save the selected style and prosody for TTS
           _lastSelectedStyle = selectedStyle;
@@ -127,6 +136,9 @@ class GroqLLMService extends GetxService {
 
           // Clean up and limit length
           finalResponse = _cleanResponse(finalResponse);
+
+          // DEBUG: Log after cleaning
+          print('🔍 [GROQ DEBUG] After cleaning: "$finalResponse"');
 
           // Cache the response
           _storage.addCachedResponse(userInput, finalResponse, language);
@@ -313,15 +325,15 @@ Respond 50–75 words max. Natural tone. No emojis.
 Output exactly:
 
 STYLE: CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE
-PROSODY: rate=[slow|medium|fast] pitch=[low|medium|high] volume=[soft|medium|loud]
+PROSODY: rate=[slow|medium] pitch=[low|medium|high] volume=[soft|medium|loud]
 RESPONSE: [spoken text only]
 
-Prosody:
-CHAOS_ENERGY → fast high loud
+Prosody (NEVER use fast rate):
+CHAOS_ENERGY → medium high loud
 GENTLE_GRANDMA → slow low soft
 PERMISSION_SLIP → medium medium medium
 REALITY_CHECK → medium medium medium
-MICRO_DARE → fast medium medium
+MICRO_DARE → medium medium medium
 
 Begin.
 ''';
@@ -330,6 +342,8 @@ Begin.
   /// Parse the LLM output to extract style, prosody, and response
   Map<String, dynamic> _parseStyleAndResponse(String llmOutput) {
     try {
+      print('🔍 [PARSE DEBUG] Step 1 - Raw LLM output length: ${llmOutput.length}');
+
       // Look for STYLE:, PROSODY:, and RESPONSE: markers
       final styleMatch = RegExp(r'STYLE:\s*(CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE)', caseSensitive: false).firstMatch(llmOutput);
       final prosodyMatch = RegExp(r'PROSODY:\s*rate=(\w+)\s+pitch=(\w+)\s+volume=(\w+)', caseSensitive: false).firstMatch(llmOutput);
@@ -377,6 +391,7 @@ Begin.
       String response = llmOutput;
       if (responseMatch != null) {
         response = responseMatch.group(1)?.trim() ?? llmOutput;
+        print('🔍 [PARSE DEBUG] Step 2 - Extracted via RESPONSE: marker: "$response"');
       } else {
         // If no RESPONSE: marker found, try to extract everything after PROSODY: line
         final lines = llmOutput.split('\n');
@@ -385,16 +400,23 @@ Begin.
         } else if (lines.length > 1) {
           response = lines.skip(1).join('\n').trim();
         }
+        print('🔍 [PARSE DEBUG] Step 2 - Extracted via line skipping: "$response"');
       }
 
       // Clean up any remaining markers
+      print('🔍 [PARSE DEBUG] Step 3 - Before marker cleanup: "$response"');
       response = response.replaceAll(RegExp(r'^RESPONSE:\s*', caseSensitive: false), '');
       response = response.replaceAll(RegExp(r'^STYLE:.*$', caseSensitive: false, multiLine: true), '');
       response = response.replaceAll(RegExp(r'^PROSODY:.*$', caseSensitive: false, multiLine: true), '');
       response = response.trim();
+      print('🔍 [PARSE DEBUG] Step 4 - After marker cleanup: "$response"');
 
       // Remove all emojis from response
+      final beforeEmoji = response;
       response = _removeEmojis(response);
+      if (beforeEmoji != response) {
+        print('🔍 [PARSE DEBUG] Step 5 - After emoji removal: "$response"');
+      }
 
       return {
         'style': selectedStyle,
@@ -415,7 +437,7 @@ Begin.
   Map<String, String> _getDefaultProsody(MoodStyle style) {
     switch (style) {
       case MoodStyle.chaosEnergy:
-        return {'rate': 'fast', 'pitch': 'high', 'volume': 'loud'};
+        return {'rate': 'medium', 'pitch': 'high', 'volume': 'loud'};
       case MoodStyle.gentleGrandma:
         return {'rate': 'slow', 'pitch': 'low', 'volume': 'soft'};
       case MoodStyle.permissionSlip:
@@ -423,7 +445,7 @@ Begin.
       case MoodStyle.realityCheck:
         return {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
       case MoodStyle.microDare:
-        return {'rate': 'fast', 'pitch': 'medium', 'volume': 'medium'};
+        return {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
     }
   }
 
@@ -456,7 +478,7 @@ Begin.
     // Basic cleanup only - let the prompt engineering handle quality
     response = response.trim();
 
-    // Clean up extra whitespace
+    // Clean up extra whitespace (multiple spaces, tabs, newlines -> single space)
     response = response.replaceAll(RegExp(r'\s+'), ' ').trim();
 
     // Limit to reasonable length (configurable max words for ~2 minutes)

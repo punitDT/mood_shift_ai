@@ -35,9 +35,16 @@ class HabitService extends GetxService {
       // Initialize timezone
       print('🌍 [HABIT] Initializing timezones...');
       tz.initializeTimeZones();
-      // Set local timezone
-      final locationName = DateTime.now().timeZoneName;
-      print('🌍 [HABIT] Local timezone: $locationName');
+      // Set local timezone to device's local timezone
+      final String timeZoneName = DateTime.now().timeZoneName;
+      try {
+        tz.setLocalLocation(tz.getLocation(timeZoneName));
+        print('🌍 [HABIT] Local timezone set to: $timeZoneName');
+      } catch (e) {
+        // Fallback to UTC if timezone name is not recognized
+        print('⚠️ [HABIT] Could not set timezone $timeZoneName, using UTC');
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      }
 
       // Save install date if first launch
       if (_box.read(_keyInstallDate) == null) {
@@ -63,6 +70,23 @@ class HabitService extends GetxService {
   Future<void> _initializeNotifications() async {
     try {
       print('🔔 [HABIT] Initializing notifications...');
+
+      // Create Android notification channel
+      const androidChannel = AndroidNotificationChannel(
+        'habit_reminder',
+        'Daily Reminders',
+        description: 'Gentle reminders to keep your streak alive',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
+      // Create the channel on Android
+      await _notifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(androidChannel);
+
+      print('🔔 [HABIT] Android notification channel created');
 
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosSettings = DarwinInitializationSettings(

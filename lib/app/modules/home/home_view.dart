@@ -85,10 +85,7 @@ class HomeView extends GetView<HomeController> {
                 // Center content
                 Column(
                   children: [
-                    // Top Banner Ad (only if loaded and not ad-free)
-                    Obx(() => adService.isTopBannerLoaded.value
-                        ? _buildTopBannerAd(adService)
-                        : const SizedBox.shrink()),
+                    // Top Banner Ad removed - no longer needed
 
                     // Top Bar (minimal)
                     _buildMinimalTopBar(),
@@ -498,17 +495,6 @@ class HomeView extends GetView<HomeController> {
       color: Colors.transparent,
       child: adService.bannerAd != null
           ? AdWidget(ad: adService.bannerAd!)
-          : const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildTopBannerAd(AdService adService) {
-    return Container(
-      width: double.infinity,
-      height: 50.h,
-      color: Colors.transparent,
-      child: adService.topBannerAd != null
-          ? AdWidget(ad: adService.topBannerAd!)
           : const SizedBox.shrink(),
     );
   }

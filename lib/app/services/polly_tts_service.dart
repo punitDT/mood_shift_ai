@@ -61,31 +61,53 @@ class PollyTTSService extends GetxService {
   /// Initialize voice discovery on first launch
   Future<void> _initializeVoiceDiscovery() async {
     try {
+      // Voice map version - increment this when voice mappings change
+      const voiceMapVersion = 4; // Updated: Verified voices from AWS CLI describe-voices
+      final storedVersion = _storage.getPollyVoiceMapVersion();
+
       // Check if voice discovery has already been completed
       final storedVoiceMap = _storage.getPollyVoiceMap();
 
-      if (storedVoiceMap != null && storedVoiceMap.isNotEmpty) {
-        _voiceMap = storedVoiceMap;
-        print('✅ [POLLY] Voice map loaded from storage (${_voiceMap!.length} languages)');
-
-        // Debug: Print en-US voices to verify
-        if (_voiceMap!.containsKey('en-US')) {
-          final enUS = _voiceMap!['en-US'];
-          print('   📋 [DEBUG] en-US voices:');
-          print('      Generative: M=${enUS['generative']?['male']}, F=${enUS['generative']?['female']}');
-          print('      Neural: M=${enUS['neural']?['male']}, F=${enUS['neural']?['female']}');
-          print('      Standard: M=${enUS['standard']?['male']}, F=${enUS['standard']?['female']}');
+      // Rediscover if version mismatch or no stored map
+      if (storedVersion != voiceMapVersion || storedVoiceMap == null || storedVoiceMap.isEmpty) {
+        if (storedVersion != voiceMapVersion) {
+          print('🔄 [POLLY] Voice map version mismatch (stored: $storedVersion, current: $voiceMapVersion) - rediscovering...');
+        } else {
+          print('🔍 [POLLY] First launch detected - starting voice discovery...');
         }
+        await _discoverAndTestVoices();
+        _storage.setPollyVoiceMapVersion(voiceMapVersion);
         return;
       }
 
-      // First launch - discover and test voices
-      print('🔍 [POLLY] First launch detected - starting voice discovery...');
-      await _discoverAndTestVoices();
+      _voiceMap = storedVoiceMap;
+      print('✅ [POLLY] Voice map loaded from storage (${_voiceMap!.length} languages, version: $voiceMapVersion)');
+
+      // Debug: Print en-US voices to verify
+      if (_voiceMap!.containsKey('en-US')) {
+        final enUS = _voiceMap!['en-US'];
+        print('   📋 [DEBUG] en-US voices:');
+        print('      Generative: M=${enUS['generative']?['male']}, F=${enUS['generative']?['female']}');
+        print('      Neural: M=${enUS['neural']?['male']}, F=${enUS['neural']?['female']}');
+        print('      Standard: M=${enUS['standard']?['male']}, F=${enUS['standard']?['female']}');
+      }
 
     } catch (e) {
       print('❌ [POLLY] Voice discovery error: $e');
       // Use fallback hardcoded voices
+    }
+  }
+
+  /// Force re-discovery of voices (useful for debugging or after AWS updates)
+  Future<void> forceRediscoverVoices() async {
+    try {
+      print('🔄 [POLLY] Forcing voice re-discovery...');
+      _storage.clearPollyVoiceMap();
+      _voiceMap = null;
+      await _discoverAndTestVoices();
+      print('✅ [POLLY] Voice re-discovery complete!');
+    } catch (e) {
+      print('❌ [POLLY] Voice re-discovery error: $e');
     }
   }
 
@@ -159,17 +181,55 @@ class PollyTTSService extends GetxService {
       'cmn-CN', 'fr-FR', 'de-DE', 'arb', 'ja-JP'
     ];
 
-    // Preferred voices based on AWS documentation
+    // Preferred voices verified from AWS Polly DescribeVoices API (us-east-1)
+    // Note: All engines (generative, neural, standard) use simple voice names
+    // The engine is specified as a parameter in the API request, not in the voice ID
     final preferredVoices = {
-      'en-US': {'generative': {'male': 'Matthew', 'female': 'Danielle'}, 'neural': {'male': 'Matthew', 'female': 'Danielle'}, 'standard': {'male': 'Joey', 'female': 'Joanna'}},
-      'en-GB': {'generative': {'male': 'Brian', 'female': 'Amy'}, 'neural': {'male': 'Brian', 'female': 'Amy'}, 'standard': {'male': 'Brian', 'female': 'Amy'}},
-      'hi-IN': {'generative': {'female': 'Swara'}, 'neural': {'male': 'Arjun', 'female': 'Swara'}, 'standard': {'female': 'Raveena'}},
-      'es-ES': {'generative': {'female': 'Conchita'}, 'neural': {'male': 'Enrique', 'female': 'Conchita'}, 'standard': {'male': 'Miguel', 'female': 'Paula'}},
-      'cmn-CN': {'generative': {'female': 'Xiaoxiao'}, 'neural': {'male': 'Yunxi', 'female': 'Xiaoxiao'}, 'standard': {'female': 'Nicole'}},
-      'fr-FR': {'generative': {'female': 'Celine'}, 'neural': {'male': 'Mathieu', 'female': 'Celine'}, 'standard': {'male': 'Sebastien', 'female': 'Celine'}},
-      'de-DE': {'generative': {'female': 'Marlene'}, 'neural': {'male': 'Hans', 'female': 'Marlene'}, 'standard': {'male': 'Hans', 'female': 'Vicki'}},
-      'arb': {'generative': {'female': 'Zeinab'}, 'neural': {'male': 'Talal', 'female': 'Zeinab'}, 'standard': {'male': 'Yasser', 'female': 'Zeinab'}},
-      'ja-JP': {'generative': {'female': 'Mizuki'}, 'neural': {'male': 'Takumi', 'female': 'Mizuki'}, 'standard': {'male': 'Takumi', 'female': 'Mizuki'}},
+      'en-US': {
+        'generative': {'male': 'Matthew', 'female': 'Danielle'},
+        'neural': {'male': 'Gregory', 'female': 'Danielle'},
+        'standard': {'male': 'Matthew', 'female': 'Joanna'}
+      },
+      'en-GB': {
+        'generative': {'female': 'Amy'},  // No male generative voice
+        'neural': {'male': 'Brian', 'female': 'Emma'},
+        'standard': {'male': 'Brian', 'female': 'Emma'}
+      },
+      'hi-IN': {
+        'generative': {'female': 'Kajal'},  // No male voices available
+        'neural': {'female': 'Kajal'},
+        'standard': {'female': 'Aditi'}
+      },
+      'es-ES': {
+        'generative': {'male': 'Sergio', 'female': 'Lucia'},
+        'neural': {'male': 'Sergio', 'female': 'Lucia'},
+        'standard': {'male': 'Enrique', 'female': 'Lucia'}
+      },
+      'cmn-CN': {
+        'generative': {},  // No voices available
+        'neural': {'female': 'Zhiyu'},  // No male voice
+        'standard': {'female': 'Zhiyu'}
+      },
+      'fr-FR': {
+        'generative': {'male': 'Remi', 'female': 'Lea'},
+        'neural': {'male': 'Remi', 'female': 'Lea'},
+        'standard': {'male': 'Mathieu', 'female': 'Lea'}
+      },
+      'de-DE': {
+        'generative': {'male': 'Daniel', 'female': 'Vicki'},
+        'neural': {'male': 'Daniel', 'female': 'Vicki'},
+        'standard': {'male': 'Hans', 'female': 'Vicki'}
+      },
+      'arb': {
+        'generative': {},  // No voices available
+        'neural': {'male': 'Zayd', 'female': 'Hala'},
+        'standard': {'female': 'Zeina'}  // No male standard voice
+      },
+      'ja-JP': {
+        'generative': {},  // No voices available
+        'neural': {'male': 'Takumi', 'female': 'Kazuha'},
+        'standard': {'male': 'Takumi', 'female': 'Mizuki'}
+      },
     };
 
     final voiceMap = <String, dynamic>{};
@@ -212,6 +272,21 @@ class PollyTTSService extends GetxService {
               engineMap[gender] = voiceId;
             } else if (engineMap[gender] == null) {
               engineMap[gender] = voiceId;
+            }
+          }
+        }
+      }
+
+      // Apply preferred voices even if not found in DescribeVoices
+      // This ensures we use the correct voice IDs from our verified list
+      for (final engine in ['generative', 'neural', 'standard']) {
+        for (final gender in ['male', 'female']) {
+          final preferredVoice = preferredVoices[lang]?[engine]?[gender];
+          if (preferredVoice != null) {
+            final engineMap = voiceMap[lang][engine] as Map<String, String?>;
+            // Only set if not already set by DescribeVoices
+            if (engineMap[gender] == null) {
+              engineMap[gender] = preferredVoice;
             }
           }
         }
@@ -416,6 +491,9 @@ class PollyTTSService extends GetxService {
   Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
 
+    // DEBUG: Log the text received for speaking
+    print('🔍 [POLLY DEBUG] Text received for speaking: "$text"');
+
     await stop();
 
     final fullLocale = _storage.getFullLocale();
@@ -504,8 +582,6 @@ class PollyTTSService extends GetxService {
   Future<File?> _synthesizeStrongerWithPolly(String text, String fullLocale, MoodStyle style) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
-      final ssmlText = _buildStrongerSSML(text, style); // Pass style for extreme SSML
-
       print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId, language: $fullLocale, style: $style');
 
       // Try with configured engine first (generative > neural > standard)
@@ -517,6 +593,9 @@ class PollyTTSService extends GetxService {
 
       for (final engine in engines) {
         try {
+          // Build SSML for current engine (important for fallback compatibility)
+          final ssmlText = _buildStrongerSSMLForEngine(text, style, engine);
+
           final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
           final now = DateTime.now().toUtc();
 
@@ -582,12 +661,6 @@ class PollyTTSService extends GetxService {
   Future<File?> _synthesizeWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
-
-      // Use Golden SSML if golden voice is active, otherwise use normal SSML with LLM prosody
-      final ssmlText = _storage.hasGoldenVoice()
-          ? _buildGoldenSSML(text, style)
-          : _buildSSML(text, prosody: prosody);
-
       final voiceMode = _storage.hasGoldenVoice() ? 'GOLDEN' : 'NORMAL';
       print('🎙️ [POLLY] Synthesizing with voice: $voiceId, language: $fullLocale ($voiceMode mode)');
 
@@ -600,6 +673,11 @@ class PollyTTSService extends GetxService {
 
       for (final engine in engines) {
         try {
+          // Build SSML for current engine (important for fallback compatibility)
+          final ssmlText = _storage.hasGoldenVoice()
+              ? _buildGoldenSSMLForEngine(text, style, engine)
+              : _buildSSMLForEngine(text, engine, prosody: prosody);
+
           final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
           final now = DateTime.now().toUtc();
 
@@ -773,131 +851,132 @@ class PollyTTSService extends GetxService {
     // ✅ AWS POLLY VOICE MAPPINGS (Based on AWS Documentation - November 2025)
     // Priority: Generative → Neural → Standard
     // Gender preference: Try selected gender across all engines before falling back to opposite gender
+    // Note: All engines use simple voice names - the engine is specified as a parameter
     final Map<String, Map<String, Map<String, String?>>> voices = {
       "en-US": {
         "Generative": {
-          "male": "Matthew",        // ✅ AWS Doc: Matthew is generative male
-          "female": "Danielle",     // ✅ AWS Doc: Danielle, Joanna, Ruth, Salli, Stephen (using Danielle)
+          "male": "Matthew",                // ✅ Generative voice
+          "female": "Danielle",             // ✅ Generative voice
         },
         "Neural": {
-          "male": "Matthew",        // ✅ AWS Doc: Gregory, Joey, Justin, Kevin, Matthew, Stephen, Patrick (using Matthew)
-          "female": "Danielle",     // ✅ AWS Doc: Danielle, Ivy, Joanna, Kendra, Kimberly, Salli (using Danielle)
+          "male": "Gregory",                // ✅ Neural voice
+          "female": "Danielle",             // ✅ Neural voice
         },
         "Standard": {
-          "male": "Joey",           // ✅ AWS Doc: Joey, Kevin (using Joey)
-          "female": "Joanna",       // ✅ AWS Doc: Ivy, Joanna, Kendra, Kimberly, Salli (using Joanna)
+          "male": "Matthew",                // ✅ Standard voice
+          "female": "Joanna",               // ✅ Standard voice
         },
       },
       "en-GB": {
         "Generative": {
-          "male": "Brian",          // ✅ AWS Doc: Brian, Arthur (using Brian)
-          "female": "Amy",          // ✅ AWS Doc: Amy, Emma (using Amy)
+          "male": null,                     // ❌ No male generative voice
+          "female": "Amy",                  // ✅ Generative voice
         },
         "Neural": {
-          "male": "Brian",          // ✅ AWS Doc: Brian, Arthur (using Brian)
-          "female": "Amy",          // ✅ AWS Doc: Amy, Emma (using Amy)
+          "male": "Brian",                  // ✅ Neural voice
+          "female": "Emma",                 // ✅ Neural voice
         },
         "Standard": {
-          "male": "Brian",          // ✅ AWS Doc: Brian, Arthur (using Brian)
-          "female": "Amy",          // ✅ AWS Doc: Amy, Emma (using Amy)
+          "male": "Brian",                  // ✅ Standard voice
+          "female": "Emma",                 // ✅ Standard voice
         },
       },
       "hi-IN": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Swara",        // ✅ AWS Doc: Swara (female-only generative)
+          "male": null,                     // ❌ No male generative voice
+          "female": "Kajal",                // ✅ Generative voice
         },
         "Neural": {
-          "male": "Arjun",          // ✅ AWS Doc: Arjun (male added 2025)
-          "female": "Swara",        // ✅ AWS Doc: Swara
+          "male": null,                     // ❌ No male neural voice
+          "female": "Kajal",                // ✅ Neural voice
         },
         "Standard": {
-          "male": null,             // ❌ AWS Doc: No male standard voice
-          "female": "Raveena",      // ✅ AWS Doc: Raveena (female-only)
+          "male": null,                     // ❌ No male standard voice
+          "female": "Aditi",                // ✅ Standard voice
         },
       },
       "es-ES": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Conchita",     // ✅ AWS Doc: Conchita (female-only)
+          "male": "Sergio",                 // ✅ Generative voice
+          "female": "Lucia",                // ✅ Generative voice
         },
         "Neural": {
-          "male": "Enrique",        // ✅ AWS Doc: Enrique
-          "female": "Conchita",     // ✅ AWS Doc: Conchita
+          "male": "Sergio",                 // ✅ Neural voice
+          "female": "Lucia",                // ✅ Neural voice
         },
         "Standard": {
-          "male": "Miguel",         // ✅ AWS Doc: Miguel
-          "female": "Paula",        // ✅ AWS Doc: Paula
+          "male": "Enrique",                // ✅ Standard voice
+          "female": "Lucia",                // ✅ Standard voice
         },
       },
       "cmn-CN": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Xiaoxiao",     // ✅ AWS Doc: Xiaoxiao (female-only generative)
+          "male": null,                     // ❌ No male generative voice
+          "female": null,                   // ❌ No female generative voice
         },
         "Neural": {
-          "male": "Yunxi",          // ✅ AWS Doc: Yunxi (male 2025 addition)
-          "female": "Xiaoxiao",     // ✅ AWS Doc: Xiaoxiao
+          "male": null,                     // ❌ No male neural voice
+          "female": "Zhiyu",                // ✅ Neural voice
         },
         "Standard": {
-          "male": null,             // ❌ AWS Doc: No male standard voice
-          "female": "Nicole",       // ✅ AWS Doc: Nicole (female-only)
+          "male": null,                     // ❌ No male standard voice
+          "female": "Zhiyu",                // ✅ Standard voice
         },
       },
       "fr-FR": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Celine",       // ✅ AWS Doc: Celine (female-only)
+          "male": "Remi",                   // ✅ Generative voice
+          "female": "Lea",                  // ✅ Generative voice
         },
         "Neural": {
-          "male": "Mathieu",        // ✅ AWS Doc: Mathieu
-          "female": "Celine",       // ✅ AWS Doc: Celine
+          "male": "Remi",                   // ✅ Neural voice
+          "female": "Lea",                  // ✅ Neural voice
         },
         "Standard": {
-          "male": "Sebastien",      // ✅ AWS Doc: Sebastien
-          "female": "Celine",       // ✅ AWS Doc: Celine
+          "male": "Mathieu",                // ✅ Standard voice
+          "female": "Lea",                  // ✅ Standard voice
         },
       },
       "de-DE": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Marlene",      // ✅ AWS Doc: Marlene (female-only)
+          "male": "Daniel",                 // ✅ Generative voice
+          "female": "Vicki",                // ✅ Generative voice
         },
         "Neural": {
-          "male": "Hans",           // ✅ AWS Doc: Hans
-          "female": "Marlene",      // ✅ AWS Doc: Marlene
+          "male": "Daniel",                 // ✅ Neural voice
+          "female": "Vicki",                // ✅ Neural voice
         },
         "Standard": {
-          "male": "Hans",           // ✅ AWS Doc: Hans
-          "female": "Vicki",        // ✅ AWS Doc: Vicki
+          "male": "Hans",                   // ✅ Standard voice
+          "female": "Vicki",                // ✅ Standard voice
         },
       },
       "arb": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Zeinab",       // ✅ AWS Doc: Zeinab (female-only, partial generative)
+          "male": null,                     // ❌ No male generative voice
+          "female": null,                   // ❌ No female generative voice
         },
         "Neural": {
-          "male": "Talal",          // ✅ AWS Doc: Talal (male 2025 addition)
-          "female": "Zeinab",       // ✅ AWS Doc: Zeinab
+          "male": "Zayd",                   // ✅ Neural voice
+          "female": "Hala",                 // ✅ Neural voice
         },
         "Standard": {
-          "male": "Yasser",         // ✅ AWS Doc: Yasser
-          "female": "Zeinab",       // ✅ AWS Doc: Zeinab
+          "male": null,                     // ❌ No male standard voice
+          "female": "Zeina",                // ✅ Standard voice
         },
       },
       "ja-JP": {
         "Generative": {
-          "male": null,             // ❌ AWS Doc: No male generative voice
-          "female": "Mizuki",       // ✅ AWS Doc: Mizuki (female-only)
+          "male": null,                     // ❌ No male generative voice
+          "female": null,                   // ❌ No female generative voice
         },
         "Neural": {
-          "male": "Takumi",         // ✅ AWS Doc: Takumi
-          "female": "Mizuki",       // ✅ AWS Doc: Mizuki
+          "male": "Takumi",                 // ✅ Neural voice
+          "female": "Kazuha",               // ✅ Neural voice
         },
         "Standard": {
-          "male": "Takumi",         // ✅ AWS Doc: Takumi
-          "female": "Mizuki",       // ✅ AWS Doc: Mizuki
+          "male": "Takumi",                 // ✅ Standard voice
+          "female": "Mizuki",               // ✅ Standard voice
         },
       },
     };
@@ -927,56 +1006,151 @@ class PollyTTSService extends GetxService {
   /// Build SSML for Main mode (clean, natural)
   /// Uses LLM-provided prosody for natural speech
   String _buildSSML(String text, {Map<String, String>? prosody}) {
-    // Use LLM-provided prosody or defaults
-    final rate = prosody?['rate'] ?? 'medium';
-    final pitch = prosody?['pitch'] ?? 'medium';
-    final volume = prosody?['volume'] ?? 'medium';
+    return _buildSSMLForEngine(text, _pollyEngine, prosody: prosody);
+  }
+
+  /// Build SSML for a specific engine
+  String _buildSSMLForEngine(String text, String engine, {Map<String, String>? prosody}) {
+    // Clean the text first to fix spacing issues
+    final cleanedText = _cleanTextForSpeech(text);
+
+    // DEBUG: Log before and after cleaning
+    print('🔍 [POLLY DEBUG] Before cleaning: "$text"');
+    print('🔍 [POLLY DEBUG] After cleaning: "$cleanedText"');
 
     // Escape XML special characters
-    final escapedText = _escapeXml(text);
+    final escapedText = _escapeXml(cleanedText);
 
-    // Clean SSML - works with all engines (generative, neural, standard)
-    final prosodyTag = '<prosody rate="$rate" pitch="$pitch" volume="$volume">$escapedText</prosody>';
-    return '<speak>$prosodyTag</speak>';
+    print('🔍 [POLLY DEBUG] After XML escape: "$escapedText"');
+
+    // Generative engine has limited SSML support - only x-values work
+    if (engine == 'generative') {
+      // For generative engine, convert word values to x-values
+      // Generative engine does NOT support word values (slow, medium, fast) or percentages
+      final rate = _convertToXValue(prosody?['rate'] ?? 'medium', 'rate');
+      final volume = _convertToXValue(prosody?['volume'] ?? 'medium', 'volume');
+
+      // Note: Generative engine doesn't reliably support pitch adjustments
+      return '<speak><prosody rate="$rate" volume="$volume">$escapedText</prosody></speak>';
+    } else {
+      // Neural and standard engines support word values
+      // Note: Pitch adjustments are unreliable, so we skip them
+      final rate = prosody?['rate'] ?? 'medium';
+      final volume = prosody?['volume'] ?? 'medium';
+
+      return '<speak><prosody rate="$rate" volume="$volume">$escapedText</prosody></speak>';
+    }
+  }
+
+  /// Convert word values to x-values for generative engine
+  String _convertToXValue(String value, String attribute) {
+    // Map word values to x-values
+    final Map<String, String> rateMap = {
+      'x-slow': 'x-slow',
+      'slow': 'x-slow',
+      'medium': 'medium',  // medium is supported
+      'fast': 'x-fast',
+      'x-fast': 'x-fast',
+    };
+
+    final Map<String, String> volumeMap = {
+      'silent': 'silent',
+      'x-soft': 'x-soft',
+      'soft': 'x-soft',
+      'medium': 'medium',  // medium is supported
+      'loud': 'x-loud',
+      'x-loud': 'x-loud',
+    };
+
+    if (attribute == 'rate') {
+      return rateMap[value] ?? 'medium';
+    } else if (attribute == 'volume') {
+      return volumeMap[value] ?? 'medium';
+    }
+
+    return value;
   }
 
   /// Build EXTREME SSML for 2× STRONGER mode
   /// Amplified, energetic, powerful speech
   /// Compatible with generative, neural, and standard engines
   String _buildStrongerSSML(String text, MoodStyle style) {
-    // Escape XML special characters
-    final escapedText = _escapeXml(text);
+    return _buildStrongerSSMLForEngine(text, style, _pollyEngine);
+  }
 
-    // 2× STRONGER: Fast, loud, emphasized
-    // Uses emphasis tag for extra punch (works with all engines)
-    return '<speak>'
-        '<prosody rate="fast" volume="x-loud" pitch="+15%">'
-        '<emphasis level="strong">$escapedText</emphasis>'
-        '</prosody>'
-        '</speak>';
+  /// Build EXTREME SSML for a specific engine
+  String _buildStrongerSSMLForEngine(String text, MoodStyle style, String engine) {
+    // Clean the text first to fix spacing issues
+    final cleanedText = _cleanTextForSpeech(text);
+
+    // Escape XML special characters
+    final escapedText = _escapeXml(cleanedText);
+
+    // Check engine type for SSML compatibility
+    if (engine == 'generative') {
+      // Generative engine: Use x-values only, medium rate for clarity
+      // Note: emphasis tag may not work with generative, so we skip it
+      return '<speak>'
+          '<prosody rate="medium" volume="x-loud">'
+          '$escapedText'
+          '</prosody>'
+          '</speak>';
+    } else {
+      // Neural/Standard engines: Use word values, medium rate for clarity
+      // Note: Pitch and emphasis are unreliable, so we skip them
+      return '<speak>'
+          '<prosody rate="medium" volume="x-loud">'
+          '$escapedText'
+          '</prosody>'
+          '</speak>';
+    }
   }
 
   /// Build SSML for Golden Voice mode
   /// Premium human-like SSML with advanced effects
-  /// Uses amazon:effect tags that work best with generative engine
+  /// Note: Generative engine only supports x-values (x-slow, x-soft, etc), not percentages or word values
   String _buildGoldenSSML(String text, MoodStyle style) {
-    // Escape XML special characters
-    final escapedText = _escapeXml(text);
+    return _buildGoldenSSMLForEngine(text, style, _pollyEngine);
+  }
 
-    // Premium Golden Voice SSML - Insanely human-like
-    // DRC (Dynamic Range Compression) + soft phonation + vocal tract length
-    // These effects work best with generative engine, gracefully degrade on neural/standard
-    return '<speak>'
-        '<amazon:effect name="drc">'
-        '<prosody rate="slow" pitch="-10%" volume="soft">'
-        '<amazon:effect phonation="soft">'
-        '<amazon:effect vocal-tract-length="+12%">'
-        '$escapedText'
-        '</amazon:effect>'
-        '</amazon:effect>'
-        '</prosody>'
-        '</amazon:effect>'
-        '</speak>';
+  /// Build Golden SSML for a specific engine
+  String _buildGoldenSSMLForEngine(String text, MoodStyle style, String engine) {
+    // Clean the text first to fix spacing issues
+    final cleanedText = _cleanTextForSpeech(text);
+
+    // Escape XML special characters
+    final escapedText = _escapeXml(cleanedText);
+
+    // Check current engine - generative has limited SSML support
+    if (engine == 'generative') {
+      // Premium Golden Voice SSML for GENERATIVE engine
+      // Generative engine only supports x-values (x-slow, x-soft, etc)
+      // It does NOT support percentages or word values (slow, medium, etc)
+      return '<speak>'
+          '<prosody rate="x-slow" volume="x-soft">'
+          '$escapedText'
+          '</prosody>'
+          '</speak>';
+    } else {
+      // Premium Golden Voice SSML for NEURAL/STANDARD engines
+      // Use simple prosody - amazon:effect tags may not be supported by all voices
+      return '<speak>'
+          '<prosody rate="slow" volume="soft">'
+          '$escapedText'
+          '</prosody>'
+          '</speak>';
+    }
+  }
+
+  /// Clean text for speech to fix spacing and formatting issues
+  String _cleanTextForSpeech(String text) {
+    // Just basic whitespace cleanup - let's see what the actual issue is first
+    text = text.trim();
+
+    // Clean up extra whitespace (multiple spaces, tabs, newlines -> single space)
+    text = text.replaceAll(RegExp(r'\s+'), ' ');
+
+    return text;
   }
 
   /// Escape XML special characters for SSML

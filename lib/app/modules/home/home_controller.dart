@@ -398,6 +398,10 @@ class HomeController extends GetxController {
             duration: const Duration(seconds: 2),
           );
 
+          // Set state to processing while generating
+          currentState.value = AppState.processing;
+          statusText.value = _tr('processing', fallback: 'Amplifying...');
+
           // Generate 2× stronger response from LLM with NEW PROMPT
           final languageCode = _storage.getLanguageCode();
           final strongerResponse = await _llmService.generateStrongerResponse(
@@ -409,15 +413,44 @@ class HomeController extends GetxController {
           // Get prosody for stronger response
           final prosody = _llmService.getLastProsody();
 
+          // Set state to speaking and show animation
+          currentState.value = AppState.speaking;
+          statusText.value = _tr('speaking', fallback: 'Speaking...');
+          showLottieAnimation.value = true;
+
+          // Estimate speaking duration for progress bar
+          final wordCount = strongerResponse.split(' ').length;
+          final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
+          final estimatedMs = estimatedSeconds * 1000;
+
+          print('🎙️ [STRONGER] Estimated speaking time: ${estimatedSeconds}s for $wordCount words');
+
+          // Start speaking progress
+          _startSpeakingProgress(estimatedMs);
+
           // Play confetti
           confettiController.play();
 
           // Speak the stronger response with EXTREME SSML
           await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody);
 
+          // Wait for TTS to complete
+          await Future.delayed(const Duration(milliseconds: 500));
+          while (_ttsService.isSpeaking.value) {
+            await Future.delayed(const Duration(milliseconds: 100));
+          }
+
+          // Stop speaking progress
+          _stopSpeakingProgress();
+
+          // Reset to idle
+          _resetToIdle();
+
           print('⚡ [STRONGER] 2× stronger response played successfully');
         } catch (e) {
           print('❌ [STRONGER] Error: $e');
+          _stopSpeakingProgress();
+          _resetToIdle();
           SnackbarUtils.showError(
             title: 'Error',
             message: 'Failed to generate 2× stronger response',
