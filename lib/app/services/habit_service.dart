@@ -28,53 +28,82 @@ class HabitService extends GetxService {
   static const String _keyLastNotifyDate = 'last_notify_date';
   
   Future<HabitService> init() async {
-    _box = GetStorage();
-    _notifications = FlutterLocalNotificationsPlugin();
-    
-    // Initialize timezone
-    tz.initializeTimeZones();
-    
-    // Save install date if first launch
-    if (_box.read(_keyInstallDate) == null) {
-      _box.write(_keyInstallDate, DateTime.now().toIso8601String());
-      print('📅 [HABIT] Install date saved: ${DateTime.now()}');
+    try {
+      _box = GetStorage();
+      _notifications = FlutterLocalNotificationsPlugin();
+
+      // Initialize timezone
+      print('🌍 [HABIT] Initializing timezones...');
+      tz.initializeTimeZones();
+      // Set local timezone
+      final locationName = DateTime.now().timeZoneName;
+      print('🌍 [HABIT] Local timezone: $locationName');
+
+      // Save install date if first launch
+      if (_box.read(_keyInstallDate) == null) {
+        _box.write(_keyInstallDate, DateTime.now().toIso8601String());
+        print('📅 [HABIT] Install date saved: ${DateTime.now()}');
+      }
+
+      // Initialize notification plugin
+      await _initializeNotifications();
+
+      // Schedule next notification
+      await _scheduleSmartNotification();
+
+      print('✅ [HABIT] HabitService initialized successfully');
+      return this;
+    } catch (e, stackTrace) {
+      print('❌ [HABIT] Error initializing HabitService: $e');
+      print('❌ [HABIT] Stack trace: $stackTrace');
+      return this;
     }
-    
-    // Initialize notification plugin
-    await _initializeNotifications();
-    
-    // Schedule next notification
-    await _scheduleSmartNotification();
-    
-    return this;
   }
   
   Future<void> _initializeNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-    
-    await _notifications.initialize(
-      settings,
-      onDidReceiveNotificationResponse: (details) {
-        print('🔔 [HABIT] Notification tapped: ${details.payload}');
-      },
-    );
-    
-    // Request permissions on iOS
-    await _notifications
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
-    
-    print('🔔 [HABIT] Notifications initialized');
+    try {
+      print('🔔 [HABIT] Initializing notifications...');
+
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+
+      const settings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
+
+      final initialized = await _notifications.initialize(
+        settings,
+        onDidReceiveNotificationResponse: (details) {
+          print('🔔 [HABIT] Notification tapped: ${details.payload}');
+        },
+      );
+
+      print('🔔 [HABIT] Notification plugin initialized: $initialized');
+
+      // Request permissions on iOS
+      final iosPermissions = await _notifications
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
+
+      print('🔔 [HABIT] iOS permissions granted: $iosPermissions');
+
+      // Request permissions on Android 13+
+      final androidPermissions = await _notifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+
+      print('🔔 [HABIT] Android permissions granted: $androidPermissions');
+
+      print('✅ [HABIT] Notifications initialized successfully');
+    } catch (e, stackTrace) {
+      print('❌ [HABIT] Error initializing notifications: $e');
+      print('❌ [HABIT] Stack trace: $stackTrace');
+    }
   }
   
   // ========== PUBLIC STATIC API ==========
@@ -190,48 +219,60 @@ class HabitService extends GetxService {
   // ========== SMART NOTIFICATION SYSTEM ==========
   
   Future<void> _scheduleSmartNotification() async {
-    // Cancel any existing notifications
-    await _notifications.cancelAll();
-    
-    // Check if we should send a notification
-    if (!_shouldSendNotification()) {
-      print('🔕 [HABIT] No notification needed today');
-      return;
+    try {
+      print('🔔 [HABIT] Scheduling smart notification...');
+
+      // Cancel any existing notifications
+      await _notifications.cancelAll();
+      print('🔔 [HABIT] Cancelled all existing notifications');
+
+      // Check if we should send a notification
+      if (!_shouldSendNotification()) {
+        print('🔕 [HABIT] No notification needed today');
+        return;
+      }
+
+      // Schedule for tomorrow at 9 AM
+      final tomorrow9AM = _getNext9AM();
+      print('🔔 [HABIT] Scheduling for: ${tomorrow9AM.toLocal()}');
+
+      final notificationDetails = NotificationDetails(
+        android: AndroidNotificationDetails(
+          'habit_reminder',
+          'Daily Reminders',
+          channelDescription: 'Gentle reminders to keep your streak alive',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+
+      final message = _getNotificationMessage();
+
+      await _notifications.zonedSchedule(
+        0, // notification id
+        message['title']!,
+        message['body']!,
+        tomorrow9AM,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+
+      print('✅ [HABIT] Notification scheduled successfully');
+      print('   Time: ${tomorrow9AM.toLocal()}');
+      print('   Title: ${message['title']}');
+      print('   Body: ${message['body']}');
+    } catch (e, stackTrace) {
+      print('❌ [HABIT] Error scheduling notification: $e');
+      print('❌ [HABIT] Stack trace: $stackTrace');
     }
-    
-    // Schedule for tomorrow at 9 AM
-    final tomorrow9AM = _getNext9AM();
-    
-    final notificationDetails = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'habit_reminder',
-        'Daily Reminders',
-        channelDescription: 'Gentle reminders to keep your streak alive',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-      ),
-      iOS: const DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
-    );
-    
-    final message = _getNotificationMessage();
-    
-    await _notifications.zonedSchedule(
-      0, // notification id
-      message['title']!,
-      message['body']!,
-      tomorrow9AM,
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
-    
-    print('🔔 [HABIT] Notification scheduled for ${tomorrow9AM.toLocal()}');
-    print('   Title: ${message['title']}');
-    print('   Body: ${message['body']}');
   }
   
   bool _shouldSendNotification() {

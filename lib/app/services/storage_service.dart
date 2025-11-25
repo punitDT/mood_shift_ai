@@ -275,36 +275,36 @@ class StorageService extends GetxService {
 
   // ========== CONVERSATION HISTORY (Anti-Repetition) ==========
 
-  // Get last 5 user inputs
+  // Get last 3 user inputs (optimized from 5 for better prompt efficiency)
   List<String> getRecentUserInputs() {
     final inputs = _box.read<List>('recent_user_inputs');
     if (inputs == null) return [];
-    return inputs.cast<String>().take(5).toList();
+    return inputs.cast<String>().take(3).toList();
   }
 
-  // Get last 5 AI responses
+  // Get last 3 AI responses (optimized from 5 for better prompt efficiency)
   List<String> getRecentAIResponses() {
     final responses = _box.read<List>('recent_ai_responses');
     if (responses == null) return [];
-    return responses.cast<String>().take(5).toList();
+    return responses.cast<String>().take(3).toList();
   }
 
-  // Add user input to history (keep last 5)
+  // Add user input to history (keep last 3, optimized from 5)
   void addUserInputToHistory(String input) {
     final inputs = getRecentUserInputs();
     inputs.insert(0, input);
-    if (inputs.length > 5) {
-      inputs.removeRange(5, inputs.length);
+    if (inputs.length > 3) {
+      inputs.removeRange(3, inputs.length);
     }
     _box.write('recent_user_inputs', inputs);
   }
 
-  // Add AI response to history (keep last 5)
+  // Add AI response to history (keep last 3, optimized from 5)
   void addAIResponseToHistory(String response) {
     final responses = getRecentAIResponses();
     responses.insert(0, response);
-    if (responses.length > 5) {
-      responses.removeRange(5, responses.length);
+    if (responses.length > 3) {
+      responses.removeRange(3, responses.length);
     }
     _box.write('recent_ai_responses', responses);
   }

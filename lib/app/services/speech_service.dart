@@ -12,8 +12,8 @@ class SpeechService extends GetxService {
   final isListening = false.obs;
   final recognizedText = ''.obs;
 
-  // Maximum recording time: 60 seconds (1 minute)
-  static const int maxRecordingSeconds = 60;
+  // Maximum recording time: 90 seconds (1.5 minutes to allow for pauses)
+  static const int maxRecordingSeconds = 90;
 
   @override
   void onInit() {
@@ -77,36 +77,28 @@ class SpeechService extends GetxService {
         await _speech.listen(
           onResult: (result) {
             try {
-              // Update recognized text continuously
+              // ALWAYS update recognized text continuously (for display and manual processing)
               recognizedText.value = result.recognizedWords;
               print('🎤 [SPEECH DEBUG] Partial result: ${result.recognizedWords} (final: ${result.finalResult})');
 
-              // Process final result only when user releases button (stopListening is called)
-              // This callback will be triggered by stopListening()
+              // COMPLETELY IGNORE finalResult - we process manually in controller
+              // This prevents premature processing during pauses
               if (result.finalResult) {
-                isListening.value = false;
-                print('✅ [SPEECH DEBUG] Final result: ${recognizedText.value}');
-                if (recognizedText.value.isNotEmpty) {
-                  onResult(recognizedText.value);
-                } else {
-                  print('⚠️  [SPEECH DEBUG] Empty final result');
-                  onResult(''); // Call with empty string to trigger error handling
-                }
+                print('🔄 [SPEECH DEBUG] Ignoring finalResult - waiting for user to release button');
               }
             } catch (e, stackTrace) {
               print('❌ [SPEECH DEBUG] Error in onResult callback: $e');
               print('❌ [SPEECH DEBUG] Stack trace: $stackTrace');
-              isListening.value = false;
-              onResult(''); // Trigger error handling
             }
           },
           localeId: localeId,
           listenMode: ListenMode.dictation,
           cancelOnError: true,
           partialResults: true,
-          // Maximum recording time: 60 seconds
+          // Maximum recording time: 90 seconds (1.5 minutes)
           listenFor: Duration(seconds: maxRecordingSeconds),
-          // Don't auto-stop on pause - only stop when user releases button
+          // Allow up to 90 seconds of pause - user controls when to stop by releasing button
+          // This ensures user can pause as long as they want between sentences
           pauseFor: Duration(seconds: maxRecordingSeconds),
         );
       } else {

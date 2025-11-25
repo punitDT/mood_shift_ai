@@ -8,13 +8,15 @@ import '../utils/snackbar_utils.dart';
 class AdService extends GetxService {
   final StorageService _storage = Get.find<StorageService>();
 
-  BannerAd? bannerAd;
+  BannerAd? bannerAd; // Bottom banner
+  BannerAd? topBannerAd; // Top banner
   InterstitialAd? interstitialAd;
   RewardedAd? rewardedAdStronger;
   RewardedAd? rewardedAdGolden;
   RewardedAd? rewardedAdRemoveAds;
 
   final isBannerLoaded = false.obs;
+  final isTopBannerLoaded = false.obs; // Top banner state
   final isInterstitialLoaded = false.obs;
   final isRewardedStrongerLoaded = false.obs;
   final isRewardedGoldenLoaded = false.obs;
@@ -55,6 +57,7 @@ class AdService extends GetxService {
     print('📱 [AD] Interstitial ID: $interstitialAdUnitId');
     print('📱 [AD] Rewarded ID: $rewardedAdUnitId');
     loadBannerAd();
+    loadTopBannerAd(); // Load top banner
     loadInterstitialAd();
     loadRewardedAds();
   }
@@ -73,9 +76,10 @@ class AdService extends GetxService {
       listener: BannerAdListener(
         onAdLoaded: (ad) {
           isBannerLoaded.value = true;
+          print('✅ [AD DEBUG] Bottom banner ad loaded');
         },
         onAdFailedToLoad: (ad, error) {
-          print('Banner ad failed to load: $error');
+          print('❌ [AD DEBUG] Bottom banner ad failed to load: $error');
           ad.dispose();
           isBannerLoaded.value = false;
         },
@@ -85,54 +89,107 @@ class AdService extends GetxService {
     bannerAd?.load();
   }
 
+  // Top Banner Ad (always visible at top)
+  void loadTopBannerAd() {
+    if (_storage.isAdFree()) {
+      isTopBannerLoaded.value = false;
+      return;
+    }
+
+    topBannerAd = BannerAd(
+      adUnitId: bannerAdUnitId, // Same ad unit ID
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          isTopBannerLoaded.value = true;
+          print('✅ [AD DEBUG] Top banner ad loaded');
+        },
+        onAdFailedToLoad: (ad, error) {
+          print('❌ [AD DEBUG] Top banner ad failed to load: $error');
+          ad.dispose();
+          isTopBannerLoaded.value = false;
+        },
+      ),
+    );
+
+    topBannerAd?.load();
+  }
+
   // Interstitial Ad (every 4th shift)
   void loadInterstitialAd() {
+    print('🔄 [AD DEBUG] loadInterstitialAd called');
+
     if (_storage.isAdFree()) {
+      print('⏭️  [AD DEBUG] User is ad-free, not loading interstitial');
       isInterstitialLoaded.value = false;
       return;
     }
 
+    print('📥 [AD DEBUG] Starting to load interstitial ad...');
     InterstitialAd.load(
       adUnitId: interstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
+          print('✅ [AD DEBUG] Interstitial ad loaded successfully');
           interstitialAd = ad;
           isInterstitialLoaded.value = true;
-          
+
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
+              print('👋 [AD DEBUG] Interstitial ad dismissed');
               ad.dispose();
+              interstitialAd = null;
+              isInterstitialLoaded.value = false;
               loadInterstitialAd(); // Load next one
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
-              print('Interstitial ad failed to show: $error');
+              print('❌ [AD DEBUG] Interstitial ad failed to show: $error');
               ad.dispose();
+              interstitialAd = null;
+              isInterstitialLoaded.value = false;
               loadInterstitialAd();
             },
           );
         },
         onAdFailedToLoad: (error) {
-          print('Interstitial ad failed to load: $error');
+          print('❌ [AD DEBUG] Interstitial ad failed to load: $error');
           isInterstitialLoaded.value = false;
+          interstitialAd = null;
         },
       ),
     );
   }
 
   void showInterstitialAd() {
-    if (_storage.isAdFree()) return;
+    print('🎯 [AD DEBUG] showInterstitialAd called');
+
+    if (_storage.isAdFree()) {
+      print('⏭️  [AD DEBUG] User is ad-free, skipping interstitial');
+      return;
+    }
 
     final counter = _storage.getShiftCounter();
     print('🎯 [AD DEBUG] Shift counter: $counter');
+    print('🎯 [AD DEBUG] Interstitial loaded: ${isInterstitialLoaded.value}');
+    print('🎯 [AD DEBUG] Interstitial ad object: ${interstitialAd != null ? "exists" : "null"}');
 
     // Show interstitial ONLY on exactly 4th, 8th, 12th shift (counter == 4)
-    if (counter == 4 && isInterstitialLoaded.value && interstitialAd != null) {
-      print('✅ [AD DEBUG] Showing interstitial ad on shift #$counter');
-      interstitialAd?.show();
-      _storage.resetShiftCounter();
+    if (counter == 4) {
+      if (isInterstitialLoaded.value && interstitialAd != null) {
+        print('✅ [AD DEBUG] Showing interstitial ad on shift #$counter');
+        interstitialAd?.show();
+        _storage.resetShiftCounter();
+      } else {
+        print('⚠️  [AD DEBUG] Counter is 4 but ad not ready. Loading: ${isInterstitialLoaded.value}, Ad: ${interstitialAd != null}');
+        // Reset counter anyway to prevent getting stuck
+        _storage.resetShiftCounter();
+        // Try to load a new ad for next time
+        loadInterstitialAd();
+      }
     } else {
-      print('⏭️  [AD DEBUG] Skipping interstitial (counter: $counter, loaded: ${isInterstitialLoaded.value})');
+      print('⏭️  [AD DEBUG] Skipping interstitial (counter: $counter, need 4)');
     }
   }
 
@@ -477,6 +534,7 @@ class AdService extends GetxService {
   @override
   void onClose() {
     bannerAd?.dispose();
+    topBannerAd?.dispose(); // Dispose top banner
     interstitialAd?.dispose();
     rewardedAdStronger?.dispose();
     rewardedAdGolden?.dispose();

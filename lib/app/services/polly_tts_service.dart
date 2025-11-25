@@ -34,8 +34,10 @@ class PollyTTSService extends GetxService {
     super.onInit();
     _awsAccessKey = dotenv.env['AWS_ACCESS_KEY'] ?? '';
     _awsSecretKey = dotenv.env['AWS_SECRET_KEY'] ?? '';
-    _awsRegion = dotenv.env['AWS_REGION'] ?? 'ap-south-1';
-    _pollyEngine = dotenv.env['AWS_POLLY_ENGINE'] ?? 'neural';
+    // Changed region to us-east-1 for generative voice support
+    _awsRegion = dotenv.env['AWS_REGION'] ?? 'us-east-1';
+    // Changed engine to generative (will fallback to neural then standard)
+    _pollyEngine = dotenv.env['AWS_POLLY_ENGINE'] ?? 'generative';
     _pollyOutputFormat = dotenv.env['AWS_POLLY_OUTPUT_FORMAT'] ?? 'mp3';
     _pollyTimeoutSeconds = int.tryParse(dotenv.env['AWS_POLLY_TIMEOUT_SECONDS'] ?? '10') ?? 10;
     _pollyCacheMaxFiles = int.tryParse(dotenv.env['AWS_POLLY_CACHE_MAX_FILES'] ?? '20') ?? 20;
@@ -44,7 +46,7 @@ class PollyTTSService extends GetxService {
       print('⚠️ [POLLY] Warning: AWS credentials not found in .env');
     }
 
-    print('🎙️ [POLLY] Engine: $_pollyEngine, Format: $_pollyOutputFormat, Timeout: ${_pollyTimeoutSeconds}s');
+    print('🎙️ [POLLY] Region: $_awsRegion, Engine: $_pollyEngine, Format: $_pollyOutputFormat, Timeout: ${_pollyTimeoutSeconds}s');
     print('💾 [POLLY] Cache max files: $_pollyCacheMaxFiles');
 
     _initializeFallbackTTS();
@@ -187,7 +189,12 @@ class PollyTTSService extends GetxService {
 
       print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId, language: $fullLocale, style: $style');
 
-      final engines = _pollyEngine == 'neural' ? ['neural', 'standard'] : ['standard'];
+      // Try with configured engine first (generative > neural > standard)
+      final engines = _pollyEngine == 'generative'
+          ? ['generative', 'neural', 'standard']
+          : _pollyEngine == 'neural'
+              ? ['neural', 'standard']
+              : ['standard'];
 
       for (final engine in engines) {
         try {
@@ -227,16 +234,19 @@ class PollyTTSService extends GetxService {
             await tempFile.writeAsBytes(response.bodyBytes);
             print('✅ [POLLY] 2× STRONGER audio synthesized successfully with $engine engine');
             return tempFile;
-          } else if (response.statusCode == 400 && engine == 'neural' && engines.length > 1) {
-            print('⚠️ [POLLY] Neural engine not supported for 2× STRONGER, trying standard...');
+          } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
+            // Current engine not supported, try next engine in priority list
+            final nextEngine = engines[engines.indexOf(engine) + 1];
+            print('⚠️ [POLLY] $engine engine not supported for 2× STRONGER, trying $nextEngine...');
             continue;
           } else {
             print('❌ [POLLY] 2× STRONGER API error: ${response.statusCode} - ${response.body}');
             return null;
           }
         } catch (e) {
-          if (engine == 'neural' && engines.length > 1) {
-            print('⚠️ [POLLY] Neural engine failed for 2× STRONGER: $e, trying standard...');
+          if (engines.indexOf(engine) < engines.length - 1) {
+            final nextEngine = engines[engines.indexOf(engine) + 1];
+            print('⚠️ [POLLY] $engine engine failed for 2× STRONGER: $e, trying $nextEngine...');
             continue;
           }
           throw e;
@@ -262,8 +272,12 @@ class PollyTTSService extends GetxService {
       final voiceMode = _storage.hasGoldenVoice() ? 'GOLDEN' : 'NORMAL';
       print('🎙️ [POLLY] Synthesizing with voice: $voiceId, language: $fullLocale ($voiceMode mode)');
 
-      // Try with configured engine first (neural), then fallback to standard
-      final engines = _pollyEngine == 'neural' ? ['neural', 'standard'] : ['standard'];
+      // Try with configured engine first (generative > neural > standard)
+      final engines = _pollyEngine == 'generative'
+          ? ['generative', 'neural', 'standard']
+          : _pollyEngine == 'neural'
+              ? ['neural', 'standard']
+              : ['standard'];
 
       for (final engine in engines) {
         try {
@@ -303,17 +317,19 @@ class PollyTTSService extends GetxService {
             await tempFile.writeAsBytes(response.bodyBytes);
             print('✅ [POLLY] Audio synthesized successfully with $engine engine');
             return tempFile;
-          } else if (response.statusCode == 400 && engine == 'neural' && engines.length > 1) {
-            // Neural not supported, try standard engine
-            print('⚠️ [POLLY] Neural engine not supported, trying standard engine...');
+          } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
+            // Current engine not supported, try next engine in priority list
+            final nextEngine = engines[engines.indexOf(engine) + 1];
+            print('⚠️ [POLLY] $engine engine not supported, trying $nextEngine engine...');
             continue;
           } else {
             print('❌ [POLLY] API error: ${response.statusCode} - ${response.body}');
             return null;
           }
         } catch (e) {
-          if (engine == 'neural' && engines.length > 1) {
-            print('⚠️ [POLLY] Neural engine failed: $e, trying standard engine...');
+          if (engines.indexOf(engine) < engines.length - 1) {
+            final nextEngine = engines[engines.indexOf(engine) + 1];
+            print('⚠️ [POLLY] $engine engine failed: $e, trying $nextEngine engine...');
             continue;
           }
           throw e;
@@ -400,13 +416,18 @@ class PollyTTSService extends GetxService {
     // Use injected storage service for consistency
     final String gender = _storage.getVoiceGender();
 
-    // Updated Amazon Polly Voice IDs (Neural + Standard – November 2025)
+    // Updated Amazon Polly Voice IDs (Generative + Neural + Standard – November 2025)
     // Reference: https://docs.aws.amazon.com/polly/latest/dg/available-voices.html
+    // Generative voices available in us-east-1 region
     final Map<String, Map<String, Map<String, String>>> voices = {
       "en-US": {
+        "Generative": {
+          "male": "Matthew",        // Generative male (most natural)
+          "female": "Danielle",     // Generative female (most natural)
+        },
         "Neural": {
-          "male": "Matthew",        // Energetic, hype
-          "female": "Joanna",       // Warm, empathetic (generative supported)
+          "male": "Matthew",        // Neural male
+          "female": "Joanna",       // Neural female
         },
         "Standard": {
           "male": "Joey",           // Basic male
@@ -414,6 +435,10 @@ class PollyTTSService extends GetxService {
         },
       },
       "en-GB": {
+        "Generative": {
+          "male": "Brian",          // No generative male for en-GB
+          "female": "Amy",          // Generative British female
+        },
         "Neural": {
           "male": "Brian",          // Deep British male
           "female": "Amy",          // Soft British female
@@ -424,6 +449,10 @@ class PollyTTSService extends GetxService {
         },
       },
       "hi-IN": {
+        "Generative": {
+          "male": "Kajal",          // No male voice, using female
+          "female": "Kajal",        // Generative Hindi female
+        },
         "Neural": {
           "male": "Kajal",          // Dynamic male (using female as fallback - 2025 addition)
           "female": "Kajal",        // Natural female
@@ -434,6 +463,10 @@ class PollyTTSService extends GetxService {
         },
       },
       "es-ES": {
+        "Generative": {
+          "male": "Sergio",         // Generative Spanish male
+          "female": "Lucia",        // Generative Spanish female
+        },
         "Neural": {
           "male": "Sergio",         // Expressive male
           "female": "Lucia",        // Warm female
@@ -444,9 +477,13 @@ class PollyTTSService extends GetxService {
         },
       },
       "cmn-CN": {  // Changed from zh-CN to cmn-CN (correct AWS Polly language code)
+        "Generative": {
+          "male": "Zhiyu",          // No generative male
+          "female": "Zhiyu",        // No generative female
+        },
         "Neural": {
           "male": "Zhiyu",          // Clear male (2025 addition)
-          "female": "Zhiyu",        // Soft female (generative)
+          "female": "Zhiyu",        // Soft female
         },
         "Standard": {
           "male": "Zhiyu",          // Only female available
@@ -454,9 +491,13 @@ class PollyTTSService extends GetxService {
         },
       },
       "fr-FR": {
+        "Generative": {
+          "male": "Remi",           // Generative French male
+          "female": "Lea",          // Generative French female
+        },
         "Neural": {
           "male": "Remi",           // Friendly male
-          "female": "Lea",          // Gentle female (generative)
+          "female": "Lea",          // Gentle female
         },
         "Standard": {
           "male": "Mathieu",        // Basic male
@@ -464,6 +505,10 @@ class PollyTTSService extends GetxService {
         },
       },
       "de-DE": {
+        "Generative": {
+          "male": "Daniel",         // Generative German male
+          "female": "Vicki",        // Generative German female
+        },
         "Neural": {
           "male": "Daniel",         // Steady male
           "female": "Vicki",        // Natural female
@@ -474,6 +519,10 @@ class PollyTTSService extends GetxService {
         },
       },
       "arb": {  // Changed from ar-SA to arb (correct AWS Polly language code)
+        "Generative": {
+          "male": "Zeina",          // No generative male
+          "female": "Zeina",        // No generative female
+        },
         "Neural": {
           "male": "Zeina",          // Only female available for Standard
           "female": "Zeina",        // Only female available for Standard
@@ -484,19 +533,53 @@ class PollyTTSService extends GetxService {
         },
       },
       "ja-JP": {
+        "Generative": {
+          "male": "Takumi",         // No generative male
+          "female": "Kazuha",       // No generative female
+        },
         "Neural": {
           "male": "Takumi",         // Energetic male
-          "female": "Kazuha",       // Gentle female (generative)
+          "female": "Kazuha",       // Gentle female
         },
         "Standard": {
           "male": "Takumi",         // Basic male
           "female": "Mizuki",       // Basic female
         },
       },
+      "ko-KR": {
+        "Generative": {
+          "male": "Seoyeon",        // No male voice, using female
+          "female": "Seoyeon",      // Generative Korean female
+        },
+        "Neural": {
+          "male": "Seoyeon",        // No male voice
+          "female": "Seoyeon",      // Neural female
+        },
+        "Standard": {
+          "male": "Seoyeon",        // No male voice
+          "female": "Seoyeon",      // Standard female
+        },
+      },
     };
 
-    // Try Neural first (if engine is set to neural), then fallback to Standard
-    final engine = _pollyEngine == 'neural' ? 'Neural' : 'Standard';
+    // Try Generative first, then Neural, then Standard (priority order)
+    final enginePriority = _pollyEngine == 'generative'
+        ? ['Generative', 'Neural', 'Standard']
+        : _pollyEngine == 'neural'
+            ? ['Neural', 'Standard']
+            : ['Standard'];
+
+    // Try each engine in priority order
+    for (final engine in enginePriority) {
+      final voiceId = voices[fullLocale]?[engine]?[gender];
+      if (voiceId != null) {
+        print('🎙️ [POLLY] Selected voice: $voiceId ($engine engine) for $fullLocale ($gender)');
+        return voiceId;
+      }
+    }
+
+    // Final fallback - try any available voice
+    final engine = enginePriority.first;
     final voiceId = voices[fullLocale]?[engine]?[gender];
 
     if (voiceId != null) {

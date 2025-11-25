@@ -125,35 +125,38 @@ class HomeController extends GetxController {
       showRewardButtons.value = false;
       showLottieAnimation.value = true;
 
-      // Start progress tracking for listening (60 seconds max)
+      // Start progress tracking for listening (90 seconds max)
       _startListeningProgress();
 
-      // Set a timeout to prevent getting stuck in listening state (60 seconds max)
+      // Set a timeout to prevent getting stuck in listening state (90 seconds max)
       _listeningTimeoutTimer?.cancel();
-      _listeningTimeoutTimer = Timer(const Duration(seconds: 60), () {
-        print('⏱️  [MIC DEBUG] Listening timeout (60s) - stopping recording');
+      _listeningTimeoutTimer = Timer(const Duration(seconds: 90), () async {
+        print('⏱️  [MIC DEBUG] Listening timeout (90s) - processing accumulated speech');
         if (currentState.value == AppState.listening) {
-          _speechService.stopListening();
-          // The callback will be triggered by stopListening, which will process the text
+          // Get any accumulated text before stopping
+          final accumulatedText = _speechService.recognizedText.value;
+          await _speechService.stopListening();
+          _stopListeningProgress();
+
+          // Process accumulated text if available
+          if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
+            print('✅ [MIC DEBUG] Processing accumulated text from timeout: "$accumulatedText"');
+            await _processUserInput(accumulatedText);
+          } else {
+            print('⚠️  [MIC DEBUG] No speech accumulated after 90s timeout');
+            SnackbarUtils.showWarning(
+              title: 'No Speech',
+              message: _tr('no_speech_detected', fallback: 'No speech detected. Please try again.'),
+            );
+            _resetToIdle();
+          }
         }
       });
 
+      // Start listening - callback is NOT used anymore, we process manually
       await _speechService.startListening((recognizedText) async {
-        print('🎤 [MIC DEBUG] Speech callback triggered with: "$recognizedText"');
-        _listeningTimeoutTimer?.cancel();
-        _stopListeningProgress();
-
-        if (recognizedText.isEmpty || recognizedText.trim().length < 2) {
-          print('⚠️  [MIC DEBUG] Empty or too short speech detected, resetting to idle');
-          SnackbarUtils.showWarning(
-            title: 'No Speech',
-            message: _tr('no_speech_detected', fallback: 'No speech detected'),
-          );
-          _resetToIdle();
-          return;
-        }
-
-        await _processUserInput(recognizedText);
+        // This callback is intentionally empty - we process manually on button release
+        print('🎤 [MIC DEBUG] Speech callback triggered (ignored) - processing happens on button release');
       });
     } catch (e, stackTrace) {
       print('❌ [MIC DEBUG] Error starting listening: $e');
@@ -169,34 +172,30 @@ class HomeController extends GetxController {
   }
 
   Future<void> onMicReleased() async {
-    print('🎤 [MIC DEBUG] Mic released - stopping recording');
+    print('🎤 [MIC DEBUG] Mic released - stopping recording and processing');
     _listeningTimeoutTimer?.cancel();
     _stopListeningProgress(); // Stop the circular progress immediately
 
     if (currentState.value == AppState.listening) {
-      // Mark that we're waiting for a result
-      bool callbackReceived = false;
-
-      // Store the current state to check later
-      final stateBeforeStop = currentState.value;
-
       // Stop listening immediately when button is released
       await _speechService.stopListening();
-      // The callback in startListening will be triggered with the final result
 
-      // Safety timeout: If no result is received within 1.5 seconds, reset to idle
-      // This prevents the app from getting stuck when no speech is detected
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        // If state hasn't changed from listening, it means callback was never called
-        if (currentState.value == stateBeforeStop && currentState.value == AppState.listening) {
-          print('⚠️  [MIC DEBUG] No speech result received after 1.5s, resetting to idle');
-          SnackbarUtils.showInfo(
-            title: 'No Speech',
-            message: _tr('no_speech_detected', fallback: 'No speech detected'),
-          );
-          _resetToIdle();
-        }
-      });
+      // Wait briefly for speech service to finalize (300ms)
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Process accumulated text
+      final accumulatedText = _speechService.recognizedText.value;
+      if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
+        print('✅ [MIC DEBUG] Button released - processing accumulated text: "$accumulatedText"');
+        await _processUserInput(accumulatedText);
+      } else {
+        print('⚠️  [MIC DEBUG] No speech accumulated');
+        SnackbarUtils.showWarning(
+          title: 'No Speech',
+          message: _tr('no_speech_detected', fallback: 'No speech detected. Please try again.'),
+        );
+        _resetToIdle();
+      }
     }
   }
 
@@ -204,7 +203,7 @@ class HomeController extends GetxController {
     listeningProgress.value = 0.0;
     _listeningProgressTimer?.cancel();
 
-    const maxSeconds = 60; // Changed to 60 seconds (1 minute max)
+    const maxSeconds = 90; // Changed to 90 seconds (1.5 minutes max)
     const updateInterval = 100; // Update every 100ms
     var elapsed = 0;
 

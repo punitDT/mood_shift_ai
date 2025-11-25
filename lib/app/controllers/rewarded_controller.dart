@@ -42,10 +42,10 @@ class RewardedController extends GetxController {
     await Future.delayed(const Duration(milliseconds: 300));
     showStrongerFlash.value = false;
 
-    // Power overlay
-    showStrongerOverlay.value = true;
-    await Future.delayed(const Duration(seconds: 2));
-    showStrongerOverlay.value = false;
+    // Power overlay - REMOVED (only top snackbar is shown now)
+    // showStrongerOverlay.value = true;
+    // await Future.delayed(const Duration(seconds: 2));
+    // showStrongerOverlay.value = false;
   }
 
   // ========== GOLDEN VOICE FEATURE ==========

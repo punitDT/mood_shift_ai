@@ -85,6 +85,11 @@ class HomeView extends GetView<HomeController> {
                 // Center content
                 Column(
                   children: [
+                    // Top Banner Ad (only if loaded and not ad-free)
+                    Obx(() => adService.isTopBannerLoaded.value
+                        ? _buildTopBannerAd(adService)
+                        : const SizedBox.shrink()),
+
                     // Top Bar (minimal)
                     _buildMinimalTopBar(),
 
@@ -184,46 +189,7 @@ class HomeView extends GetView<HomeController> {
             ),
           ),
 
-          // 2× STRONGER Power Overlay
-          Obx(() => rewardedController.showStrongerOverlay.value
-              ? Center(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 20.h),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7C4DFF).withOpacity(0.95), // Electric purple
-                      borderRadius: BorderRadius.circular(20.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF9D7FFF).withOpacity(0.6), // Electric purple glow
-                          blurRadius: 30,
-                          spreadRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.bolt,
-                          color: Colors.white,
-                          size: 60.sp,
-                        ),
-                        SizedBox(height: 12.h),
-                        Text(
-                          '⚡ 2× POWER ACTIVATED! ⚡',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink()),
+          // 2× STRONGER Power Overlay - REMOVED (only top snackbar is shown now)
 
           // Bottom Sheet for Superpower Buttons (appears after shift)
           Obx(() => controller.showRewardButtons.value
@@ -532,6 +498,17 @@ class HomeView extends GetView<HomeController> {
       color: Colors.transparent,
       child: adService.bannerAd != null
           ? AdWidget(ad: adService.bannerAd!)
+          : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildTopBannerAd(AdService adService) {
+    return Container(
+      width: double.infinity,
+      height: 50.h,
+      color: Colors.transparent,
+      child: adService.topBannerAd != null
+          ? AdWidget(ad: adService.topBannerAd!)
           : const SizedBox.shrink(),
     );
   }

@@ -34,8 +34,9 @@ class GroqLLMService extends GetxService {
     _temperature = double.tryParse(dotenv.env['GROK_TEMPERATURE'] ?? '0.9') ?? 0.9;
     _maxTokens = int.tryParse(dotenv.env['GROK_MAX_TOKENS'] ?? '800') ?? 800;
     _timeoutSeconds = int.tryParse(dotenv.env['GROK_TIMEOUT_SECONDS'] ?? '10') ?? 10;
-    _frequencyPenalty = double.tryParse(dotenv.env['GROK_FREQUENCY_PENALTY'] ?? '0.5') ?? 0.5;
-    _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.5') ?? 0.5;
+    // Increased penalties to prevent repetition (from 0.5 to 0.8)
+    _frequencyPenalty = double.tryParse(dotenv.env['GROK_FREQUENCY_PENALTY'] ?? '0.8') ?? 0.8;
+    _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.8') ?? 0.8;
     _maxResponseWords = int.tryParse(dotenv.env['GROK_MAX_RESPONSE_WORDS'] ?? '300') ?? 300;
     _storage = Get.find<StorageService>();
 
@@ -280,8 +281,8 @@ Begin now:''';
     // Get recent history for anti-repetition
     final recentInputs = _storage.getRecentUserInputs();
     final recentResponses = _storage.getRecentAIResponses();
-    final inputsText = recentInputs.isEmpty ? 'None' : recentInputs.join(', ');
-    final responsesText = recentResponses.isEmpty ? 'None' : recentResponses.take(3).map((r) => r.length > 50 ? '${r.substring(0, 50)}...' : r).join(', ');
+    final inputsText = recentInputs.isEmpty ? 'None' : recentInputs.join(' | ');
+    final responsesText = recentResponses.isEmpty ? 'None' : recentResponses.map((r) => r.length > 60 ? '${r.substring(0, 60)}...' : r).join(' | ');
 
     // Use injected storage service for consistency
     final String voiceGender = _storage.getVoiceGender();
@@ -293,9 +294,10 @@ Day $streak | $timeContext | Speak only in $languageName
 
 $genderLine
 
-Recent (never repeat):
-Inputs: $inputsText
-Responses: $responsesText
+⚠️ CRITICAL: NEVER REPEAT PREVIOUS RESPONSES!
+Recent conversation history (DO NOT REPEAT these responses):
+User inputs: $inputsText
+Your responses: $responsesText
 
 User said: "$userInput"
 
