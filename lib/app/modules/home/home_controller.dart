@@ -28,13 +28,13 @@ enum AppState {
 }
 
 class HomeController extends GetxController {
-  final GroqLLMService _llmService = Get.find<GroqLLMService>();
-  final SpeechService _speechService = Get.find<SpeechService>();
-  final PollyTTSService _ttsService = Get.find<PollyTTSService>();
-  final StorageService _storage = Get.find<StorageService>();
-  final AdService _adService = Get.find<AdService>();
-  final RemoteConfigService _remoteConfig = Get.find<RemoteConfigService>();
-  final CrashlyticsService _crashlytics = Get.find<CrashlyticsService>();
+  late final GroqLLMService _llmService;
+  late final SpeechService _speechService;
+  late final PollyTTSService _ttsService;
+  late final StorageService _storage;
+  late final AdService _adService;
+  late final RemoteConfigService _remoteConfig;
+  late final CrashlyticsService _crashlytics;
   late final AdFreeController _adFreeController;
   late final StreakController _streakController;
   late final RewardedController _rewardedController;
@@ -62,9 +62,49 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    _adFreeController = Get.find<AdFreeController>();
-    _streakController = Get.find<StreakController>();
-    _rewardedController = Get.find<RewardedController>();
+
+    // Initialize all services with error handling
+    try {
+      _llmService = Get.find<GroqLLMService>();
+      _speechService = Get.find<SpeechService>();
+      _ttsService = Get.find<PollyTTSService>();
+      _storage = Get.find<StorageService>();
+      _adService = Get.find<AdService>();
+      _remoteConfig = Get.find<RemoteConfigService>();
+      _crashlytics = Get.find<CrashlyticsService>();
+      _adFreeController = Get.find<AdFreeController>();
+      _streakController = Get.find<StreakController>();
+      _rewardedController = Get.find<RewardedController>();
+
+      print('✅ [HOME] All services initialized successfully');
+    } catch (e, stackTrace) {
+      print('❌ [HOME] Error initializing services: $e');
+      print('❌ [HOME] Stack trace: $stackTrace');
+
+      // Try to report to Crashlytics if available
+      try {
+        final crashlytics = Get.find<CrashlyticsService>();
+        crashlytics.reportError(
+          e,
+          stackTrace,
+          reason: 'HomeController service initialization failed',
+          customKeys: {
+            'error_type': 'service_initialization',
+            'controller': 'HomeController',
+          },
+        );
+      } catch (_) {
+        // Crashlytics not available, continue
+      }
+
+      // Show error to user
+      SnackbarUtils.showError(
+        title: 'Initialization Error',
+        message: 'Failed to initialize app services. Please restart the app.',
+      );
+      return;
+    }
+
     _initializeServices();
     _updateStats();
     _checkForceUpdate();
@@ -82,7 +122,30 @@ class HomeController extends GetxController {
   }
 
   Future<void> _initializeServices() async {
-    await _speechService.initialize();
+    try {
+      await _speechService.initialize();
+      print('✅ [HOME] Speech service initialized');
+    } catch (e, stackTrace) {
+      print('❌ [HOME] Error initializing speech service: $e');
+      print('❌ [HOME] Stack trace: $stackTrace');
+
+      // Report to Crashlytics
+      _crashlytics.reportError(
+        e,
+        stackTrace,
+        reason: 'Speech service initialization failed in HomeController',
+        customKeys: {
+          'error_type': 'speech_initialization',
+          'controller': 'HomeController',
+        },
+      );
+
+      // Show error to user
+      SnackbarUtils.showError(
+        title: 'Speech Error',
+        message: 'Failed to initialize speech recognition. Voice input may not work.',
+      );
+    }
   }
 
   void _updateStats() {
