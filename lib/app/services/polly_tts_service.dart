@@ -1032,13 +1032,21 @@ class PollyTTSService extends GetxService {
 
       // Note: Generative engine doesn't reliably support pitch adjustments
       return '<speak><prosody rate="$rate" volume="$volume">$escapedText</prosody></speak>';
+    } else if (engine == 'neural') {
+      // Neural engine: ONLY supports volume in decibels
+      // Neural does NOT support: rate/pitch (word values or percentages)
+      // TESTED: Only volume works reliably on neural
+      final volumeWord = prosody?['volume'] ?? 'medium';
+      final volumeDb = _convertToDecibels(volumeWord);
+
+      return '<speak><prosody volume="$volumeDb">$escapedText</prosody></speak>';
     } else {
-      // Neural and standard engines support word values
-      // Note: Pitch adjustments are unreliable, so we skip them
+      // Standard engine supports word values for all attributes
       final rate = prosody?['rate'] ?? 'medium';
       final volume = prosody?['volume'] ?? 'medium';
+      final pitch = prosody?['pitch'] ?? 'medium';
 
-      return '<speak><prosody rate="$rate" volume="$volume">$escapedText</prosody></speak>';
+      return '<speak><prosody rate="$rate" volume="$volume" pitch="$pitch">$escapedText</prosody></speak>';
     }
   }
 
@@ -1071,6 +1079,21 @@ class PollyTTSService extends GetxService {
     return value;
   }
 
+  /// Convert word values to decibels for neural engine
+  /// Neural engine ONLY supports volume in decibel format
+  String _convertToDecibels(String volumeWord) {
+    final Map<String, String> volumeToDb = {
+      'silent': '-20dB',
+      'x-soft': '-10dB',
+      'soft': '-6dB',
+      'medium': '+0dB',
+      'loud': '+6dB',
+      'x-loud': '+10dB',
+    };
+
+    return volumeToDb[volumeWord] ?? '+0dB';
+  }
+
   /// Build EXTREME SSML for 2× STRONGER mode
   /// Amplified, energetic, powerful speech
   /// Compatible with generative, neural, and standard engines
@@ -1079,6 +1102,12 @@ class PollyTTSService extends GetxService {
   }
 
   /// Build EXTREME SSML for a specific engine
+  /// 2× STRONGER: Energized but smooth
+  /// - rate="medium" (max - never faster per app policy)
+  /// - volume="+6dB" (amplified)
+  /// - pitch="+15%" (elevated)
+  /// - <emphasis level="strong"> (Standard only)
+  /// - Optional: <amazon:effect phonation="breathy"> for hype (Standard only)
   String _buildStrongerSSMLForEngine(String text, MoodStyle style, String engine) {
     // Clean the text first to fix spacing issues
     final cleanedText = _cleanTextForSpeech(text);
@@ -1089,19 +1118,30 @@ class PollyTTSService extends GetxService {
     // Check engine type for SSML compatibility
     if (engine == 'generative') {
       // Generative engine: Use x-values only, medium rate for clarity
-      // Note: emphasis tag may not work with generative, so we skip it
+      // Generative does NOT support: percentages, decibels, emphasis, amazon:effect
       return '<speak>'
           '<prosody rate="medium" volume="x-loud">'
           '$escapedText'
           '</prosody>'
           '</speak>';
-    } else {
-      // Neural/Standard engines: Use word values, medium rate for clarity
-      // Note: Pitch and emphasis are unreliable, so we skip them
+    } else if (engine == 'neural') {
+      // Neural engine: ONLY supports volume in decibels
+      // Neural does NOT support: rate/pitch percentages, word values, emphasis, phonation, vocal-tract-length
+      // TESTED: Only volume="+XdB" works reliably on neural
       return '<speak>'
-          '<prosody rate="medium" volume="x-loud">'
+          '<prosody volume="+6dB">'
           '$escapedText'
           '</prosody>'
+          '</speak>';
+    } else {
+      // Standard engine: Full SSML support
+      // Use emphasis for stronger impact
+      return '<speak>'
+          '<emphasis level="strong">'
+          '<prosody rate="medium" volume="+6dB" pitch="+15%">'
+          '$escapedText'
+          '</prosody>'
+          '</emphasis>'
           '</speak>';
     }
   }
@@ -1114,6 +1154,13 @@ class PollyTTSService extends GetxService {
   }
 
   /// Build Golden SSML for a specific engine
+  /// GOLDEN VOICE: Premium intimacy
+  /// - rate="slow" (deliberate, measured)
+  /// - pitch="-10%" (warmer, deeper)
+  /// - volume="soft" (gentle, intimate)
+  /// - <amazon:effect name="drc"> (Neural/Standard only)
+  /// - <amazon:effect phonation="soft"> (Standard only)
+  /// - <amazon:effect vocal-tract-length="+12%"> (Standard only)
   String _buildGoldenSSMLForEngine(String text, MoodStyle style, String engine) {
     // Clean the text first to fix spacing issues
     final cleanedText = _cleanTextForSpeech(text);
@@ -1125,19 +1172,37 @@ class PollyTTSService extends GetxService {
     if (engine == 'generative') {
       // Premium Golden Voice SSML for GENERATIVE engine
       // Generative engine only supports x-values (x-slow, x-soft, etc)
-      // It does NOT support percentages or word values (slow, medium, etc)
+      // It does NOT support: percentages, DRC, phonation, vocal-tract-length
       return '<speak>'
           '<prosody rate="x-slow" volume="x-soft">'
           '$escapedText'
           '</prosody>'
           '</speak>';
-    } else {
-      // Premium Golden Voice SSML for NEURAL/STANDARD engines
-      // Use simple prosody - amazon:effect tags may not be supported by all voices
+    } else if (engine == 'neural') {
+      // Premium Golden Voice SSML for NEURAL engine
+      // Neural supports: DRC, volume in decibels
+      // Neural does NOT support: rate/pitch percentages, word values, phonation, vocal-tract-length
+      // TESTED: Only DRC + volume works reliably on neural
       return '<speak>'
-          '<prosody rate="slow" volume="soft">'
+          '<amazon:effect name="drc">'
+          '<prosody volume="+0dB">'
           '$escapedText'
           '</prosody>'
+          '</amazon:effect>'
+          '</speak>';
+    } else {
+      // Premium Golden Voice SSML for STANDARD engine
+      // Standard supports: ALL SSML features
+      return '<speak>'
+          '<amazon:effect name="drc">'
+          '<amazon:effect phonation="soft">'
+          '<amazon:effect vocal-tract-length="+12%">'
+          '<prosody rate="slow" pitch="-10%" volume="soft">'
+          '$escapedText'
+          '</prosody>'
+          '</amazon:effect>'
+          '</amazon:effect>'
+          '</amazon:effect>'
           '</speak>';
     }
   }
