@@ -48,7 +48,7 @@ class HomeView extends GetView<HomeController> {
                 )
               : const SizedBox.shrink()),
 
-          // Golden Voice Sparkle Animation
+          // Crystal Voice Sparkle Animation
           Obx(() => rewardedController.showGoldenSparkle.value
               ? Center(
                   child: SizedBox(
@@ -59,13 +59,13 @@ class HomeView extends GetView<HomeController> {
                       repeat: false,
                       animate: true,
                       errorBuilder: (context, error, stackTrace) {
-                        // Fallback to simple golden glow
+                        // Fallback to simple crystal glow
                         return Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFD4AF37).withOpacity(0.5),
+                                color: const Color(0xFFAB30FF).withOpacity(0.6),
                                 blurRadius: 100,
                                 spreadRadius: 50,
                               ),
@@ -207,7 +207,7 @@ class HomeView extends GetView<HomeController> {
         children: [
           Row(
             children: [
-              // Golden Voice Timer (left side) - flexible to prevent overflow
+              // Crystal Voice Timer (left side) - flexible to prevent overflow
               Obx(() {
                 final timerText = rewardedController.getGoldenTimerDisplay();
                 if (timerText.isEmpty) {
@@ -217,19 +217,26 @@ class HomeView extends GetView<HomeController> {
                 return Container(
                   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(
-                      color: const Color(0xFFD4AF37).withOpacity(0.3),
-                      width: 1,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE1BEE7), Color(0xFF7B1FA2)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.circular(20.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFAB30FF).withOpacity(0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.star,
-                        color: const Color(0xFFD4AF37),
+                        Icons.diamond,
+                        color: Colors.white,
                         size: 13.sp,
                       ),
                       SizedBox(width: 4.w),
@@ -237,7 +244,7 @@ class HomeView extends GetView<HomeController> {
                         timerText,
                         style: TextStyle(
                           fontSize: 11.sp,
-                          color: const Color(0xFFD4AF37),
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.3,
                         ),
@@ -266,7 +273,7 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
 
-              // Settings icon - stays on the right
+              // Settings icon
               IconButton(
                 onPressed: controller.goToSettings,
                 padding: EdgeInsets.zero,
@@ -391,9 +398,9 @@ class HomeView extends GetView<HomeController> {
                             SizedBox(height: 12.h),
                             _buildSuperpowerCard(
                               isGolden
-                                  ? 'Golden • ${rewardedController.goldenTimeRemaining.value}'
-                                  : 'Golden Voice',
-                              Icons.star_outline_rounded,
+                                  ? 'Crystal • ${rewardedController.goldenTimeRemaining.value}'
+                                  : 'Crystal Voice',
+                              Icons.diamond_outlined,
                               isGolden ? null : controller.onUnlockGolden,
                               isActive: isGolden,
                             ),
@@ -728,9 +735,14 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     height: (widget.isListening || widget.isSpeaking) ? 110.w : 86.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: widget.isGolden
-                          ? const Color(0xFFD4AF37)
-                          : Colors.white,
+                      gradient: widget.isGolden
+                          ? const LinearGradient(
+                              colors: [Color(0xFFE1BEE7), Color(0xFF7B1FA2)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: widget.isGolden ? null : Colors.white,
                       boxShadow: [
                         // Soft shadow
                         BoxShadow(
@@ -755,9 +767,9 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                           ),
                         if (widget.isGolden)
                           BoxShadow(
-                            color: const Color(0xFFD4AF37).withOpacity(0.5),
-                            blurRadius: 30,
-                            spreadRadius: 5,
+                            color: const Color(0xFFAB30FF).withOpacity(0.7),
+                            blurRadius: 40,
+                            spreadRadius: 8,
                           ),
                       ],
                     ),
@@ -766,7 +778,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     ),
                   ),
 
-                  // Golden Voice sparkle overlay
+                  // Crystal Voice sparkle overlay
                   if (widget.isGolden)
                     SizedBox(
                       width: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,

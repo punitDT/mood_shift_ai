@@ -224,7 +224,7 @@ class StorageService extends GetxService {
     print('🔄 [AD-FREE DEBUG] Ad-free period cleared');
   }
 
-  // Golden voice
+  // Crystal voice
   bool hasGoldenVoice() {
     final goldenUntil = _box.read('golden_voice_until');
     if (goldenUntil == null) return false;
@@ -243,7 +243,7 @@ class StorageService extends GetxService {
   void setGoldenVoice1Hour() {
     final until = DateTime.now().add(const Duration(hours: 1));
     _box.write('golden_voice_until', until.toIso8601String());
-    print('✨ [GOLDEN DEBUG] Golden Voice activated until: $until');
+    print('💎 [CRYSTAL DEBUG] Crystal Voice activated until: $until');
   }
 
   Duration getRemainingGoldenTime() {

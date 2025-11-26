@@ -88,7 +88,7 @@ class HabitService extends GetxService {
 
       print('🔔 [HABIT] Android notification channel created');
 
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings('app_icon');
       const iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
@@ -172,7 +172,13 @@ class HabitService extends GetxService {
     final service = HabitService.to;
     return service._box.read(_keyActiveDays) ?? 0;
   }
-  
+
+  /// Test notification - shows immediately
+  static Future<void> testNotification() async {
+    final service = HabitService.to;
+    await service._showTestNotification();
+  }
+
   // ========== PRIVATE METHODS ==========
   
   void _recordShift() {
@@ -267,7 +273,7 @@ class HabitService extends GetxService {
           channelDescription: 'Gentle reminders to keep your streak alive',
           importance: Importance.high,
           priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+          icon: 'app_icon',
           playSound: true,
           enableVibration: true,
         ),
@@ -410,13 +416,49 @@ class HabitService extends GetxService {
       0,
       0,
     );
-    
+
     // If 9 AM today has passed, schedule for tomorrow
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
-    
+
     return scheduled;
+  }
+
+  Future<void> _showTestNotification() async {
+    try {
+      print('🔔 [HABIT] Showing test notification...');
+
+      const notificationDetails = NotificationDetails(
+        android: AndroidNotificationDetails(
+          'habit_reminder',
+          'Daily Reminders',
+          channelDescription: 'Gentle reminders to keep your streak alive',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'app_icon',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+
+      await _notifications.show(
+        999, // test notification id
+        '🔔 Test Notification',
+        'Local notifications are working! 🎉',
+        notificationDetails,
+      );
+
+      print('✅ [HABIT] Test notification shown successfully');
+    } catch (e, stackTrace) {
+      print('❌ [HABIT] Error showing test notification: $e');
+      print('❌ [HABIT] Stack trace: $stackTrace');
+    }
   }
 }
 

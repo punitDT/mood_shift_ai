@@ -18,7 +18,7 @@ const Map<String, String> enUS = {
   
   // Rewarded Ad Buttons
   'make_stronger': 'Make this 2× stronger! 🎯',
-  'unlock_golden': 'Unlock Golden Voice 1 hour ✨',
+  'unlock_golden': 'Unlock Crystal Voice 1 hour 💎',
   'remove_ads': 'Remove ads for 24 hours 🕊️',
   'ad_free_active': 'Ad-free: ',
   'save_wallpaper': 'Save as wallpaper 🖼️',
@@ -58,8 +58,10 @@ const Map<String, String> enUS = {
   
   // Force Update
   'update_required': 'Update Required',
+  'update_available': 'Update Available',
   'update_message': 'A new version is available. Please update to continue using the app.',
   'update_now': 'Update Now',
+  'later': 'Later',
   
   // Errors
   'error': 'Error',

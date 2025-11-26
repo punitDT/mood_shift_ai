@@ -11,7 +11,7 @@ const Map<String, String> deDE = {
   'shifts': 'Verschiebungen',
   'shift': 'Verschiebung',
   'make_stronger': 'Mach es 2× stärker! 🎯',
-  'unlock_golden': 'Goldene Stimme 1 Stunde freischalten ✨',
+  'unlock_golden': 'Kristallstimme 1 Stunde freischalten 💎',
   'remove_ads': 'Anzeigen für 24 Stunden entfernen 🚀',
   'ad_free_active': 'Werbefrei: ',
   'save_wallpaper': 'Als Hintergrundbild speichern 🖼️',
@@ -45,9 +45,6 @@ const Map<String, String> deDE = {
   'german': 'Deutsch (German)',
   'arabic': 'العربية (Arabic)',
   'japanese': '日本語 (Japanese)',
-  'update_required': 'Update erforderlich',
-  'update_message': 'Eine neue Version ist verfügbar. Bitte aktualisieren Sie, um die App weiter zu nutzen.',
-  'update_now': 'Jetzt aktualisieren',
   'error': 'Fehler',
   'mic_permission_denied': 'Mikrofonberechtigung ist erforderlich, um diese App zu verwenden.',
   'no_speech_detected': 'Keine Sprache erkannt. Bitte versuchen Sie es erneut.',
@@ -56,6 +53,15 @@ const Map<String, String> deDE = {
   'share_text': 'Schauen Sie sich MoodShift AI an - Ihr persönlicher ADHS-Begleiter! 🧠✨',
   'loading_reward': 'Belohnung wird geladen...',
   'ad_not_ready': 'Anzeige ist noch nicht bereit. Bitte versuchen Sie es erneut.',
+
+  // Force Update
+  'update_required': 'Update erforderlich',
+  'update_available': 'Update verfügbar',
+  'update_message': 'Eine neue Version ist verfügbar. Bitte aktualisieren Sie, um die App weiterhin zu verwenden.',
+  'update_now': 'Jetzt aktualisieren',
+  'later': 'Später',
+
+  // Mood Styles
   'chaos_energy': 'Chaos-Energie',
   'gentle_grandma': 'Sanfte Oma',
   'permission_slip': 'Erlaubnisschein',

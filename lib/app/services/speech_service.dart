@@ -1,13 +1,14 @@
 import 'package:get/get.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
+import 'crashlytics_service.dart';
 import '../utils/snackbar_utils.dart';
 
 class SpeechService extends GetxService {
   final SpeechToText _speech = SpeechToText();
   final StorageService _storage = Get.find<StorageService>();
+  late final CrashlyticsService _crashlytics;
 
   final isListening = false.obs;
   final recognizedText = ''.obs;
@@ -22,6 +23,7 @@ class SpeechService extends GetxService {
   @override
   void onInit() {
     super.onInit();
+    _crashlytics = Get.find<CrashlyticsService>();
     print('🎤 [SPEECH] Max recording time: ${maxRecordingSeconds}s');
   }
 
@@ -41,6 +43,14 @@ class SpeechService extends GetxService {
     final available = await _speech.initialize(
       onError: (error) {
         print('❌ [SPEECH ERROR] Speech recognition error: $error');
+        // Report speech recognition error to Crashlytics
+        _crashlytics.reportSpeechError(
+          Exception('Speech recognition error: $error'),
+          StackTrace.current,
+          operation: 'onError',
+          locale: _storage.getFullLocale(),
+          isAvailable: _speech.isAvailable,
+        );
         isListening.value = false;
       },
       onStatus: (status) {
@@ -66,6 +76,13 @@ class SpeechService extends GetxService {
       }
     } else {
       print('❌ [SPEECH] Speech recognition not available on this device');
+      // Report that speech recognition is not available
+      _crashlytics.reportSpeechError(
+        Exception('Speech recognition not available on this device'),
+        StackTrace.current,
+        operation: 'initialize',
+        isAvailable: false,
+      );
     }
 
     return available;
@@ -135,12 +152,28 @@ class SpeechService extends GetxService {
       } else {
         print('⚠️  [SPEECH DEBUG] Cannot start listening (available: ${_speech.isAvailable}, isListening: ${isListening.value})');
         if (isListening.value) {
-          throw Exception('Already listening');
+          final error = Exception('Already listening');
+          _crashlytics.reportSpeechError(
+            error,
+            StackTrace.current,
+            operation: 'startListening',
+            locale: _storage.getFullLocale(),
+            isAvailable: _speech.isAvailable,
+          );
+          throw error;
         }
       }
     } catch (e, stackTrace) {
       print('❌ [SPEECH DEBUG] Error in startListening: $e');
       print('❌ [SPEECH DEBUG] Stack trace: $stackTrace');
+      // Report speech error to Crashlytics
+      _crashlytics.reportSpeechError(
+        e,
+        stackTrace,
+        operation: 'startListening',
+        locale: _storage.getFullLocale(),
+        isAvailable: _speech.isAvailable,
+      );
       isListening.value = false;
       rethrow;
     }

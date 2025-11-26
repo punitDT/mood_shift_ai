@@ -17,6 +17,7 @@ import 'app/services/remote_config_service.dart';
 import 'app/services/ad_service.dart';
 import 'app/services/storage_service.dart';
 import 'app/services/habit_service.dart';
+import 'app/services/crashlytics_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
 import 'firebase_options.dart';
@@ -75,17 +76,8 @@ void main() async {
   Get.put(AdFreeController());
   Get.put(StreakController());
 
-  // ========== SET CRASHLYTICS CUSTOM KEYS (RELEASE MODE ONLY) ==========
-  if (kReleaseMode) {
-    final storage = Get.find<StorageService>();
-
-    // Set custom keys for better crash context
-    await FirebaseCrashlytics.instance.setCustomKey('voice_gender', storage.getVoiceGender());
-    await FirebaseCrashlytics.instance.setCustomKey('selected_lang', storage.getLanguageCode());
-    await FirebaseCrashlytics.instance.setCustomKey('current_streak', storage.getCurrentStreak());
-
-    print('🔥 [CRASHLYTICS] Custom keys set: voice_gender=${storage.getVoiceGender()}, lang=${storage.getLanguageCode()}, streak=${storage.getCurrentStreak()}');
-  }
+  // Initialize CrashlyticsService (must be after StorageService)
+  Get.put(CrashlyticsService());
 
   // Set portrait orientation only
   await SystemChrome.setPreferredOrientations([

@@ -10,11 +10,13 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
 import 'ai_service.dart';
+import 'crashlytics_service.dart';
 
 class PollyTTSService extends GetxService {
   final FlutterTts _fallbackTts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
   final StorageService _storage = Get.find<StorageService>();
+  late final CrashlyticsService _crashlytics;
 
   final isSpeaking = false.obs;
   final isUsingOfflineMode = false.obs;
@@ -44,6 +46,7 @@ class PollyTTSService extends GetxService {
     _pollyOutputFormat = dotenv.env['AWS_POLLY_OUTPUT_FORMAT'] ?? 'mp3';
     _pollyTimeoutSeconds = int.tryParse(dotenv.env['AWS_POLLY_TIMEOUT_SECONDS'] ?? '10') ?? 10;
     _pollyCacheMaxFiles = int.tryParse(dotenv.env['AWS_POLLY_CACHE_MAX_FILES'] ?? '20') ?? 20;
+    _crashlytics = Get.find<CrashlyticsService>();
 
     if (_awsAccessKey.isEmpty || _awsSecretKey.isEmpty) {
       print('⚠️ [POLLY] Warning: AWS credentials not found in .env');
@@ -486,7 +489,7 @@ class PollyTTSService extends GetxService {
     });
   }
 
-  /// Speak with Main mode (normal or Golden Voice)
+  /// Speak with Main mode (normal or Crystal Voice)
   /// Multi-level fallback: Generative → Neural → Standard → Plain TTS
   Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
@@ -519,8 +522,16 @@ class PollyTTSService extends GetxService {
         isUsingOfflineMode.value = false;
         return;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [POLLY] Polly synthesis failed: $e');
+      // Report TTS synthesis error to Crashlytics
+      _crashlytics.reportTTSError(
+        e,
+        stackTrace,
+        operation: 'speak',
+        locale: fullLocale,
+        textLength: text.length,
+      );
     }
 
     // Final fallback to flutter_tts (never fail)
@@ -558,8 +569,16 @@ class PollyTTSService extends GetxService {
         isUsingOfflineMode.value = false;
         return;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [POLLY] Polly 2× stronger synthesis failed: $e');
+      // Report TTS synthesis error to Crashlytics
+      _crashlytics.reportTTSError(
+        e,
+        stackTrace,
+        operation: 'speakStronger',
+        locale: fullLocale,
+        textLength: text.length,
+      );
     }
 
     // Fallback to flutter_tts with EXTREME amplified settings
@@ -661,7 +680,7 @@ class PollyTTSService extends GetxService {
   Future<File?> _synthesizeWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
-      final voiceMode = _storage.hasGoldenVoice() ? 'GOLDEN' : 'NORMAL';
+      final voiceMode = _storage.hasGoldenVoice() ? 'CRYSTAL' : 'NORMAL';
       print('🎙️ [POLLY] Synthesizing with voice: $voiceId, language: $fullLocale ($voiceMode mode)');
 
       // Try with configured engine first (generative > neural > standard)
@@ -731,21 +750,46 @@ class PollyTTSService extends GetxService {
             continue;
           } else {
             print('❌ [POLLY] API error: ${response.statusCode} - ${response.body}');
+            // Report API error to Crashlytics
+            _crashlytics.reportTTSError(
+              Exception('Polly API returned status ${response.statusCode}'),
+              StackTrace.current,
+              operation: '_synthesizeWithPolly',
+              engine: engine,
+              voiceId: voiceId,
+              locale: fullLocale,
+            );
             return null;
           }
-        } catch (e) {
+        } catch (e, stackTrace) {
           if (engines.indexOf(engine) < engines.length - 1) {
             final nextEngine = engines[engines.indexOf(engine) + 1];
             print('⚠️ [POLLY] $engine engine failed: $e, trying $nextEngine engine...');
             continue;
           }
+          // Report error to Crashlytics before rethrowing
+          _crashlytics.reportTTSError(
+            e,
+            stackTrace,
+            operation: '_synthesizeWithPolly',
+            engine: engine,
+            voiceId: voiceId,
+            locale: fullLocale,
+          );
           rethrow;
         }
       }
 
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [POLLY] Synthesis error: $e');
+      // Report synthesis error to Crashlytics
+      _crashlytics.reportTTSError(
+        e,
+        stackTrace,
+        operation: '_synthesizeWithPolly',
+        locale: fullLocale,
+      );
       return null;
     }
   }
@@ -1003,12 +1047,6 @@ class PollyTTSService extends GetxService {
     return gender == "male" ? "Matthew" : "Joanna";
   }
 
-  /// Build SSML for Main mode (clean, natural)
-  /// Uses LLM-provided prosody for natural speech
-  String _buildSSML(String text, {Map<String, String>? prosody}) {
-    return _buildSSMLForEngine(text, _pollyEngine, prosody: prosody);
-  }
-
   /// Build SSML for a specific engine
   String _buildSSMLForEngine(String text, String engine, {Map<String, String>? prosody}) {
     // Clean the text first to fix spacing issues
@@ -1094,13 +1132,6 @@ class PollyTTSService extends GetxService {
     return volumeToDb[volumeWord] ?? '+0dB';
   }
 
-  /// Build EXTREME SSML for 2× STRONGER mode
-  /// Amplified, energetic, powerful speech
-  /// Compatible with generative, neural, and standard engines
-  String _buildStrongerSSML(String text, MoodStyle style) {
-    return _buildStrongerSSMLForEngine(text, style, _pollyEngine);
-  }
-
   /// Build EXTREME SSML for a specific engine
   /// 2× STRONGER: Energized but smooth
   /// - rate="medium" (max - never faster per app policy)
@@ -1146,15 +1177,8 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  /// Build SSML for Golden Voice mode
-  /// Premium human-like SSML with advanced effects
-  /// Note: Generative engine only supports x-values (x-slow, x-soft, etc), not percentages or word values
-  String _buildGoldenSSML(String text, MoodStyle style) {
-    return _buildGoldenSSMLForEngine(text, style, _pollyEngine);
-  }
-
-  /// Build Golden SSML for a specific engine
-  /// GOLDEN VOICE: Premium intimacy
+  /// Build Crystal SSML for a specific engine
+  /// CRYSTAL VOICE: Premium clarity
   /// - rate="slow" (deliberate, measured)
   /// - pitch="-10%" (warmer, deeper)
   /// - volume="soft" (gentle, intimate)
@@ -1170,7 +1194,7 @@ class PollyTTSService extends GetxService {
 
     // Check current engine - generative has limited SSML support
     if (engine == 'generative') {
-      // Premium Golden Voice SSML for GENERATIVE engine
+      // Premium Crystal Voice SSML for GENERATIVE engine
       // Generative engine only supports x-values (x-slow, x-soft, etc)
       // It does NOT support: percentages, DRC, phonation, vocal-tract-length
       return '<speak>'
@@ -1179,7 +1203,7 @@ class PollyTTSService extends GetxService {
           '</prosody>'
           '</speak>';
     } else if (engine == 'neural') {
-      // Premium Golden Voice SSML for NEURAL engine
+      // Premium Crystal Voice SSML for NEURAL engine
       // Neural supports: DRC, volume in decibels
       // Neural does NOT support: rate/pitch percentages, word values, phonation, vocal-tract-length
       // TESTED: Only DRC + volume works reliably on neural
@@ -1191,7 +1215,7 @@ class PollyTTSService extends GetxService {
           '</amazon:effect>'
           '</speak>';
     } else {
-      // Premium Golden Voice SSML for STANDARD engine
+      // Premium Crystal Voice SSML for STANDARD engine
       // Standard supports: ALL SSML features
       return '<speak>'
           '<amazon:effect name="drc">'
@@ -1286,8 +1310,14 @@ class PollyTTSService extends GetxService {
     try {
       isSpeaking.value = true;
       await _audioPlayer.play(DeviceFileSource(file.path));
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [POLLY] Error playing audio: $e');
+      // Report audio playback error to Crashlytics
+      _crashlytics.reportTTSError(
+        e,
+        stackTrace,
+        operation: '_playAudioFile',
+      );
       isSpeaking.value = false;
     }
   }

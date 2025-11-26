@@ -11,7 +11,7 @@ const Map<String, String> zhCN = {
   'shifts': '次转变',
   'shift': '次转变',
   'make_stronger': '让它强2倍！🎯',
-  'unlock_golden': '解锁黄金语音1小时 ✨',
+  'unlock_golden': '解锁水晶语音1小时 💎',
   'remove_ads': '移除广告24小时 🚀',
   'ad_free_active': '无广告: ',
   'save_wallpaper': '保存为壁纸 🖼️',
@@ -45,9 +45,6 @@ const Map<String, String> zhCN = {
   'german': 'Deutsch (German)',
   'arabic': 'العربية (Arabic)',
   'japanese': '日本語 (Japanese)',
-  'update_required': '需要更新',
-  'update_message': '新版本可用。请更新以继续使用应用。',
-  'update_now': '立即更新',
   'error': '错误',
   'mic_permission_denied': '使用此应用需要麦克风权限。',
   'no_speech_detected': '未检测到语音。请重试。',
@@ -56,6 +53,15 @@ const Map<String, String> zhCN = {
   'share_text': '看看MoodShift AI - 您的个人ADHD伴侣！🧠✨',
   'loading_reward': '加载奖励中...',
   'ad_not_ready': '广告尚未准备好。请重试。',
+
+  // Force Update
+  'update_required': '需要更新',
+  'update_available': '可用更新',
+  'update_message': '新版本可用。请更新以继续使用应用程序。',
+  'update_now': '立即更新',
+  'later': '稍后',
+
+  // Mood Styles
   'chaos_energy': '混沌能量',
   'gentle_grandma': '温柔奶奶',
   'permission_slip': '许可单',

@@ -9,6 +9,7 @@ class RemoteConfigService extends GetxService {
   final forceUpdate = false.obs;
   final latestVersion = ''.obs;
   final updateMessage = ''.obs;
+  final updateAvailable = false.obs; // Tracks if any update is available (force or optional)
 
   Future<RemoteConfigService> init() async {
     _remoteConfig = FirebaseRemoteConfig.instance;
@@ -43,18 +44,32 @@ class RemoteConfigService extends GetxService {
 
   Future<void> fetchConfig() async {
     try {
-      await _remoteConfig.fetchAndActivate();
-      
+      print('🔧 [REMOTE_CONFIG] Starting fetch...');
+
+      final activated = await _remoteConfig.fetchAndActivate();
+      print('🔧 [REMOTE_CONFIG] Fetch completed. Activated: $activated');
+
+      // Get all values
       forceUpdate.value = _remoteConfig.getBool('force_update');
       latestVersion.value = _remoteConfig.getString('latest_version');
       updateMessage.value = _remoteConfig.getString('update_message');
-      
-      // Check if update is needed
-      if (forceUpdate.value) {
-        await _checkVersion();
-      }
-    } catch (e) {
-      print('Error fetching remote config: $e');
+
+      // Log fetched values
+      print('🔧 [REMOTE_CONFIG] ✅ Fetched values:');
+      print('   - force_update: ${forceUpdate.value}');
+      print('   - latest_version: ${latestVersion.value}');
+      print('   - update_message: ${updateMessage.value}');
+
+      // Get all keys to see what's available
+      final allKeys = _remoteConfig.getAll();
+      print('🔧 [REMOTE_CONFIG] All available keys: ${allKeys.keys.toList()}');
+
+      // Always check version to see if update is available
+      print('🔧 [REMOTE_CONFIG] Checking version...');
+      await _checkVersion();
+    } catch (e, stackTrace) {
+      print('❌ [REMOTE_CONFIG] Error fetching remote config: $e');
+      print('❌ [REMOTE_CONFIG] Stack trace: $stackTrace');
     }
   }
 
@@ -62,15 +77,30 @@ class RemoteConfigService extends GetxService {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
-      
+
+      print('🔧 [REMOTE_CONFIG] Version check:');
+      print('   - Current version: $currentVersion');
+      print('   - Latest version: ${latestVersion.value}');
+
       if (_isVersionLower(currentVersion, latestVersion.value)) {
-        // Force update is needed
-        forceUpdate.value = true;
+        // Update is available
+        updateAvailable.value = true;
+        print('🔧 [REMOTE_CONFIG] ⚠️ Update available! Current version is lower than latest.');
+
+        // Check if it's a force update
+        if (forceUpdate.value) {
+          print('🔧 [REMOTE_CONFIG] 🚨 This is a FORCE UPDATE - user must update!');
+        } else {
+          print('🔧 [REMOTE_CONFIG] ℹ️ This is an optional update - user can skip.');
+        }
       } else {
+        updateAvailable.value = false;
         forceUpdate.value = false;
+        print('🔧 [REMOTE_CONFIG] ✅ App is up to date.');
       }
-    } catch (e) {
-      print('Error checking version: $e');
+    } catch (e, stackTrace) {
+      print('❌ [REMOTE_CONFIG] Error checking version: $e');
+      print('❌ [REMOTE_CONFIG] Stack trace: $stackTrace');
     }
   }
 
@@ -92,6 +122,23 @@ class RemoteConfigService extends GetxService {
 
   String getUpdateMessage() {
     return updateMessage.value;
+  }
+
+  // Get all config values for debugging
+  Map<String, dynamic> getAllConfigValues() {
+    return {
+      'force_update': forceUpdate.value,
+      'latest_version': latestVersion.value,
+      'update_message': updateMessage.value,
+    };
+  }
+
+  // Print current config status
+  void printConfigStatus() {
+    print('🔧 [REMOTE_CONFIG] Current Status:');
+    print('   - Force Update: ${forceUpdate.value}');
+    print('   - Latest Version: ${latestVersion.value}');
+    print('   - Update Message: ${updateMessage.value}');
   }
 }
 

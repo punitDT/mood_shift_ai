@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'ai_service.dart'; // For MoodStyle enum
 import 'storage_service.dart';
+import 'crashlytics_service.dart';
 
 class GroqLLMService extends GetxService {
   final Random _random = Random();
@@ -18,6 +19,7 @@ class GroqLLMService extends GetxService {
   late final double _presencePenalty;
   late final int _maxResponseWords;
   late final StorageService _storage;
+  late final CrashlyticsService _crashlytics;
 
   // Track the last selected style for the 2x stronger feature
   MoodStyle? _lastSelectedStyle;
@@ -39,6 +41,7 @@ class GroqLLMService extends GetxService {
     _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.8') ?? 0.8;
     _maxResponseWords = int.tryParse(dotenv.env['GROK_MAX_RESPONSE_WORDS'] ?? '300') ?? 300;
     _storage = Get.find<StorageService>();
+    _crashlytics = Get.find<CrashlyticsService>();
 
     if (_apiKey.isEmpty) {
       print('⚠️ [GROQ] Warning: GROK_API_KEY not found in .env');
@@ -103,7 +106,15 @@ class GroqLLMService extends GetxService {
         Duration(seconds: _timeoutSeconds),
         onTimeout: () {
           print('⏱️ [GROQ] API timeout after $_timeoutSeconds seconds');
-          throw Exception('Groq API timeout');
+          final timeoutError = Exception('Groq API timeout after $_timeoutSeconds seconds');
+          _crashlytics.reportLLMError(
+            timeoutError,
+            StackTrace.current,
+            operation: 'generateResponse',
+            model: _model,
+            userInput: userInput,
+          );
+          throw timeoutError;
         },
       );
 
@@ -151,13 +162,30 @@ class GroqLLMService extends GetxService {
         }
       } else {
         print('❌ [GROQ] API error: ${response.statusCode} - ${response.body}');
+        // Report API error to Crashlytics
+        _crashlytics.reportLLMError(
+          Exception('Groq API returned status ${response.statusCode}'),
+          StackTrace.current,
+          operation: 'generateResponse',
+          model: _model,
+          statusCode: response.statusCode,
+          userInput: userInput,
+        );
       }
 
       // If API fails, use hardcoded fallback
       print('🔄 [GROQ] API returned no valid response, using fallback');
       return _getHardcodedFallback(language);
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [GROQ] Error: $e, using fallback');
+      // Report error to Crashlytics
+      _crashlytics.reportLLMError(
+        e,
+        stackTrace,
+        operation: 'generateResponse',
+        model: _model,
+        userInput: userInput,
+      );
       // Return hardcoded fallback
       return _getHardcodedFallback(language);
     }
@@ -218,7 +246,20 @@ Begin now:''';
           'frequency_penalty': 0.2, // Lower to allow more repetition of power words
           'presence_penalty': 0.8, // Higher for more variety
         }),
-      ).timeout(Duration(seconds: _timeoutSeconds));
+      ).timeout(
+        Duration(seconds: _timeoutSeconds),
+        onTimeout: () {
+          print('⏱️ [GROQ] 2× STRONGER API timeout after $_timeoutSeconds seconds');
+          final timeoutError = Exception('Groq API timeout for 2× stronger after $_timeoutSeconds seconds');
+          _crashlytics.reportLLMError(
+            timeoutError,
+            StackTrace.current,
+            operation: 'generateStrongerResponse',
+            model: _model,
+          );
+          throw timeoutError;
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -246,12 +287,27 @@ Begin now:''';
         }
       } else {
         print('❌ [GROQ] 2× Stronger API error: ${response.statusCode}');
+        // Report API error to Crashlytics
+        _crashlytics.reportLLMError(
+          Exception('Groq API returned status ${response.statusCode} for 2× stronger'),
+          StackTrace.current,
+          operation: 'generateStrongerResponse',
+          model: _model,
+          statusCode: response.statusCode,
+        );
       }
 
       // Fallback: Return original with some manual amplification
       return _amplifyResponseManually(originalResponse);
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [GROQ] Error generating 2× stronger: $e');
+      // Report error to Crashlytics
+      _crashlytics.reportLLMError(
+        e,
+        stackTrace,
+        operation: 'generateStrongerResponse',
+        model: _model,
+      );
       return _amplifyResponseManually(originalResponse);
     }
   }

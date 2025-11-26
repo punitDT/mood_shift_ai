@@ -11,7 +11,7 @@ const Map<String, String> esES = {
   'shifts': 'cambios',
   'shift': 'cambio',
   'make_stronger': '¡Hazlo 2× más fuerte! 🎯',
-  'unlock_golden': 'Desbloquear Voz Dorada 1 hora ✨',
+  'unlock_golden': 'Desbloquear Voz Cristal 1 hora 💎',
   'remove_ads': 'Eliminar anuncios por 24 horas 🚀',
   'ad_free_active': 'Sin anuncios: ',
   'save_wallpaper': 'Guardar como fondo de pantalla 🖼️',
@@ -45,9 +45,6 @@ const Map<String, String> esES = {
   'german': 'Deutsch (German)',
   'arabic': 'العربية (Arabic)',
   'japanese': '日本語 (Japanese)',
-  'update_required': 'Actualización requerida',
-  'update_message': 'Una nueva versión está disponible. Por favor actualiza para continuar usando la aplicación.',
-  'update_now': 'Actualizar ahora',
   'error': 'Error',
   'mic_permission_denied': 'Se requiere permiso de micrófono para usar esta aplicación.',
   'no_speech_detected': 'No se detectó habla. Por favor intenta de nuevo.',
@@ -56,6 +53,15 @@ const Map<String, String> esES = {
   'share_text': '¡Mira MoodShift AI - Tu compañero personal de TDAH! 🧠✨',
   'loading_reward': 'Cargando recompensa...',
   'ad_not_ready': 'El anuncio aún no está listo. Por favor intenta de nuevo.',
+
+  // Force Update
+  'update_required': 'Actualización Requerida',
+  'update_available': 'Actualización Disponible',
+  'update_message': 'Una nueva versión está disponible. Por favor actualiza para continuar usando la aplicación.',
+  'update_now': 'Actualizar Ahora',
+  'later': 'Más Tarde',
+
+  // Mood Styles
   'chaos_energy': 'Energía del Caos',
   'gentle_grandma': 'Abuela Gentil',
   'permission_slip': 'Permiso Oficial',

@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../services/ai_service.dart';
 import '../../services/groq_llm_service.dart';
 import '../../services/speech_service.dart';
@@ -10,6 +13,7 @@ import '../../services/storage_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
 import '../../services/habit_service.dart';
+import '../../services/crashlytics_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -30,6 +34,7 @@ class HomeController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
   final AdService _adService = Get.find<AdService>();
   final RemoteConfigService _remoteConfig = Get.find<RemoteConfigService>();
+  final CrashlyticsService _crashlytics = Get.find<CrashlyticsService>();
   late final AdFreeController _adFreeController;
   late final StreakController _streakController;
   late final RewardedController _rewardedController;
@@ -86,31 +91,131 @@ class HomeController extends GetxController {
   }
 
   void _checkForceUpdate() {
-    if (_remoteConfig.shouldForceUpdate()) {
+    // Listen to updateAvailable changes to show dialog when update is detected
+    ever(_remoteConfig.updateAvailable, (isUpdateAvailable) {
+      if (isUpdateAvailable) {
+        print('🔧 [UPDATE] Update detected! Showing dialog...');
+        _showForceUpdateDialog();
+      }
+    });
+
+    // Check immediately if update is already available
+    if (_remoteConfig.updateAvailable.value) {
+      print('🔧 [UPDATE] Update already available on init! Showing dialog...');
       _showForceUpdateDialog();
     }
   }
 
   void _showForceUpdateDialog() {
+    // Check if this is a force update or optional update
+    final isForceUpdate = _remoteConfig.forceUpdate.value;
+
     Get.dialog(
-      WillPopScope(
-        onWillPop: () async => false,
+      PopScope(
+        canPop: !isForceUpdate, // Can't dismiss if force update
         child: AlertDialog(
-          title: Text('update_required'.tr),
-          content: Text(_remoteConfig.getUpdateMessage()),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                isForceUpdate ? Icons.warning_amber_rounded : Icons.info_outline,
+                color: isForceUpdate ? Colors.orange : Colors.blue,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isForceUpdate ? 'update_required'.tr : 'update_available'.tr,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _remoteConfig.getUpdateMessage(),
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Latest Version: ${_remoteConfig.latestVersion.value}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
           actions: [
+            // Show "Later" button only if not force update
+            if (!isForceUpdate)
+              TextButton(
+                onPressed: () => Get.back(),
+                child: Text(
+                  'later'.tr,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ),
             ElevatedButton(
-              onPressed: () {
-                // TODO: Open app store/play store
-                // Use url_launcher to open store link
-              },
-              child: Text('update_now'.tr),
+              onPressed: _openAppStore,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C4DFF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'update_now'.tr,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
       ),
-      barrierDismissible: false,
+      barrierDismissible: !isForceUpdate, // Can't dismiss by tapping outside if force update
     );
+  }
+
+  Future<void> _openAppStore() async {
+    try {
+      final androidUrl = dotenv.env['ANDROID_PLAY_STORE_URL'] ?? 'https://play.google.com/store/apps/details?id=com.moodshift.ai';
+      final iosUrl = dotenv.env['IOS_APP_STORE_URL'] ?? 'https://apps.apple.com/app/idYOUR_APP_ID';
+
+      final url = Platform.isAndroid ? androidUrl : iosUrl;
+      final uri = Uri.parse(url);
+
+      print('🔧 [UPDATE] Opening app store: $url');
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        print('❌ [UPDATE] Could not launch URL: $url');
+        SnackbarUtils.showError(
+          title: 'Error',
+          message: 'Could not open app store',
+        );
+      }
+    } catch (e) {
+      print('❌ [UPDATE] Error opening app store: $e');
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: 'Could not open app store',
+      );
+    }
   }
 
   Future<void> onMicPressed() async {
@@ -318,6 +423,17 @@ class HomeController extends GetxController {
       _stopSpeakingProgress();
       print('❌ [MIC DEBUG] Error processing input: $e');
       print('❌ [MIC DEBUG] Stack trace: $stackTrace');
+      // Report user flow error to Crashlytics
+      _crashlytics.reportUserFlowError(
+        e,
+        stackTrace,
+        flow: 'mood_shift',
+        step: 'process_input',
+        context: {
+          'current_state': currentState.value.toString(),
+          'language': _storage.getLanguageCode(),
+        },
+      );
       SnackbarUtils.showError(
         title: 'Error',
         message: _tr('ai_error', fallback: 'AI service error'),

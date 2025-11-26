@@ -11,7 +11,7 @@ const Map<String, String> frFR = {
   'shifts': 'changements',
   'shift': 'changement',
   'make_stronger': 'Rendez-le 2× plus fort! 🎯',
-  'unlock_golden': 'Débloquer Voix Dorée 1 heure ✨',
+  'unlock_golden': 'Débloquer Voix Cristal 1 heure 💎',
   'remove_ads': 'Supprimer les annonces pendant 24 heures 🚀',
   'ad_free_active': 'Sans publicité: ',
   'save_wallpaper': 'Enregistrer comme fond d\'écran 🖼️',
@@ -45,9 +45,6 @@ const Map<String, String> frFR = {
   'german': 'Deutsch (German)',
   'arabic': 'العربية (Arabic)',
   'japanese': '日本語 (Japanese)',
-  'update_required': 'Mise à jour requise',
-  'update_message': 'Une nouvelle version est disponible. Veuillez mettre à jour pour continuer à utiliser l\'application.',
-  'update_now': 'Mettre à jour maintenant',
   'error': 'Erreur',
   'mic_permission_denied': 'L\'autorisation du microphone est requise pour utiliser cette application.',
   'no_speech_detected': 'Aucune parole détectée. Veuillez réessayer.',
@@ -56,6 +53,15 @@ const Map<String, String> frFR = {
   'share_text': 'Découvrez MoodShift AI - Votre compagnon personnel TDAH! 🧠✨',
   'loading_reward': 'Chargement de la récompense...',
   'ad_not_ready': 'L\'annonce n\'est pas encore prête. Veuillez réessayer.',
+
+  // Force Update
+  'update_required': 'Mise à jour requise',
+  'update_available': 'Mise à jour disponible',
+  'update_message': 'Une nouvelle version est disponible. Veuillez mettre à jour pour continuer à utiliser l\'application.',
+  'update_now': 'Mettre à jour maintenant',
+  'later': 'Plus tard',
+
+  // Mood Styles
   'chaos_energy': 'Énergie du Chaos',
   'gentle_grandma': 'Grand-mère Douce',
   'permission_slip': 'Autorisation Officielle',

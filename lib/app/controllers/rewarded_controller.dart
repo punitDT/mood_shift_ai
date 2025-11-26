@@ -6,7 +6,7 @@ import '../utils/snackbar_utils.dart';
 
 /// Controller for managing rewarded ad features:
 /// - 2× Stronger: Replay response with amplified energy (UNLIMITED!)
-/// - Golden Voice: Premium warm voice for 1 hour
+/// - Crystal Voice: Premium clarity voice for 1 hour
 class RewardedController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
 
@@ -14,7 +14,7 @@ class RewardedController extends GetxController {
   final showStrongerFlash = false.obs;
   final showStrongerOverlay = false.obs;
 
-  // Golden Voice Feature
+  // Crystal Voice Feature
   final hasGoldenVoice = false.obs;
   final goldenTimeRemaining = ''.obs;
   final showGoldenGlow = false.obs;
@@ -102,11 +102,11 @@ class RewardedController extends GetxController {
 
     // Show success snackbar
     SnackbarUtils.showCustom(
-      title: '✨ Golden Voice Unlocked!',
-      message: 'Premium warmth for 1 hour',
-      backgroundColor: const Color(0xFFD4AF37),
+      title: '💎 Crystal Voice Unlocked!',
+      message: 'Premium clarity for 1 hour',
+      backgroundColor: const Color(0xFF7B1FA2),
       textColor: Colors.white,
-      icon: Icons.star,
+      icon: Icons.diamond,
       duration: const Duration(seconds: 3),
     );
   }
