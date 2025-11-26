@@ -4,14 +4,17 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../services/storage_service.dart';
+import '../../services/crashlytics_service.dart';
 import '../../utils/snackbar_utils.dart';
 
 class SettingsController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
+  final CrashlyticsService _crashlytics = Get.find<CrashlyticsService>();
 
   final appVersion = ''.obs;
   final selectedLanguage = 'English'.obs;
   final selectedVoiceGender = 'Female'.obs;
+  final crashReportsEnabled = true.obs;
 
   final languages = [
     {'code': 'en', 'country': 'US', 'name': 'english'},
@@ -31,6 +34,7 @@ class SettingsController extends GetxController {
     _loadAppVersion();
     _loadCurrentLanguage();
     _loadCurrentVoiceGender();
+    _loadCrashReportsEnabled();
   }
 
   Future<void> _loadAppVersion() async {
@@ -51,6 +55,10 @@ class SettingsController extends GetxController {
   void _loadCurrentVoiceGender() {
     final currentGender = _storage.getVoiceGender();
     selectedVoiceGender.value = currentGender == 'male' ? 'male'.tr : 'female'.tr;
+  }
+
+  void _loadCrashReportsEnabled() {
+    crashReportsEnabled.value = _crashlytics.getCrashReportsEnabled();
   }
 
   void showLanguageSelector() {
@@ -188,6 +196,20 @@ class SettingsController extends GetxController {
           ),
         ],
       ),
+    );
+  }
+
+  void toggleCrashReports(bool enabled) {
+    crashReportsEnabled.value = enabled;
+    _crashlytics.setCrashReportsEnabled(enabled);
+
+    SnackbarUtils.showCustom(
+      title: 'crash_reports'.tr,
+      message: enabled ? 'crash_reports_enabled'.tr : 'crash_reports_disabled'.tr,
+      backgroundColor: const Color(0xFF6D5FFD),
+      textColor: Colors.white,
+      icon: Icons.bug_report_rounded,
+      duration: const Duration(seconds: 3),
     );
   }
 }

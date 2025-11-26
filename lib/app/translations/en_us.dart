@@ -7,6 +7,7 @@ const Map<String, String> enUS = {
   
   // Home
   'hold_to_speak': 'Hold to Speak',
+  'get_ready': 'Get ready...',
   'mic_instruction_line1': 'Hold the mic & share what\'s on your mind',
   'mic_instruction_line2': 'The shift happens when you do it',
   'listening': 'Listening...',
@@ -15,6 +16,25 @@ const Map<String, String> enUS = {
   'day': 'Day',
   'shifts': 'shifts',
   'shift': 'shift',
+
+  // Permissions
+  'mic_permission_title': 'Microphone Access Required',
+  'mic_permission_message': 'MoodShift needs the microphone to listen to your voice and create your personalized mood shift.\n\n• We only access the microphone when you hold the Speak button\n• Your voice is processed securely and never stored\n• No recordings are saved on your device or sent anywhere',
+  'mic_permission_settings_title': 'Microphone Access Required',
+  'mic_permission_settings_message': 'MoodShift needs the microphone to listen to your voice and create your personalized mood shift.\n\n• We only access the microphone when you hold the Speak button\n• Your voice is processed securely and never stored\n• No recordings are saved on your device or sent anywhere',
+  'notification_permission_title': 'Daily Gentle Reminder?',
+  'notification_permission_message': 'Would you like a calm daily notification to help you remember to shift your mood?\n\nYou can change this anytime in Settings.',
+  'permission_cancel': 'Cancel',
+  'permission_continue': 'Continue',
+  'permission_open_settings': 'Open Settings',
+  'permission_not_now': 'Not now',
+  'permission_yes_remind': 'Yes, remind me',
+  'permission_denied': 'Permission Denied',
+  'permission_denied_message': 'Microphone access is required to use MoodShift AI. Please enable it in Settings.',
+  'reminder_set': 'Reminder Set',
+  'reminder_set_message': 'You\'ll receive a gentle daily reminder to shift your mood.',
+  'ready_to_use': 'Ready to Use',
+  'tap_mic_again': 'Tap the mic button again to start recording',
   
   // Rewarded Ad Buttons
   'make_stronger': 'Make this 2× stronger! 🎯',
@@ -39,6 +59,10 @@ const Map<String, String> enUS = {
   'female': 'Female',
   'voice_changed_to_male': 'Voice changed to Male (caring dad / hype coach)',
   'voice_changed_to_female': 'Voice changed to Female (gentle grandma / cheerleader)',
+  'crash_reports': 'Send crash reports',
+  'crash_reports_subtitle': 'Helps us fix bugs faster. No personal data, voice recordings, or mood text is ever sent.',
+  'crash_reports_enabled': 'Crash reports enabled - thank you for helping us improve!',
+  'crash_reports_disabled': 'Crash reports disabled',
   'privacy_policy': 'Privacy Policy',
   'rate_app': 'Rate App',
   'share_app': 'Share App',

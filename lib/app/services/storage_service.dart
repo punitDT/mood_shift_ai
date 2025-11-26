@@ -6,6 +6,9 @@ import 'package:get_storage/get_storage.dart';
 class StorageService extends GetxService {
   late final GetStorage _box;
 
+  // Expose box for permission service
+  GetStorage get box => _box;
+
   Future<StorageService> init() async {
     _box = GetStorage();
     return this;
@@ -414,6 +417,19 @@ class StorageService extends GetxService {
   void setPollyVoiceMapVersion(int version) {
     _box.write('polly_voice_map_version', version);
     print('✅ [STORAGE] Polly voice map version set to $version');
+  }
+
+  // ========== CRASH REPORTS SETTING ==========
+
+  /// Get crash reports enabled status (default: true)
+  bool getCrashReportsEnabled() {
+    return _box.read('crash_reports_enabled') ?? true;
+  }
+
+  /// Set crash reports enabled status
+  void setCrashReportsEnabled(bool enabled) {
+    _box.write('crash_reports_enabled', enabled);
+    print('🔥 [STORAGE] Crash reports ${enabled ? 'enabled' : 'disabled'}');
   }
 }
 

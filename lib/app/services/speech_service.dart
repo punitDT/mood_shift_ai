@@ -28,16 +28,8 @@ class SpeechService extends GetxService {
   }
 
   Future<bool> initialize() async {
-    // Request microphone permission
-    final status = await Permission.microphone.request();
-
-    if (!status.isGranted) {
-      SnackbarUtils.showError(
-        title: 'Permission Denied',
-        message: 'mic_permission_denied'.tr,
-      );
-      return false;
-    }
+    // NOTE: Permission is now handled by PermissionService (2025 compliance)
+    // This method only initializes the speech recognition engine
 
     // Initialize speech recognition
     final available = await _speech.initialize(

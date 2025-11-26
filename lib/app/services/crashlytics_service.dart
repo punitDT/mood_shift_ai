@@ -244,5 +244,22 @@ class CrashlyticsService extends GetxService {
       print('⚠️ [CRASHLYTICS] Failed to send test error: $e');
     }
   }
+
+  /// Enable or disable crash reports collection
+  /// This instantly enables/disables Firebase Crashlytics
+  void setCrashReportsEnabled(bool enabled) {
+    try {
+      FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled);
+      _storage.setCrashReportsEnabled(enabled);
+      print('🔥 [CRASHLYTICS] Crash reports ${enabled ? 'enabled' : 'disabled'}');
+    } catch (e) {
+      print('⚠️ [CRASHLYTICS] Failed to set crash reports enabled: $e');
+    }
+  }
+
+  /// Get current crash reports enabled status
+  bool getCrashReportsEnabled() {
+    return _storage.getCrashReportsEnabled();
+  }
 }
 

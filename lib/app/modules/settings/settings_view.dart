@@ -105,7 +105,11 @@ class SettingsView extends GetView<SettingsController> {
                     ),
 
                     SizedBox(height: 12.h),
-                    
+
+                    _buildCrashReportsToggle(),
+
+                    SizedBox(height: 12.h),
+
                     _buildSettingItem(
                       icon: Icons.privacy_tip_outlined,
                       title: 'privacy_policy'.tr,
@@ -308,6 +312,63 @@ class SettingsView extends GetView<SettingsController> {
         ),
       );
     });
+  }
+
+  Widget _buildCrashReportsToggle() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.bug_report_rounded,
+            color: Colors.white,
+            size: 24.sp,
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'crash_reports'.tr,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  'crash_reports_subtitle'.tr,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: Colors.white.withOpacity(0.7),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Obx(() => Switch(
+                value: controller.crashReportsEnabled.value,
+                onChanged: controller.toggleCrashReports,
+                activeColor: const Color(0xFF6D5FFD),
+                activeTrackColor: const Color(0xFF6D5FFD).withOpacity(0.5),
+                inactiveThumbColor: Colors.white.withOpacity(0.7),
+                inactiveTrackColor: Colors.white.withOpacity(0.2),
+              )),
+        ],
+      ),
+    );
   }
 }
 

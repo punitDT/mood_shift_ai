@@ -18,6 +18,7 @@ import 'app/services/ad_service.dart';
 import 'app/services/storage_service.dart';
 import 'app/services/habit_service.dart';
 import 'app/services/crashlytics_service.dart';
+import 'app/services/permission_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
 import 'firebase_options.dart';
@@ -114,6 +115,12 @@ void main() async {
   try {
     await Get.putAsync(() => StorageService().init());
     print('✅ [INIT] StorageService initialized');
+
+    // Apply crash reports setting from storage
+    final storage = Get.find<StorageService>();
+    final crashReportsEnabled = storage.getCrashReportsEnabled();
+    FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(crashReportsEnabled);
+    print('🔥 [CRASHLYTICS] Collection ${crashReportsEnabled ? 'enabled' : 'disabled'} from user preference');
   } catch (e, stackTrace) {
     print('❌ [INIT] Error initializing StorageService: $e');
     print('❌ [INIT] Stack trace: $stackTrace');
@@ -227,6 +234,24 @@ void main() async {
     print('❌ [INIT] Stack trace: $stackTrace');
     // Can't report to Crashlytics if CrashlyticsService failed to initialize
     // Continue without CrashlyticsService
+  }
+
+  // Initialize PermissionService (must be after StorageService)
+  try {
+    Get.put(PermissionService());
+    print('✅ [INIT] PermissionService initialized');
+  } catch (e, stackTrace) {
+    print('❌ [INIT] Error initializing PermissionService: $e');
+    print('❌ [INIT] Stack trace: $stackTrace');
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'PermissionService initialization failed',
+        fatal: false,
+      );
+    }
+    // Continue without PermissionService - will fall back to old behavior
   }
 
   // Set portrait orientation only

@@ -14,6 +14,7 @@ import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
 import '../../services/habit_service.dart';
 import '../../services/crashlytics_service.dart';
+import '../../services/permission_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -35,6 +36,7 @@ class HomeController extends GetxController {
   late final AdService _adService;
   late final RemoteConfigService _remoteConfig;
   late final CrashlyticsService _crashlytics;
+  late final PermissionService _permissionService;
   late final AdFreeController _adFreeController;
   late final StreakController _streakController;
   late final RewardedController _rewardedController;
@@ -72,6 +74,7 @@ class HomeController extends GetxController {
       _adService = Get.find<AdService>();
       _remoteConfig = Get.find<RemoteConfigService>();
       _crashlytics = Get.find<CrashlyticsService>();
+      _permissionService = Get.find<PermissionService>();
       _adFreeController = Get.find<AdFreeController>();
       _streakController = Get.find<StreakController>();
       _rewardedController = Get.find<RewardedController>();
@@ -122,30 +125,9 @@ class HomeController extends GetxController {
   }
 
   Future<void> _initializeServices() async {
-    try {
-      await _speechService.initialize();
-      print('✅ [HOME] Speech service initialized');
-    } catch (e, stackTrace) {
-      print('❌ [HOME] Error initializing speech service: $e');
-      print('❌ [HOME] Stack trace: $stackTrace');
-
-      // Report to Crashlytics
-      _crashlytics.reportError(
-        e,
-        stackTrace,
-        reason: 'Speech service initialization failed in HomeController',
-        customKeys: {
-          'error_type': 'speech_initialization',
-          'controller': 'HomeController',
-        },
-      );
-
-      // Show error to user
-      SnackbarUtils.showError(
-        title: 'Speech Error',
-        message: 'Failed to initialize speech recognition. Voice input may not work.',
-      );
-    }
+    // Speech service initialization is now handled on-demand when mic is pressed
+    // This prevents requesting permissions on app startup (2025 compliance)
+    print('✅ [HOME] Services ready - speech will initialize on first mic press');
   }
 
   void _updateStats() {
@@ -284,10 +266,32 @@ class HomeController extends GetxController {
   Future<void> onMicPressed() async {
     if (currentState.value != AppState.idle) return;
 
-    print('🎤 [MIC DEBUG] Mic pressed - starting listening immediately');
+    print('🎤 [MIC DEBUG] Mic pressed - checking permissions first');
 
     try {
-      // Start listening immediately - no delay to capture first words
+      // Step 1: Check and request permissions (2025-compliant flow)
+      final permissionResult = await _permissionService.requestPermissionsFlow();
+      final hasPermission = permissionResult['granted'] ?? false;
+      final justGranted = permissionResult['justGranted'] ?? false;
+
+      if (!hasPermission) {
+        print('❌ [MIC DEBUG] Microphone permission not granted - cannot proceed');
+        return;
+      }
+
+      // If permissions were just granted, user needs to tap the button again
+      if (justGranted) {
+        print('✅ [MIC DEBUG] Permissions just granted - user needs to tap button again');
+        SnackbarUtils.showSuccess(
+          title: _tr('ready_to_use', fallback: 'Ready to Use'),
+          message: _tr('tap_mic_again', fallback: 'Tap the mic button again to start recording'),
+        );
+        return;
+      }
+
+      print('✅ [MIC DEBUG] Permissions already granted - starting recording');
+
+      // Step 3: Start listening - no delay to capture first words
       currentState.value = AppState.listening;
       statusText.value = _tr('listening', fallback: 'Listening...');
       showRewardButtons.value = false;

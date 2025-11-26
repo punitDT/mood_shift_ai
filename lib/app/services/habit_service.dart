@@ -89,10 +89,12 @@ class HabitService extends GetxService {
       print('🔔 [HABIT] Android notification channel created');
 
       const androidSettings = AndroidInitializationSettings('app_icon');
+      // 2025 COMPLIANCE: Do NOT request permissions on initialization
+      // Permissions are now handled by PermissionService when user taps mic button
       const iosSettings = DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
+        requestAlertPermission: false,  // Changed to false
+        requestBadgePermission: false,  // Changed to false
+        requestSoundPermission: false,  // Changed to false
       );
 
       const settings = InitializationSettings(
@@ -109,19 +111,9 @@ class HabitService extends GetxService {
 
       print('🔔 [HABIT] Notification plugin initialized: $initialized');
 
-      // Request permissions on iOS
-      final iosPermissions = await _notifications
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
-
-      print('🔔 [HABIT] iOS permissions granted: $iosPermissions');
-
-      // Request permissions on Android 13+
-      final androidPermissions = await _notifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
-
-      print('🔔 [HABIT] Android permissions granted: $androidPermissions');
+      // 2025 COMPLIANCE: Do NOT request permissions automatically
+      // Permissions are now handled by PermissionService
+      print('🔔 [HABIT] Notification permissions will be requested by PermissionService');
 
       print('✅ [HABIT] Notifications initialized successfully');
     } catch (e, stackTrace) {
