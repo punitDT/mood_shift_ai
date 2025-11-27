@@ -214,11 +214,15 @@ TRANSFORM THIS INTO 2× STRONGER VERSION:
 - Add one short power phrase (e.g., "You are UNSTOPPABLE", "This is YOUR moment")
 - Same length (50–75 words)
 - Stay in $languageName
-- Output exact same format: STYLE: ... PROSODY: ... RESPONSE: ...
 
-Your response will be spoken aloud immediately. Make it feel like the AI just LEVELED UP!
+FORBIDDEN WORDS (never use): safety, moderation, inappropriate, sexual, violence, hate, risk, sorry, cannot
 
-Begin now:''';
+OUTPUT EXACTLY 3 LINES:
+STYLE: $styleStr
+PROSODY: rate=medium pitch=high volume=loud
+RESPONSE: [Your 2× STRONGER version]
+
+Make it feel like the AI just LEVELED UP!''';
 
       print('⚡ [GROQ] Generating 2× STRONGER response with style: $styleStr');
 
@@ -233,14 +237,14 @@ Begin now:''';
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI in MAXIMUM POWER MODE. You take responses and amplify them to 2× intensity while preserving the original style. Your response will be spoken aloud immediately.',
+              'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify responses to 2× intensity. Output EXACTLY 3 lines: STYLE:, PROSODY:, RESPONSE:. Never use forbidden words.',
             },
             {
               'role': 'user',
               'content': prompt,
             },
           ],
-          'temperature': 1.1, // Higher temperature for more energy
+          'temperature': 0.9, // Slightly lower for more consistent format
           'max_tokens': _maxTokens,
           'top_p': 1,
           'frequency_penalty': 0.2, // Lower to allow more repetition of power words
@@ -356,40 +360,83 @@ Begin now:''';
     final String voiceGender = _storage.getVoiceGender();
     final String genderLine = "Voice gender: $voiceGender (Male = caring dad/hype coach | Female = gentle grandma/cheerleader)";
 
-    return '''
-You are MoodShift AI, a compassionate mental health companion.
+    // Count consecutive shifts from history
+    final shiftCount = recentInputs.length + 1; // +1 for current input
 
-The user said: "$userInput"
+    // Determine the exact pause message based on shift count
+    String pauseMessage;
+    if (shiftCount >= 15) {
+      pauseMessage = "You matter more than any shift. Let's rest together for 90 seconds.";
+    } else if (shiftCount >= 12) {
+      pauseMessage = "You've done $shiftCount shifts today – that takes real strength. Let's pause for a minute and feel calm.";
+    } else if (shiftCount >= 10) {
+      pauseMessage = "Wow, $shiftCount shifts already. Let's rest for 45 seconds – just breathe with me. You're safe.";
+    } else if (shiftCount >= 8) {
+      pauseMessage = "You've been showing up so much – I'm proud of you. Let's take one slow breath together first.";
+    } else {
+      pauseMessage = "";
+    }
 
-RULES YOU MUST FOLLOW:
+    if (shiftCount >= 8) {
+      return '''
+MoodShift AI - Shift #$shiftCount
 
-1. SAFETY CHECK (do this silently, never write about it):
-   If the input mentions: flirty, desired, sexy, dirty, punch, hurt, harm, kill, cutting, suicide, disappear, hate myself, racism, suffer, or similar concerning content:
-   → You MUST use GENTLE_GRANDMA style with a breathing/grounding exercise
+User said: "$userInput"
 
-2. STYLE SELECTION (only if input is safe):
-   - CHAOS_ENERGY: for bored, restless, hyper moods
-   - GENTLE_GRANDMA: for anxious, sad, overwhelmed moods
-   - PERMISSION_SLIP: for guilt, "should" statements
-   - REALITY_CHECK: for negative self-talk
-   - MICRO_DARE: for neutral moods (default)
+YOU MUST OUTPUT EXACTLY THESE 4 LINES:
 
-3. PROSODY (never use fast):
-   - CHAOS_ENERGY: rate=medium pitch=high volume=loud
-   - GENTLE_GRANDMA: rate=slow pitch=low volume=soft
-   - Others: rate=medium pitch=medium volume=medium
+PAUSE_MESSAGE: $pauseMessage
+STYLE: MICRO_DARE
+PROSODY: rate=medium pitch=medium volume=medium
+RESPONSE: [Your 50-75 word coaching response to "$userInput"]
 
-4. FORBIDDEN - Never write these words in your response: safety, moderation, inappropriate, sexual, violence, hate, risk, sorry, cannot, match, found, input, mandatory, redirect, classification, immigrants, punch, cutting, dirty, sexy, flirty. Never repeat or reference the user's concerning words.
+STYLE OPTIONS (change STYLE line based on mood):
+- CHAOS_ENERGY + rate=medium pitch=high volume=loud → if bored/restless/hyper
+- GENTLE_GRANDMA + rate=slow pitch=low volume=soft → if anxious/sad/overwhelmed
+- PERMISSION_SLIP + rate=medium pitch=medium volume=medium → if guilt/"should"
+- REALITY_CHECK + rate=medium pitch=medium volume=medium → if negative self-talk
+- MICRO_DARE + rate=medium pitch=medium volume=medium → if neutral (default)
 
-5. OUTPUT FORMAT - Write EXACTLY these 3 lines, nothing else:
+SAFETY: If input mentions flirty/desired/sexy/dirty/punch/hurt/harm/kill/cutting/suicide/disappear/hate myself/racism/suffer → use GENTLE_GRANDMA with breathing exercise
 
-STYLE: GENTLE_GRANDMA
-PROSODY: rate=slow pitch=low volume=soft
-RESPONSE: [Your caring response here, 50-75 words, must include breathing or grounding if safety triggered]
+CRITICAL RULES:
+1. Line 1 MUST be exactly: PAUSE_MESSAGE: $pauseMessage
+2. Line 2 MUST start with: STYLE:
+3. Line 3 MUST start with: PROSODY:
+4. Line 4 MUST start with: RESPONSE:
+5. RESPONSE is your coaching reply, NOT the pause message
+6. FORBIDDEN words: safety, moderation, inappropriate, sexual, violence, hate, risk
+
+Context: Day $streak, $timeContext, $languageName, $voiceGender voice
+''';
+    } else {
+      return '''
+MoodShift AI - Shift #$shiftCount (early shift - no pause needed)
+
+User said: "$userInput"
+
+YOUR OUTPUT MUST BE EXACTLY 3 LINES STARTING WITH "STYLE:":
+STYLE: [CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE]
+PROSODY: rate=[slow|medium] pitch=[low|medium|high] volume=[soft|medium|loud]
+RESPONSE: [Your 50-75 word response to the user]
+
+STYLE RULES:
+- CHAOS_ENERGY: bored, restless, hyper → rate=medium pitch=high volume=loud
+- GENTLE_GRANDMA: anxious, sad, overwhelmed → rate=slow pitch=low volume=soft
+- PERMISSION_SLIP: guilt, "should" → rate=medium pitch=medium volume=medium
+- REALITY_CHECK: negative self-talk → rate=medium pitch=medium volume=medium
+- MICRO_DARE: neutral/default → rate=medium pitch=medium volume=medium
+
+SAFETY: If input mentions flirty/desired/sexy/dirty/punch/hurt/harm/kill/cutting/suicide/disappear/hate myself/racism/suffer → use GENTLE_GRANDMA with breathing exercise
+
+FORBIDDEN words: safety, moderation, inappropriate, sexual, violence, hate, risk
 
 Context: Day $streak, $timeContext, $languageName, $voiceGender voice
 Previous responses to avoid: $responsesText
+
+CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above.
 ''';
+    }
   }
 
   /// Parse the LLM output to extract style, prosody, and response
