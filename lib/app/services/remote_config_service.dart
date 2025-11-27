@@ -33,10 +33,6 @@ class RemoteConfigService extends GetxService {
       'update_message': defaultUpdateMessage,
     });
 
-    print('🔧 [REMOTE_CONFIG] Fetch timeout: ${fetchTimeoutSeconds}s, Min interval: ${minimumFetchIntervalMinutes}m');
-    print('🔧 [REMOTE_CONFIG] Defaults - Force update: $defaultForceUpdate, Version: $defaultLatestVersion');
-
-    // Fetch config in background without blocking app startup
     fetchConfig();
 
     return this;
@@ -44,32 +40,15 @@ class RemoteConfigService extends GetxService {
 
   Future<void> fetchConfig() async {
     try {
-      print('🔧 [REMOTE_CONFIG] Starting fetch...');
+      await _remoteConfig.fetchAndActivate();
 
-      final activated = await _remoteConfig.fetchAndActivate();
-      print('🔧 [REMOTE_CONFIG] Fetch completed. Activated: $activated');
-
-      // Get all values
       forceUpdate.value = _remoteConfig.getBool('force_update');
       latestVersion.value = _remoteConfig.getString('latest_version');
       updateMessage.value = _remoteConfig.getString('update_message');
 
-      // Log fetched values
-      print('🔧 [REMOTE_CONFIG] ✅ Fetched values:');
-      print('   - force_update: ${forceUpdate.value}');
-      print('   - latest_version: ${latestVersion.value}');
-      print('   - update_message: ${updateMessage.value}');
-
-      // Get all keys to see what's available
-      final allKeys = _remoteConfig.getAll();
-      print('🔧 [REMOTE_CONFIG] All available keys: ${allKeys.keys.toList()}');
-
-      // Always check version to see if update is available
-      print('🔧 [REMOTE_CONFIG] Checking version...');
       await _checkVersion();
-    } catch (e, stackTrace) {
-      print('❌ [REMOTE_CONFIG] Error fetching remote config: $e');
-      print('❌ [REMOTE_CONFIG] Stack trace: $stackTrace');
+    } catch (e) {
+      // Silently fail - not critical
     }
   }
 
@@ -78,41 +57,26 @@ class RemoteConfigService extends GetxService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
 
-      print('🔧 [REMOTE_CONFIG] Version check:');
-      print('   - Current version: $currentVersion');
-      print('   - Latest version: ${latestVersion.value}');
-
       if (_isVersionLower(currentVersion, latestVersion.value)) {
-        // Update is available
         updateAvailable.value = true;
-        print('🔧 [REMOTE_CONFIG] ⚠️ Update available! Current version is lower than latest.');
-
-        // Check if it's a force update
-        if (forceUpdate.value) {
-          print('🔧 [REMOTE_CONFIG] 🚨 This is a FORCE UPDATE - user must update!');
-        } else {
-          print('🔧 [REMOTE_CONFIG] ℹ️ This is an optional update - user can skip.');
-        }
       } else {
         updateAvailable.value = false;
         forceUpdate.value = false;
-        print('🔧 [REMOTE_CONFIG] ✅ App is up to date.');
       }
-    } catch (e, stackTrace) {
-      print('❌ [REMOTE_CONFIG] Error checking version: $e');
-      print('❌ [REMOTE_CONFIG] Stack trace: $stackTrace');
+    } catch (e) {
+      // Silently fail - not critical
     }
   }
 
   bool _isVersionLower(String current, String latest) {
     final currentParts = current.split('.').map(int.parse).toList();
     final latestParts = latest.split('.').map(int.parse).toList();
-    
+
     for (int i = 0; i < 3; i++) {
       if (currentParts[i] < latestParts[i]) return true;
       if (currentParts[i] > latestParts[i]) return false;
     }
-    
+
     return false;
   }
 
@@ -124,7 +88,6 @@ class RemoteConfigService extends GetxService {
     return updateMessage.value;
   }
 
-  // Get all config values for debugging
   Map<String, dynamic> getAllConfigValues() {
     return {
       'force_update': forceUpdate.value,
@@ -132,13 +95,4 @@ class RemoteConfigService extends GetxService {
       'update_message': updateMessage.value,
     };
   }
-
-  // Print current config status
-  void printConfigStatus() {
-    print('🔧 [REMOTE_CONFIG] Current Status:');
-    print('   - Force Update: ${forceUpdate.value}');
-    print('   - Latest Version: ${latestVersion.value}');
-    print('   - Update Message: ${updateMessage.value}');
-  }
 }
-

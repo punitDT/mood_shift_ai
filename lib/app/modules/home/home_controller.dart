@@ -65,7 +65,6 @@ class HomeController extends GetxController {
     super.onInit();
     confettiController = ConfettiController(duration: const Duration(seconds: 3));
 
-    // Initialize all services with error handling
     try {
       _llmService = Get.find<GroqLLMService>();
       _speechService = Get.find<SpeechService>();
@@ -78,26 +77,11 @@ class HomeController extends GetxController {
       _adFreeController = Get.find<AdFreeController>();
       _streakController = Get.find<StreakController>();
       _rewardedController = Get.find<RewardedController>();
-
-      print('✅ [HOME] All services initialized successfully');
     } catch (e, stackTrace) {
-      print('❌ [HOME] Error initializing services: $e');
-      print('❌ [HOME] Stack trace: $stackTrace');
-
-      // Try to report to Crashlytics if available
       try {
         final crashlytics = Get.find<CrashlyticsService>();
-        crashlytics.reportError(
-          e,
-          stackTrace,
-          reason: 'HomeController service initialization failed',
-          customKeys: {
-            'error_type': 'service_initialization',
-            'controller': 'HomeController',
-          },
-        );
+        crashlytics.reportError(e, stackTrace, reason: 'HomeController service initialization failed', customKeys: {'error_type': 'service_initialization', 'controller': 'HomeController'});
       } catch (_) {
-        // Crashlytics not available, continue
       }
 
       // Show error to user
@@ -113,21 +97,17 @@ class HomeController extends GetxController {
     _checkForceUpdate();
   }
 
-  // Safe translation helper to prevent range errors
   String _tr(String key, {String fallback = ''}) {
     try {
       final translated = key.tr;
       return translated.isNotEmpty ? translated : (fallback.isNotEmpty ? fallback : key);
     } catch (e) {
-      print('⚠️  [TRANSLATION DEBUG] Error translating "$key": $e');
       return fallback.isNotEmpty ? fallback : key;
     }
   }
 
   Future<void> _initializeServices() async {
     // Speech service initialization is now handled on-demand when mic is pressed
-    // This prevents requesting permissions on app startup (2025 compliance)
-    print('✅ [HOME] Services ready - speech will initialize on first mic press');
   }
 
   void _updateStats() {
@@ -136,17 +116,13 @@ class HomeController extends GetxController {
   }
 
   void _checkForceUpdate() {
-    // Listen to updateAvailable changes to show dialog when update is detected
     ever(_remoteConfig.updateAvailable, (isUpdateAvailable) {
       if (isUpdateAvailable) {
-        print('🔧 [UPDATE] Update detected! Showing dialog...');
         _showForceUpdateDialog();
       }
     });
 
-    // Check immediately if update is already available
     if (_remoteConfig.updateAvailable.value) {
-      print('🔧 [UPDATE] Update already available on init! Showing dialog...');
       _showForceUpdateDialog();
     }
   }
@@ -243,45 +219,29 @@ class HomeController extends GetxController {
       final url = Platform.isAndroid ? androidUrl : iosUrl;
       final uri = Uri.parse(url);
 
-      print('🔧 [UPDATE] Opening app store: $url');
-
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        print('❌ [UPDATE] Could not launch URL: $url');
-        SnackbarUtils.showError(
-          title: 'Error',
-          message: 'Could not open app store',
-        );
+        SnackbarUtils.showError(title: 'Error', message: 'Could not open app store');
       }
     } catch (e) {
-      print('❌ [UPDATE] Error opening app store: $e');
-      SnackbarUtils.showError(
-        title: 'Error',
-        message: 'Could not open app store',
-      );
+      SnackbarUtils.showError(title: 'Error', message: 'Could not open app store');
     }
   }
 
   Future<void> onMicPressed() async {
     if (currentState.value != AppState.idle) return;
 
-    print('🎤 [MIC DEBUG] Mic pressed - checking permissions first');
-
     try {
-      // Step 1: Check and request permissions (2025-compliant flow)
       final permissionResult = await _permissionService.requestPermissionsFlow();
       final hasPermission = permissionResult['granted'] ?? false;
       final justGranted = permissionResult['justGranted'] ?? false;
 
       if (!hasPermission) {
-        print('❌ [MIC DEBUG] Microphone permission not granted - cannot proceed');
         return;
       }
 
-      // If permissions were just granted, user needs to tap the button again
       if (justGranted) {
-        print('✅ [MIC DEBUG] Permissions just granted - user needs to tap button again');
         SnackbarUtils.showSuccess(
           title: _tr('ready_to_use', fallback: 'Ready to Use'),
           message: _tr('tap_mic_again', fallback: 'Tap the mic button again to start recording'),
@@ -289,33 +249,23 @@ class HomeController extends GetxController {
         return;
       }
 
-      print('✅ [MIC DEBUG] Permissions already granted - starting recording');
-
-      // Step 3: Start listening - no delay to capture first words
       currentState.value = AppState.listening;
       statusText.value = _tr('listening', fallback: 'Listening...');
       showRewardButtons.value = false;
       showLottieAnimation.value = true;
 
-      // Start progress tracking for listening (90 seconds max)
       _startListeningProgress();
 
-      // Set a timeout to prevent getting stuck in listening state (90 seconds max)
       _listeningTimeoutTimer?.cancel();
       _listeningTimeoutTimer = Timer(const Duration(seconds: 90), () async {
-        print('⏱️  [MIC DEBUG] Listening timeout (90s) - processing accumulated speech');
         if (currentState.value == AppState.listening) {
-          // Get any accumulated text before stopping
           final accumulatedText = _speechService.recognizedText.value;
           await _speechService.stopListening();
           _stopListeningProgress();
 
-          // Process accumulated text if available
           if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
-            print('✅ [MIC DEBUG] Processing accumulated text from timeout: "$accumulatedText"');
             await _processUserInput(accumulatedText);
           } else {
-            print('⚠️  [MIC DEBUG] No speech accumulated after 90s timeout');
             SnackbarUtils.showWarning(
               title: 'No Speech',
               message: _tr('no_speech_detected', fallback: 'No speech detected. Please try again.'),
@@ -325,43 +275,29 @@ class HomeController extends GetxController {
         }
       });
 
-      // Start listening - callback is NOT used anymore, we process manually
       await _speechService.startListening((recognizedText) async {
-        // This callback is intentionally empty - we process manually on button release
-        print('🎤 [MIC DEBUG] Speech callback triggered (ignored) - processing happens on button release');
+        // Callback intentionally empty - processing happens on button release
       });
     } catch (e, stackTrace) {
-      print('❌ [MIC DEBUG] Error starting listening: $e');
-      print('❌ [MIC DEBUG] Stack trace: $stackTrace');
       _listeningTimeoutTimer?.cancel();
       _stopListeningProgress();
-      SnackbarUtils.showError(
-        title: 'Error',
-        message: 'Failed to start listening. Please try again.',
-      );
+      SnackbarUtils.showError(title: 'Error', message: 'Failed to start listening. Please try again.');
       _resetToIdle();
     }
   }
 
   Future<void> onMicReleased() async {
-    print('🎤 [MIC DEBUG] Mic released - stopping recording and processing');
     _listeningTimeoutTimer?.cancel();
-    _stopListeningProgress(); // Stop the circular progress immediately
+    _stopListeningProgress();
 
     if (currentState.value == AppState.listening) {
-      // Stop listening immediately when button is released
       await _speechService.stopListening();
-
-      // Wait briefly for speech service to finalize (300ms)
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Process accumulated text
       final accumulatedText = _speechService.recognizedText.value;
       if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
-        print('✅ [MIC DEBUG] Button released - processing accumulated text: "$accumulatedText"');
         await _processUserInput(accumulatedText);
       } else {
-        print('⚠️  [MIC DEBUG] No speech accumulated');
         SnackbarUtils.showWarning(
           title: 'No Speech',
           message: _tr('no_speech_detected', fallback: 'No speech detected. Please try again.'),
@@ -431,112 +367,61 @@ class HomeController extends GetxController {
         }
       });
 
-      // Get AI response from Groq (with history tracking built-in)
       final languageCode = _storage.getLanguageCode();
-      print('🎤 [MIC DEBUG] Processing input with language: $languageCode');
-
       final response = await _llmService.generateResponse(userInput, languageCode);
       slowResponseTimer.cancel();
 
       if (response.isEmpty) {
-        SnackbarUtils.showError(
-          title: 'Error',
-          message: _tr('ai_error', fallback: 'AI service error'),
-        );
+        SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));
         _resetToIdle();
         return;
       }
 
-      // Save response for 2x stronger feature
       lastResponse = response;
       lastStyle = _llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
       final prosody = _llmService.getLastProsody();
       _storage.setLastResponse(response);
 
-      // Speak response
       currentState.value = AppState.speaking;
       statusText.value = _tr('speaking', fallback: 'Speaking...');
 
-      // Show offline mode indicator if using fallback TTS
       if (_ttsService.isUsingOfflineMode.value) {
         statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
       }
 
-      // Estimate speaking duration (30 seconds max, ~150 words per minute)
       final wordCount = response.split(' ').length;
       final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
       final estimatedMs = estimatedSeconds * 1000;
 
-      print('🎙️ [TTS DEBUG] Estimated speaking time: ${estimatedSeconds}s for $wordCount words');
-
-      // Start speaking progress
       _startSpeakingProgress(estimatedMs);
 
       await _ttsService.speak(response, lastStyle!, prosody: prosody);
 
-      // Wait for TTS to complete
       await Future.delayed(const Duration(milliseconds: 500));
       while (_ttsService.isSpeaking.value) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
-      // Stop speaking progress
       _stopSpeakingProgress();
-
-      // Shift completed!
       _onShiftCompleted();
     } catch (e, stackTrace) {
       slowResponseTimer?.cancel();
       _stopSpeakingProgress();
-      print('❌ [MIC DEBUG] Error processing input: $e');
-      print('❌ [MIC DEBUG] Stack trace: $stackTrace');
-      // Report user flow error to Crashlytics
-      _crashlytics.reportUserFlowError(
-        e,
-        stackTrace,
-        flow: 'mood_shift',
-        step: 'process_input',
-        context: {
-          'current_state': currentState.value.toString(),
-          'language': _storage.getLanguageCode(),
-        },
-      );
-      SnackbarUtils.showError(
-        title: 'Error',
-        message: _tr('ai_error', fallback: 'AI service error'),
-      );
+      _crashlytics.reportUserFlowError(e, stackTrace, flow: 'mood_shift', step: 'process_input', context: {'current_state': currentState.value.toString(), 'language': _storage.getLanguageCode()});
+      SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));
       _resetToIdle();
     }
   }
 
   void _onShiftCompleted() {
-    // Increment streak FIRST (handles total shifts + daily streak)
-    // IMPORTANT: Must be called before HabitService.userDidAShiftToday()
-    // because incrementStreak() checks hasShiftedToday() which relies on last_shift_date
     _streakController.incrementStreak();
-
-    // Record shift in HabitService (new smart tracking system)
     HabitService.userDidAShiftToday();
-
-    // Update shift counter for ads
-    print('🎯 [SHIFT DEBUG] Counter BEFORE increment: ${_storage.getShiftCounter()}');
     _storage.incrementShiftCounter();
-    print('🎯 [SHIFT DEBUG] Counter AFTER increment: ${_storage.getShiftCounter()}');
     _updateStats();
-
-    // Show confetti (StreakController also shows confetti, but this is for the main shift completion)
     confettiController.play();
-
-    // Show interstitial ad (every 4th shift)
     _adService.showInterstitialAd();
-
-    // Show rewarded ad buttons
     showRewardButtons.value = true;
-
-    // Reset to idle
     _resetToIdle();
-
-    // Fetch remote config after shift
     _remoteConfig.fetchConfig();
   }
 
@@ -544,13 +429,10 @@ class HomeController extends GetxController {
     try {
       currentState.value = AppState.idle;
       statusText.value = _tr('hold_to_speak', fallback: 'Hold to Speak');
-
-      // Clean up all timers and progress
       _stopListeningProgress();
       _stopSpeakingProgress();
       showLottieAnimation.value = false;
     } catch (e) {
-      print('❌ [MIC DEBUG] Error in _resetToIdle: $e');
       currentState.value = AppState.idle;
       statusText.value = 'Hold to Speak';
     }
@@ -601,43 +483,26 @@ class HomeController extends GetxController {
           statusText.value = _tr('speaking', fallback: 'Speaking...');
           showLottieAnimation.value = true;
 
-          // Estimate speaking duration for progress bar
           final wordCount = strongerResponse.split(' ').length;
           final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
           final estimatedMs = estimatedSeconds * 1000;
 
-          print('🎙️ [STRONGER] Estimated speaking time: ${estimatedSeconds}s for $wordCount words');
-
-          // Start speaking progress
           _startSpeakingProgress(estimatedMs);
-
-          // Play confetti
           confettiController.play();
 
-          // Speak the stronger response with EXTREME SSML
           await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody);
 
-          // Wait for TTS to complete
           await Future.delayed(const Duration(milliseconds: 500));
           while (_ttsService.isSpeaking.value) {
             await Future.delayed(const Duration(milliseconds: 100));
           }
 
-          // Stop speaking progress
           _stopSpeakingProgress();
-
-          // Reset to idle
           _resetToIdle();
-
-          print('⚡ [STRONGER] 2× stronger response played successfully');
         } catch (e) {
-          print('❌ [STRONGER] Error: $e');
           _stopSpeakingProgress();
           _resetToIdle();
-          SnackbarUtils.showError(
-            title: 'Error',
-            message: 'Failed to generate 2× stronger response',
-          );
+          SnackbarUtils.showError(title: 'Error', message: 'Failed to generate 2× stronger response');
         }
       }
     });

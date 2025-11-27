@@ -10,13 +10,10 @@ import '../../controllers/rewarded_controller.dart';
 class HomeBinding extends Bindings {
   @override
   void dependencies() {
-    // Wrap each service initialization with error handling
     Get.lazyPut<GroqLLMService>(() {
       try {
-        print('🔄 [BINDING] Initializing GroqLLMService...');
         return GroqLLMService();
       } catch (e, stackTrace) {
-        print('❌ [BINDING] Error initializing GroqLLMService: $e');
         if (kReleaseMode) {
           FirebaseCrashlytics.instance.recordError(
             e,
@@ -31,10 +28,8 @@ class HomeBinding extends Bindings {
 
     Get.lazyPut<SpeechService>(() {
       try {
-        print('🔄 [BINDING] Initializing SpeechService...');
         return SpeechService();
       } catch (e, stackTrace) {
-        print('❌ [BINDING] Error initializing SpeechService: $e');
         if (kReleaseMode) {
           FirebaseCrashlytics.instance.recordError(
             e,
@@ -49,10 +44,8 @@ class HomeBinding extends Bindings {
 
     Get.lazyPut<PollyTTSService>(() {
       try {
-        print('🔄 [BINDING] Initializing PollyTTSService...');
         return PollyTTSService();
       } catch (e, stackTrace) {
-        print('❌ [BINDING] Error initializing PollyTTSService: $e');
         if (kReleaseMode) {
           FirebaseCrashlytics.instance.recordError(
             e,
@@ -67,10 +60,8 @@ class HomeBinding extends Bindings {
 
     Get.lazyPut<RewardedController>(() {
       try {
-        print('🔄 [BINDING] Initializing RewardedController...');
         return RewardedController();
       } catch (e, stackTrace) {
-        print('❌ [BINDING] Error initializing RewardedController: $e');
         if (kReleaseMode) {
           FirebaseCrashlytics.instance.recordError(
             e,
@@ -85,10 +76,8 @@ class HomeBinding extends Bindings {
 
     Get.lazyPut<HomeController>(() {
       try {
-        print('🔄 [BINDING] Initializing HomeController...');
         return HomeController();
       } catch (e, stackTrace) {
-        print('❌ [BINDING] Error initializing HomeController: $e');
         if (kReleaseMode) {
           FirebaseCrashlytics.instance.recordError(
             e,
@@ -100,8 +89,5 @@ class HomeBinding extends Bindings {
         rethrow;
       }
     });
-
-    print('✅ [BINDING] All home dependencies registered');
   }
 }
-

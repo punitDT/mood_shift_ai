@@ -7,16 +7,14 @@ import 'storage_service.dart';
 /// Only reports errors in release mode to avoid noise during development
 class CrashlyticsService extends GetxService {
   late final StorageService _storage;
-  
+
   @override
   void onInit() {
     super.onInit();
     _storage = Get.find<StorageService>();
     _setUserContext();
-    print('🔥 [CRASHLYTICS] Service initialized');
   }
 
-  /// Set user context for better crash analysis
   void _setUserContext() {
     if (kReleaseMode) {
       try {
@@ -24,20 +22,16 @@ class CrashlyticsService extends GetxService {
         FirebaseCrashlytics.instance.setCustomKey('selected_lang', _storage.getLanguageCode());
         FirebaseCrashlytics.instance.setCustomKey('current_streak', _storage.getCurrentStreak());
         FirebaseCrashlytics.instance.setCustomKey('has_golden_voice', _storage.hasGoldenVoice());
-        print('🔥 [CRASHLYTICS] User context set');
       } catch (e) {
-        print('⚠️ [CRASHLYTICS] Failed to set user context: $e');
+        // Silently fail - not critical
       }
     }
   }
 
-  /// Update user context (call this when user settings change)
   void updateUserContext() {
     _setUserContext();
   }
 
-  /// Report a non-fatal error to Crashlytics
-  /// Use this for errors that don't crash the app but are important to track
   void reportError(
     dynamic error,
     StackTrace? stackTrace, {
@@ -45,36 +39,29 @@ class CrashlyticsService extends GetxService {
     Map<String, dynamic>? customKeys,
     bool fatal = false,
   }) {
-    // Only report in release mode
     if (!kReleaseMode) {
-      print('🔥 [CRASHLYTICS] [DEBUG MODE] Would report error: $reason - $error');
       return;
     }
 
     try {
-      // Set custom keys if provided
       if (customKeys != null) {
         for (final entry in customKeys.entries) {
           FirebaseCrashlytics.instance.setCustomKey(entry.key, entry.value);
         }
       }
 
-      // Set reason if provided
       if (reason != null) {
         FirebaseCrashlytics.instance.setCustomKey('error_reason', reason);
       }
 
-      // Report the error
       FirebaseCrashlytics.instance.recordError(
         error,
         stackTrace,
         fatal: fatal,
         reason: reason,
       );
-
-      print('🔥 [CRASHLYTICS] Error reported: $reason');
     } catch (e) {
-      print('⚠️ [CRASHLYTICS] Failed to report error: $e');
+      // Silently fail - not critical
     }
   }
 
@@ -210,25 +197,18 @@ class CrashlyticsService extends GetxService {
     );
   }
 
-  /// Log a message to Crashlytics (for debugging context)
   void log(String message) {
     if (kReleaseMode) {
       FirebaseCrashlytics.instance.log(message);
-    } else {
-      print('🔥 [CRASHLYTICS] [DEBUG MODE] Log: $message');
     }
   }
 
-  /// Test Crashlytics integration by sending a test error
-  /// Only works in release mode
   Future<void> testCrashlytics() async {
     if (!kReleaseMode) {
-      print('🔥 [CRASHLYTICS] Test errors only work in release mode');
       return;
     }
 
     try {
-      // Send a test non-fatal error
       reportError(
         Exception('Test error from CrashlyticsService'),
         StackTrace.current,
@@ -238,28 +218,21 @@ class CrashlyticsService extends GetxService {
           'timestamp': DateTime.now().toIso8601String(),
         },
       );
-
-      print('🔥 [CRASHLYTICS] Test error sent successfully');
     } catch (e) {
-      print('⚠️ [CRASHLYTICS] Failed to send test error: $e');
+      // Silently fail
     }
   }
 
-  /// Enable or disable crash reports collection
-  /// This instantly enables/disables Firebase Crashlytics
   void setCrashReportsEnabled(bool enabled) {
     try {
       FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled);
       _storage.setCrashReportsEnabled(enabled);
-      print('🔥 [CRASHLYTICS] Crash reports ${enabled ? 'enabled' : 'disabled'}');
     } catch (e) {
-      print('⚠️ [CRASHLYTICS] Failed to set crash reports enabled: $e');
+      // Silently fail
     }
   }
 
-  /// Get current crash reports enabled status
   bool getCrashReportsEnabled() {
     return _storage.getCrashReportsEnabled();
   }
 }
-

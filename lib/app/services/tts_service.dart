@@ -27,7 +27,6 @@ class TTSService extends GetxService {
     });
 
     _tts.setErrorHandler((msg) {
-      print('TTS Error: $msg');
       isSpeaking.value = false;
     });
 

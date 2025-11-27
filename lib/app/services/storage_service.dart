@@ -107,38 +107,28 @@ class StorageService extends GetxService {
     bool isBroken = false;
 
     if (lastDate == null) {
-      // First ever shift
       currentStreak = 1;
       longestStreak = 1;
-      print('🔥 [STREAK] First ever shift! Day 1');
     } else {
       final last = DateTime.parse(lastDate);
       final lastDay = DateTime(last.year, last.month, last.day);
       final daysDiff = today.difference(lastDay).inDays;
 
       if (daysDiff == 0) {
-        // Same day - don't increment, just return current
-        print('🔥 [STREAK] Same day, streak stays at $currentStreak');
+        // Same day - don't increment
       } else if (daysDiff == 1) {
-        // Next day - increment streak!
         currentStreak++;
-        print('🔥 [STREAK] Next day! Streak increased to $currentStreak');
       } else {
-        // Streak broken - reset to 1
         currentStreak = 1;
         isBroken = true;
-        print('💔 [STREAK] Streak broken (${daysDiff} days gap). Reset to Day 1');
       }
     }
 
-    // Update longest streak if current is higher
     if (currentStreak > longestStreak) {
       longestStreak = currentStreak;
       isNewRecord = true;
-      print('🎉 [STREAK] NEW RECORD! Longest streak: $longestStreak');
     }
 
-    // Save to storage
     _box.write('streak_current', currentStreak);
     _box.write('streak_longest', longestStreak);
     _box.write('last_shift_date', now.toIso8601String());
@@ -151,32 +141,25 @@ class StorageService extends GetxService {
     };
   }
 
-  // Increment total shifts counter (called after every shift)
   int incrementTotalShifts() {
     final current = getTotalShifts();
     final newTotal = current + 1;
     _box.write('total_shifts', newTotal);
-    print('📊 [STREAK] Total shifts: $newTotal');
     return newTotal;
   }
-
-  // ========== OLD METHODS (kept for backward compatibility) ==========
 
   int getStreakDay() {
     return getCurrentStreak();
   }
 
   int getTodayShifts() {
-    // This is no longer used in new system, but kept for compatibility
     return 0;
   }
 
   void incrementShift() {
-    // Old method - now handled by incrementStreak() and incrementTotalShifts()
-    // Kept for backward compatibility
+    // Old method - kept for backward compatibility
   }
 
-  // Shift counter for interstitial ads (every 4th shift)
   int getShiftCounter() {
     return _box.read('shift_counter') ?? 0;
   }
@@ -185,12 +168,10 @@ class StorageService extends GetxService {
     final current = getShiftCounter();
     final newValue = current + 1;
     _box.write('shift_counter', newValue);
-    print('🎯 [COUNTER DEBUG] Shift counter incremented: $current → $newValue');
   }
 
   void resetShiftCounter() {
     _box.write('shift_counter', 0);
-    print('🔄 [COUNTER DEBUG] Shift counter reset to 0');
   }
 
   // Ad-free period
@@ -205,7 +186,6 @@ class StorageService extends GetxService {
   void setAdFree24Hours() {
     final until = DateTime.now().add(const Duration(hours: 24));
     _box.write('ad_free_until', until.toIso8601String());
-    print('🕊️ [AD-FREE DEBUG] Ad-free activated until: $until');
   }
 
   Duration getRemainingAdFreeTime() {
@@ -224,10 +204,8 @@ class StorageService extends GetxService {
 
   void clearAdFree() {
     _box.remove('ad_free_until');
-    print('🔄 [AD-FREE DEBUG] Ad-free period cleared');
   }
 
-  // Crystal voice
   bool hasGoldenVoice() {
     final goldenUntil = _box.read('golden_voice_until');
     if (goldenUntil == null) return false;
@@ -235,7 +213,6 @@ class StorageService extends GetxService {
     final until = DateTime.parse(goldenUntil);
     final hasGolden = DateTime.now().isBefore(until);
 
-    // Auto-clear if expired
     if (!hasGolden) {
       _box.remove('golden_voice_until');
     }
@@ -246,7 +223,6 @@ class StorageService extends GetxService {
   void setGoldenVoice1Hour() {
     final until = DateTime.now().add(const Duration(hours: 1));
     _box.write('golden_voice_until', until.toIso8601String());
-    print('💎 [CRYSTAL DEBUG] Crystal Voice activated until: $until');
   }
 
   Duration getRemainingGoldenTime() {
@@ -265,7 +241,6 @@ class StorageService extends GetxService {
 
   void clearGoldenVoice() {
     _box.remove('golden_voice_until');
-    print('🔄 [GOLDEN DEBUG] Golden Voice cleared');
   }
 
   // Last AI response for 2x stronger feature
@@ -313,14 +288,11 @@ class StorageService extends GetxService {
     _box.write('recent_ai_responses', responses);
   }
 
-  // Clear conversation history
   void clearConversationHistory() {
     _box.remove('recent_user_inputs');
     _box.remove('recent_ai_responses');
-    print('🔄 [HISTORY] Cleared conversation history');
   }
 
-  // Response cache for offline support (last 20 responses)
   List<Map<String, dynamic>> getCachedResponses() {
     final cached = _box.read('cached_responses');
     if (cached == null) return [];
@@ -330,7 +302,6 @@ class StorageService extends GetxService {
   void addCachedResponse(String userInput, String response, String language) {
     final cached = getCachedResponses();
 
-    // Add new response
     cached.add({
       'userInput': userInput,
       'response': response,
@@ -338,13 +309,11 @@ class StorageService extends GetxService {
       'timestamp': DateTime.now().toIso8601String(),
     });
 
-    // Keep only last 20
     if (cached.length > 20) {
       cached.removeRange(0, cached.length - 20);
     }
 
     _box.write('cached_responses', cached);
-    print('💾 [CACHE] Saved response to cache (${cached.length}/20)');
   }
 
   Map<String, dynamic>? findCachedResponse(String userInput, String language) {
@@ -363,10 +332,8 @@ class StorageService extends GetxService {
 
   void clearCachedResponses() {
     _box.remove('cached_responses');
-    print('🔄 [CACHE] Cleared all cached responses');
   }
 
-  // First launch
   bool isFirstLaunch() {
     return _box.read('first_launch') ?? true;
   }
@@ -375,14 +342,6 @@ class StorageService extends GetxService {
     _box.write('first_launch', false);
   }
 
-  // ========== 2× STRONGER FEATURE (UNLIMITED!) ==========
-
-  // No storage needed - feature is now unlimited!
-  // All limit-related methods have been removed
-
-  // ========== POLLY VOICE MAP ==========
-
-  /// Get the discovered Polly voice map
   Map<String, dynamic>? getPollyVoiceMap() {
     final jsonString = _box.read('polly_voice_map');
     if (jsonString == null) return null;
@@ -390,46 +349,33 @@ class StorageService extends GetxService {
     try {
       return Map<String, dynamic>.from(jsonDecode(jsonString));
     } catch (e) {
-      print('❌ [STORAGE] Error parsing polly_voice_map: $e');
       return null;
     }
   }
 
-  /// Save the discovered Polly voice map
   void setPollyVoiceMap(Map<String, dynamic> voiceMap) {
     final jsonString = jsonEncode(voiceMap);
     _box.write('polly_voice_map', jsonString);
-    print('✅ [STORAGE] Polly voice map saved (${voiceMap.length} languages)');
   }
 
-  /// Clear the Polly voice map (force re-discovery)
   void clearPollyVoiceMap() {
     _box.remove('polly_voice_map');
-    print('🔄 [STORAGE] Polly voice map cleared');
   }
 
-  /// Get the Polly voice map version
   int? getPollyVoiceMapVersion() {
     return _box.read('polly_voice_map_version');
   }
 
-  /// Set the Polly voice map version
   void setPollyVoiceMapVersion(int version) {
     _box.write('polly_voice_map_version', version);
-    print('✅ [STORAGE] Polly voice map version set to $version');
   }
 
-  // ========== CRASH REPORTS SETTING ==========
-
-  /// Get crash reports enabled status (default: true)
   bool getCrashReportsEnabled() {
     return _box.read('crash_reports_enabled') ?? true;
   }
 
-  /// Set crash reports enabled status
   void setCrashReportsEnabled(bool enabled) {
     _box.write('crash_reports_enabled', enabled);
-    print('🔥 [STORAGE] Crash reports ${enabled ? 'enabled' : 'disabled'}');
   }
 }
 

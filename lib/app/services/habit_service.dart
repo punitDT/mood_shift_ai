@@ -32,46 +32,29 @@ class HabitService extends GetxService {
       _box = GetStorage();
       _notifications = FlutterLocalNotificationsPlugin();
 
-      // Initialize timezone
-      print('🌍 [HABIT] Initializing timezones...');
       tz.initializeTimeZones();
-      // Set local timezone to device's local timezone
       final String timeZoneName = DateTime.now().timeZoneName;
       try {
         tz.setLocalLocation(tz.getLocation(timeZoneName));
-        print('🌍 [HABIT] Local timezone set to: $timeZoneName');
       } catch (e) {
-        // Fallback to UTC if timezone name is not recognized
-        print('⚠️ [HABIT] Could not set timezone $timeZoneName, using UTC');
         tz.setLocalLocation(tz.getLocation('UTC'));
       }
 
-      // Save install date if first launch
       if (_box.read(_keyInstallDate) == null) {
         _box.write(_keyInstallDate, DateTime.now().toIso8601String());
-        print('📅 [HABIT] Install date saved: ${DateTime.now()}');
       }
 
-      // Initialize notification plugin
       await _initializeNotifications();
-
-      // Schedule next notification
       await _scheduleSmartNotification();
 
-      print('✅ [HABIT] HabitService initialized successfully');
       return this;
-    } catch (e, stackTrace) {
-      print('❌ [HABIT] Error initializing HabitService: $e');
-      print('❌ [HABIT] Stack trace: $stackTrace');
+    } catch (e) {
       return this;
     }
   }
-  
+
   Future<void> _initializeNotifications() async {
     try {
-      print('🔔 [HABIT] Initializing notifications...');
-
-      // Create Android notification channel
       const androidChannel = AndroidNotificationChannel(
         'habit_reminder',
         'Daily Reminders',
@@ -81,20 +64,15 @@ class HabitService extends GetxService {
         enableVibration: true,
       );
 
-      // Create the channel on Android
       await _notifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(androidChannel);
 
-      print('🔔 [HABIT] Android notification channel created');
-
       const androidSettings = AndroidInitializationSettings('app_icon');
-      // 2025 COMPLIANCE: Do NOT request permissions on initialization
-      // Permissions are now handled by PermissionService when user taps mic button
       const iosSettings = DarwinInitializationSettings(
-        requestAlertPermission: false,  // Changed to false
-        requestBadgePermission: false,  // Changed to false
-        requestSoundPermission: false,  // Changed to false
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
       );
 
       const settings = InitializationSettings(
@@ -102,23 +80,12 @@ class HabitService extends GetxService {
         iOS: iosSettings,
       );
 
-      final initialized = await _notifications.initialize(
+      await _notifications.initialize(
         settings,
-        onDidReceiveNotificationResponse: (details) {
-          print('🔔 [HABIT] Notification tapped: ${details.payload}');
-        },
+        onDidReceiveNotificationResponse: (details) {},
       );
-
-      print('🔔 [HABIT] Notification plugin initialized: $initialized');
-
-      // 2025 COMPLIANCE: Do NOT request permissions automatically
-      // Permissions are now handled by PermissionService
-      print('🔔 [HABIT] Notification permissions will be requested by PermissionService');
-
-      print('✅ [HABIT] Notifications initialized successfully');
-    } catch (e, stackTrace) {
-      print('❌ [HABIT] Error initializing notifications: $e');
-      print('❌ [HABIT] Stack trace: $stackTrace');
+    } catch (e) {
+      // Silently fail - not critical
     }
   }
   
@@ -185,35 +152,24 @@ class HabitService extends GetxService {
         !_isSameDay(DateTime.parse(lastShiftDate), now);
 
     if (isFirstShiftToday) {
-      // First shift of the day
       _updateDailyStreak(now, lastShiftDate);
       _box.write(_keyTodayShifts, 1);
 
-      // Increment active days
       final activeDays = (_box.read(_keyActiveDays) ?? 0) + 1;
       _box.write(_keyActiveDays, activeDays);
-
-      print('🔥 [HABIT] First shift today! Streak: ${streak}, Active days: ${activeDays}');
     } else {
-      // Additional shift today
       final todayShifts = (_box.read(_keyTodayShifts) ?? 0) + 1;
       _box.write(_keyTodayShifts, todayShifts);
-
-      print('📊 [HABIT] Shift #$todayShifts today');
     }
 
-    // Update last shift date
     _box.write(_keyLastShiftDate, now.toIso8601String());
-
-    // Schedule next notification
     _scheduleSmartNotification();
   }
-  
+
   void _updateDailyStreak(DateTime now, String? lastShiftDate) {
     int currentStreak = _box.read(_keyCurrentStreak) ?? 0;
 
     if (lastShiftDate == null) {
-      // First shift ever - start at Day 1
       currentStreak = 1;
     } else {
       final last = DateTime.parse(lastShiftDate);
@@ -221,42 +177,28 @@ class HabitService extends GetxService {
       final lastDay = DateTime(last.year, last.month, last.day);
 
       if (_isSameDay(lastDay, yesterday)) {
-        // Consecutive day - increment streak
         currentStreak++;
       } else {
-        // Streak broken - reset to Day 1
         currentStreak = 1;
-        print('💔 [HABIT] Streak broken. Starting fresh at Day 1');
       }
     }
 
     _box.write(_keyCurrentStreak, currentStreak);
-    print('🔥 [HABIT] Streak updated: Day $currentStreak');
   }
-  
+
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
-  
-  // ========== SMART NOTIFICATION SYSTEM ==========
-  
+
   Future<void> _scheduleSmartNotification() async {
     try {
-      print('🔔 [HABIT] Scheduling smart notification...');
-
-      // Cancel any existing notifications
       await _notifications.cancelAll();
-      print('🔔 [HABIT] Cancelled all existing notifications');
 
-      // Check if we should send a notification
       if (!_shouldSendNotification()) {
-        print('🔕 [HABIT] No notification needed today');
         return;
       }
 
-      // Schedule for tomorrow at 9 AM
       final tomorrow9AM = _getNext9AM();
-      print('🔔 [HABIT] Scheduling for: ${tomorrow9AM.toLocal()}');
 
       final notificationDetails = NotificationDetails(
         android: AndroidNotificationDetails(
@@ -279,21 +221,15 @@ class HabitService extends GetxService {
       final message = _getNotificationMessage();
 
       await _notifications.zonedSchedule(
-        0, // notification id
+        0,
         message['title']!,
         message['body']!,
         tomorrow9AM,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
-
-      print('✅ [HABIT] Notification scheduled successfully');
-      print('   Time: ${tomorrow9AM.toLocal()}');
-      print('   Title: ${message['title']}');
-      print('   Body: ${message['body']}');
-    } catch (e, stackTrace) {
-      print('❌ [HABIT] Error scheduling notification: $e');
-      print('❌ [HABIT] Stack trace: $stackTrace');
+    } catch (e) {
+      // Silently fail - not critical
     }
   }
   
@@ -419,8 +355,6 @@ class HabitService extends GetxService {
 
   Future<void> _showTestNotification() async {
     try {
-      print('🔔 [HABIT] Showing test notification...');
-
       const notificationDetails = NotificationDetails(
         android: AndroidNotificationDetails(
           'habit_reminder',
@@ -440,17 +374,13 @@ class HabitService extends GetxService {
       );
 
       await _notifications.show(
-        999, // test notification id
+        999,
         '🔔 Test Notification',
         'Local notifications are working! 🎉',
         notificationDetails,
       );
-
-      print('✅ [HABIT] Test notification shown successfully');
-    } catch (e, stackTrace) {
-      print('❌ [HABIT] Error showing test notification: $e');
-      print('❌ [HABIT] Stack trace: $stackTrace');
+    } catch (e) {
+      // Silently fail - not critical
     }
   }
 }
-

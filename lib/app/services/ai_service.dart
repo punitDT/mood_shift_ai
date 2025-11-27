@@ -57,10 +57,8 @@ class AIService extends GetxService {
         }
       }
       
-      // Fallback response
       return _getFallbackResponse(style, language);
     } catch (e) {
-      print('AI Service Error: $e');
       return _getFallbackResponse(MoodStyle.gentleGrandma, language);
     }
   }

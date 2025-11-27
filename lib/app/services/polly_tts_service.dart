@@ -30,8 +30,6 @@ class PollyTTSService extends GetxService {
   late final int _pollyCacheMaxFiles;
 
   String? _cacheDir;
-
-  // Voice discovery state
   Map<String, dynamic>? _voiceMap;
 
   @override
@@ -39,21 +37,12 @@ class PollyTTSService extends GetxService {
     super.onInit();
     _awsAccessKey = dotenv.env['AWS_ACCESS_KEY'] ?? '';
     _awsSecretKey = dotenv.env['AWS_SECRET_KEY'] ?? '';
-    // Changed region to us-east-1 for generative voice support
     _awsRegion = dotenv.env['AWS_REGION'] ?? 'us-east-1';
-    // Changed engine to generative (will fallback to neural then standard)
     _pollyEngine = dotenv.env['AWS_POLLY_ENGINE'] ?? 'generative';
     _pollyOutputFormat = dotenv.env['AWS_POLLY_OUTPUT_FORMAT'] ?? 'mp3';
     _pollyTimeoutSeconds = int.tryParse(dotenv.env['AWS_POLLY_TIMEOUT_SECONDS'] ?? '10') ?? 10;
     _pollyCacheMaxFiles = int.tryParse(dotenv.env['AWS_POLLY_CACHE_MAX_FILES'] ?? '20') ?? 20;
     _crashlytics = Get.find<CrashlyticsService>();
-
-    if (_awsAccessKey.isEmpty || _awsSecretKey.isEmpty) {
-      print('⚠️ [POLLY] Warning: AWS credentials not found in .env');
-    }
-
-    print('🎙️ [POLLY] Region: $_awsRegion, Engine: $_pollyEngine, Format: $_pollyOutputFormat, Timeout: ${_pollyTimeoutSeconds}s');
-    print('💾 [POLLY] Cache max files: $_pollyCacheMaxFiles');
 
     _initializeFallbackTTS();
     _initializeCacheDir();
@@ -61,56 +50,31 @@ class PollyTTSService extends GetxService {
     _initializeVoiceDiscovery();
   }
 
-  /// Initialize voice discovery on first launch
   Future<void> _initializeVoiceDiscovery() async {
     try {
-      // Voice map version - increment this when voice mappings change
-      const voiceMapVersion = 4; // Updated: Verified voices from AWS CLI describe-voices
+      const voiceMapVersion = 4;
       final storedVersion = _storage.getPollyVoiceMapVersion();
-
-      // Check if voice discovery has already been completed
       final storedVoiceMap = _storage.getPollyVoiceMap();
 
-      // Rediscover if version mismatch or no stored map
       if (storedVersion != voiceMapVersion || storedVoiceMap == null || storedVoiceMap.isEmpty) {
-        if (storedVersion != voiceMapVersion) {
-          print('🔄 [POLLY] Voice map version mismatch (stored: $storedVersion, current: $voiceMapVersion) - rediscovering...');
-        } else {
-          print('🔍 [POLLY] First launch detected - starting voice discovery...');
-        }
         await _discoverAndTestVoices();
         _storage.setPollyVoiceMapVersion(voiceMapVersion);
         return;
       }
 
       _voiceMap = storedVoiceMap;
-      print('✅ [POLLY] Voice map loaded from storage (${_voiceMap!.length} languages, version: $voiceMapVersion)');
-
-      // Debug: Print en-US voices to verify
-      if (_voiceMap!.containsKey('en-US')) {
-        final enUS = _voiceMap!['en-US'];
-        print('   📋 [DEBUG] en-US voices:');
-        print('      Generative: M=${enUS['generative']?['male']}, F=${enUS['generative']?['female']}');
-        print('      Neural: M=${enUS['neural']?['male']}, F=${enUS['neural']?['female']}');
-        print('      Standard: M=${enUS['standard']?['male']}, F=${enUS['standard']?['female']}');
-      }
-
     } catch (e) {
-      print('❌ [POLLY] Voice discovery error: $e');
       // Use fallback hardcoded voices
     }
   }
 
-  /// Force re-discovery of voices (useful for debugging or after AWS updates)
   Future<void> forceRediscoverVoices() async {
     try {
-      print('🔄 [POLLY] Forcing voice re-discovery...');
       _storage.clearPollyVoiceMap();
       _voiceMap = null;
       await _discoverAndTestVoices();
-      print('✅ [POLLY] Voice re-discovery complete!');
     } catch (e) {
-      print('❌ [POLLY] Voice re-discovery error: $e');
+      // Voice re-discovery failed
     }
   }
 
@@ -119,17 +83,13 @@ class PollyTTSService extends GetxService {
       final dir = await getApplicationDocumentsDirectory();
       _cacheDir = '${dir.path}/polly_cache';
       await Directory(_cacheDir!).create(recursive: true);
-      print('📁 [POLLY] Cache directory: $_cacheDir');
     } catch (e) {
-      print('❌ [POLLY] Error creating cache dir: $e');
+      // Cache dir creation failed
     }
   }
 
-  /// Discover and test all available voices from AWS Polly
   Future<void> _discoverAndTestVoices() async {
     try {
-      print('🔍 [POLLY] Calling DescribeVoices API...');
-
       final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/voices';
       final now = DateTime.now().toUtc();
 
@@ -151,28 +111,18 @@ class PollyTTSService extends GetxService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('DescribeVoices failed: ${response.statusCode} - ${response.body}');
+        throw Exception('DescribeVoices failed: ${response.statusCode}');
       }
 
       final data = jsonDecode(response.body);
       final voices = data['Voices'] as List<dynamic>;
 
-      print('✅ [POLLY] Found ${voices.length} total voices');
-
-      // Build voice map for our 8 supported languages
       final voiceMap = await _buildVoiceMap(voices);
-
-      // Test each voice
       await _testVoices(voiceMap);
 
-      // Save to storage
       _storage.setPollyVoiceMap(voiceMap);
       _voiceMap = voiceMap;
-
-      print('✅ [POLLY] Voice discovery complete!');
-
     } catch (e) {
-      print('❌ [POLLY] Voice discovery failed: $e');
       rethrow;
     }
   }
@@ -298,14 +248,6 @@ class PollyTTSService extends GetxService {
       // Apply engine-level fallbacks (but not cross-gender fallbacks)
       _applyVoiceFallbacks(voiceMap[lang] as Map<String, dynamic>);
 
-      final genMap = voiceMap[lang]['generative'] as Map<String, String?>;
-      final neuMap = voiceMap[lang]['neural'] as Map<String, String?>;
-      final stdMap = voiceMap[lang]['standard'] as Map<String, String?>;
-
-      print('🎙️ [POLLY] $lang voices:');
-      print('   Generative: M=${genMap['male']}, F=${genMap['female']}');
-      print('   Neural: M=${neuMap['male']}, F=${neuMap['female']}');
-      print('   Standard: M=${stdMap['male']}, F=${stdMap['female']}');
     }
 
     return voiceMap;
@@ -338,29 +280,17 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  /// Test all voices with a 3-second test phrase
   Future<void> _testVoices(Map<String, dynamic> voiceMap) async {
-    print('🧪 [POLLY] Starting voice test suite...');
-
-    int totalVoices = 0;
-    int generativeSuccess = 0;
-    int neuralFallback = 0;
-    int standardFallback = 0;
-
     for (final lang in voiceMap.keys) {
       for (final gender in ['male', 'female']) {
-        totalVoices++;
-
         final generativeVoice = voiceMap[lang]['generative'][gender];
         final neuralVoice = voiceMap[lang]['neural'][gender];
         final standardVoice = voiceMap[lang]['standard'][gender];
 
         if (generativeVoice == null) continue;
 
-        // Test phrase
         final testPhrase = 'Test voice ok';
 
-        // Try generative first
         final generativeResult = await _testVoice(
           voiceId: generativeVoice,
           languageCode: lang,
@@ -368,11 +298,7 @@ class PollyTTSService extends GetxService {
           text: testPhrase,
         );
 
-        if (generativeResult) {
-          generativeSuccess++;
-          print('✅ [POLLY] $lang $gender → Generative OK ($generativeVoice)');
-        } else {
-          // Try neural
+        if (!generativeResult) {
           final neuralResult = await _testVoice(
             voiceId: neuralVoice ?? generativeVoice,
             languageCode: lang,
@@ -380,38 +306,19 @@ class PollyTTSService extends GetxService {
             text: testPhrase,
           );
 
-          if (neuralResult) {
-            neuralFallback++;
-            print('⚠️ [POLLY] $lang $gender → Fallback to Neural (${neuralVoice ?? generativeVoice})');
-          } else {
-            // Try standard
-            final standardResult = await _testVoice(
+          if (!neuralResult) {
+            await _testVoice(
               voiceId: standardVoice ?? neuralVoice ?? generativeVoice,
               languageCode: lang,
               engine: 'standard',
               text: testPhrase,
             );
-
-            if (standardResult) {
-              standardFallback++;
-              print('⚠️ [POLLY] $lang $gender → Fallback to Standard (${standardVoice ?? neuralVoice ?? generativeVoice})');
-            } else {
-              print('❌ [POLLY] $lang $gender → All engines failed');
-            }
           }
         }
       }
     }
-
-    print('');
-    print('🎉 [POLLY] Voice Test Complete:');
-    print('   Generative ready: $generativeSuccess/${totalVoices} voices');
-    print('   Neural fallback: $neuralFallback voices');
-    print('   Standard fallback: $standardFallback voices');
-    print('');
   }
 
-  /// Test a single voice with a specific engine
   Future<bool> _testVoice({
     required String voiceId,
     required String languageCode,
@@ -444,15 +351,9 @@ class PollyTTSService extends GetxService {
         Uri.parse(endpoint),
         headers: headers,
         body: requestBody,
-      ).timeout(
-        Duration(seconds: 5),
-        onTimeout: () {
-          throw Exception('Test timeout');
-        },
-      );
+      ).timeout(Duration(seconds: 5), onTimeout: () => throw Exception('Test timeout'));
 
       return response.statusCode == 200;
-
     } catch (e) {
       return false;
     }
@@ -470,7 +371,6 @@ class PollyTTSService extends GetxService {
     });
 
     _fallbackTts.setErrorHandler((msg) {
-      print('❌ [POLLY] Fallback TTS Error: $msg');
       isSpeaking.value = false;
     });
 
@@ -489,13 +389,8 @@ class PollyTTSService extends GetxService {
     });
   }
 
-  /// Speak with Main mode (normal or Crystal Voice)
-  /// Multi-level fallback: Generative → Neural → Standard → Plain TTS
   Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
-
-    // DEBUG: Log the text received for speaking
-    print('🔍 [POLLY DEBUG] Text received for speaking: "$text"');
 
     await stop();
 
@@ -505,15 +400,11 @@ class PollyTTSService extends GetxService {
     final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isGolden: isGolden);
     final cachedFile = await _getCachedAudio(cacheKey);
 
-    // Try to use cached audio first
     if (cachedFile != null) {
-      print('🎵 [POLLY] Using cached audio');
       await _playAudioFile(cachedFile);
       return;
     }
 
-    // Try Amazon Polly with multi-level engine fallback
-    // Priority: generative → neural → standard
     try {
       final audioFile = await _synthesizeWithPolly(text, fullLocale, style, prosody: prosody);
       if (audioFile != null) {
@@ -523,26 +414,13 @@ class PollyTTSService extends GetxService {
         return;
       }
     } catch (e, stackTrace) {
-      print('❌ [POLLY] Polly synthesis failed: $e');
-      // Report TTS synthesis error to Crashlytics
-      _crashlytics.reportTTSError(
-        e,
-        stackTrace,
-        operation: 'speak',
-        locale: fullLocale,
-        textLength: text.length,
-      );
+      _crashlytics.reportTTSError(e, stackTrace, operation: 'speak', locale: fullLocale, textLength: text.length);
     }
 
-    // Final fallback to flutter_tts (never fail)
-    print('🔄 [POLLY] Using flutter_tts fallback');
     isUsingOfflineMode.value = true;
     await _speakWithFallback(text, fullLocale, style, prosody: prosody);
   }
 
-  /// Speak with 2× STRONGER amplification
-  /// Multi-level fallback: Generative → Neural → Standard → Plain TTS
-  /// Uses extreme SSML for powerful, energetic speech
   Future<void> speakStronger(String text, MoodStyle style, {Map<String, String>? prosody}) async {
     if (text.isEmpty) return;
 
@@ -553,14 +431,11 @@ class PollyTTSService extends GetxService {
     final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isStronger: true);
     final cachedFile = await _getCachedAudio(cacheKey);
 
-    // Try to use cached audio first
     if (cachedFile != null) {
-      print('🎵 [POLLY] Using cached 2× STRONGER audio');
       await _playAudioFile(cachedFile);
       return;
     }
 
-    // Try Amazon Polly with 2× STRONGER SSML
     try {
       final audioFile = await _synthesizeStrongerWithPolly(text, fullLocale, style);
       if (audioFile != null) {
@@ -570,40 +445,22 @@ class PollyTTSService extends GetxService {
         return;
       }
     } catch (e, stackTrace) {
-      print('❌ [POLLY] Polly 2× stronger synthesis failed: $e');
-      // Report TTS synthesis error to Crashlytics
-      _crashlytics.reportTTSError(
-        e,
-        stackTrace,
-        operation: 'speakStronger',
-        locale: fullLocale,
-        textLength: text.length,
-      );
+      _crashlytics.reportTTSError(e, stackTrace, operation: 'speakStronger', locale: fullLocale, textLength: text.length);
     }
 
-    // Fallback to flutter_tts with EXTREME amplified settings
-    print('🔄 [POLLY] Using flutter_tts fallback for 2× STRONGER with style: $style');
     isUsingOfflineMode.value = true;
-
     await _fallbackTts.setVolume(1.0);
-
-    // Get style-specific extreme settings
     final extremeSettings = _getExtremeSettings(style, prosody);
-
     await _fallbackTts.setSpeechRate(extremeSettings['rate']!);
     await _fallbackTts.setPitch(extremeSettings['pitch']!);
     await _setLanguage(fullLocale);
-
     await _fallbackTts.speak(text);
   }
 
-  /// Synthesize 2× STRONGER audio with Polly using EXTREME style-specific SSML
   Future<File?> _synthesizeStrongerWithPolly(String text, String fullLocale, MoodStyle style) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
-      print('⚡ [POLLY] Synthesizing 2× STRONGER with voice: $voiceId, language: $fullLocale, style: $style');
 
-      // Try with configured engine first (generative > neural > standard)
       final engines = _pollyEngine == 'generative'
           ? ['generative', 'neural', 'standard']
           : _pollyEngine == 'neural'
@@ -612,7 +469,6 @@ class PollyTTSService extends GetxService {
 
       for (final engine in engines) {
         try {
-          // Build SSML for current engine (important for fallback compatibility)
           final ssmlText = _buildStrongerSSMLForEngine(text, style, engine);
 
           final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
@@ -638,32 +494,19 @@ class PollyTTSService extends GetxService {
             Uri.parse(endpoint),
             headers: headers,
             body: requestBody,
-          ).timeout(
-            Duration(seconds: _pollyTimeoutSeconds),
-            onTimeout: () {
-              print('⏱️ [POLLY] 2× STRONGER API timeout after ${_pollyTimeoutSeconds}s');
-              throw Exception('Polly API timeout');
-            },
-          );
+          ).timeout(Duration(seconds: _pollyTimeoutSeconds), onTimeout: () => throw Exception('Polly API timeout'));
 
           if (response.statusCode == 200) {
             final tempFile = File('${_cacheDir}/temp_stronger_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
             await tempFile.writeAsBytes(response.bodyBytes);
-            print('✅ [POLLY] 2× STRONGER audio synthesized successfully with $engine engine');
             return tempFile;
           } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
-            // Current engine not supported, try next engine in priority list
-            final nextEngine = engines[engines.indexOf(engine) + 1];
-            print('⚠️ [POLLY] $engine engine not supported for 2× STRONGER, trying $nextEngine...');
             continue;
           } else {
-            print('❌ [POLLY] 2× STRONGER API error: ${response.statusCode} - ${response.body}');
             return null;
           }
         } catch (e) {
           if (engines.indexOf(engine) < engines.length - 1) {
-            final nextEngine = engines[engines.indexOf(engine) + 1];
-            print('⚠️ [POLLY] $engine engine failed for 2× STRONGER: $e, trying $nextEngine...');
             continue;
           }
           rethrow;
@@ -672,7 +515,6 @@ class PollyTTSService extends GetxService {
 
       return null;
     } catch (e) {
-      print('❌ [POLLY] 2× STRONGER synthesis error: $e');
       return null;
     }
   }
@@ -680,10 +522,7 @@ class PollyTTSService extends GetxService {
   Future<File?> _synthesizeWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
-      final voiceMode = _storage.hasGoldenVoice() ? 'CRYSTAL' : 'NORMAL';
-      print('🎙️ [POLLY] Synthesizing with voice: $voiceId, language: $fullLocale ($voiceMode mode)');
 
-      // Try with configured engine first (generative > neural > standard)
       final engines = _pollyEngine == 'generative'
           ? ['generative', 'neural', 'standard']
           : _pollyEngine == 'neural'
@@ -692,7 +531,6 @@ class PollyTTSService extends GetxService {
 
       for (final engine in engines) {
         try {
-          // Build SSML for current engine (important for fallback compatibility)
           final ssmlText = _storage.hasGoldenVoice()
               ? _buildGoldenSSMLForEngine(text, style, engine)
               : _buildSSMLForEngine(text, engine, prosody: prosody);
@@ -709,15 +547,6 @@ class PollyTTSService extends GetxService {
             'OutputFormat': _pollyOutputFormat,
           });
 
-          // Debug: Log the request details
-          print('🔍 [POLLY DEBUG] Request:');
-          print('   Region: $_awsRegion');
-          print('   Endpoint: $endpoint');
-          print('   Voice: $voiceId');
-          print('   Language: $fullLocale');
-          print('   Engine: $engine');
-          print('   SSML length: ${ssmlText.length} chars');
-
           final headers = await _generateSigV4Headers(
             method: 'POST',
             endpoint: endpoint,
@@ -729,28 +558,15 @@ class PollyTTSService extends GetxService {
             Uri.parse(endpoint),
             headers: headers,
             body: requestBody,
-          ).timeout(
-            Duration(seconds: _pollyTimeoutSeconds),
-            onTimeout: () {
-              print('⏱️ [POLLY] API timeout after ${_pollyTimeoutSeconds}s');
-              throw Exception('Polly API timeout');
-            },
-          );
+          ).timeout(Duration(seconds: _pollyTimeoutSeconds), onTimeout: () => throw Exception('Polly API timeout'));
 
           if (response.statusCode == 200) {
             final tempFile = File('${_cacheDir}/temp_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
             await tempFile.writeAsBytes(response.bodyBytes);
-            print('✅ [POLLY] Audio synthesized successfully with $engine engine');
             return tempFile;
           } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
-            // Current engine not supported, try next engine in priority list
-            final nextEngine = engines[engines.indexOf(engine) + 1];
-            print('⚠️ [POLLY] $engine engine not supported for voice $voiceId, trying $nextEngine engine...');
-            print('   AWS Error: ${response.body}');
             continue;
           } else {
-            print('❌ [POLLY] API error: ${response.statusCode} - ${response.body}');
-            // Report API error to Crashlytics
             _crashlytics.reportTTSError(
               Exception('Polly API returned status ${response.statusCode}'),
               StackTrace.current,
@@ -763,33 +579,16 @@ class PollyTTSService extends GetxService {
           }
         } catch (e, stackTrace) {
           if (engines.indexOf(engine) < engines.length - 1) {
-            final nextEngine = engines[engines.indexOf(engine) + 1];
-            print('⚠️ [POLLY] $engine engine failed: $e, trying $nextEngine engine...');
             continue;
           }
-          // Report error to Crashlytics before rethrowing
-          _crashlytics.reportTTSError(
-            e,
-            stackTrace,
-            operation: '_synthesizeWithPolly',
-            engine: engine,
-            voiceId: voiceId,
-            locale: fullLocale,
-          );
+          _crashlytics.reportTTSError(e, stackTrace, operation: '_synthesizeWithPolly', engine: engine, voiceId: voiceId, locale: fullLocale);
           rethrow;
         }
       }
 
       return null;
     } catch (e, stackTrace) {
-      print('❌ [POLLY] Synthesis error: $e');
-      // Report synthesis error to Crashlytics
-      _crashlytics.reportTTSError(
-        e,
-        stackTrace,
-        operation: '_synthesizeWithPolly',
-        locale: fullLocale,
-      );
+      _crashlytics.reportTTSError(e, stackTrace, operation: '_synthesizeWithPolly', locale: fullLocale);
       return null;
     }
   }
@@ -864,10 +663,8 @@ class PollyTTSService extends GetxService {
   String _pad(int n) => n.toString().padLeft(2, '0');
 
   String _getPollyVoice(String fullLocale) {
-    // Use injected storage service for consistency
     final String gender = _storage.getVoiceGender();
 
-    // Try to use discovered voice map first
     if (_voiceMap != null && _voiceMap!.containsKey(fullLocale)) {
       final enginePriority = _pollyEngine == 'generative'
           ? ['generative', 'neural', 'standard']
@@ -875,22 +672,13 @@ class PollyTTSService extends GetxService {
               ? ['neural', 'standard']
               : ['standard'];
 
-      // STRICT GENDER PREFERENCE: Only try selected gender across all engines
-      // Priority: generative → neural → standard
       for (final engine in enginePriority) {
         final voiceId = _voiceMap![fullLocale][engine]?[gender];
         if (voiceId != null) {
-          print('🎙️ [POLLY] Selected voice from map: $voiceId ($engine) for $fullLocale ($gender)');
           return voiceId;
         }
       }
-
-      // If no voice found for selected gender, log warning but don't fallback to opposite gender
-      print('⚠️ [POLLY] No $gender voice available in voice map for $fullLocale, trying hardcoded voices');
     }
-
-    // Fallback to hardcoded voices if discovery not complete
-    print('⚠️ [POLLY] Using fallback hardcoded voices');
 
     // ✅ AWS POLLY VOICE MAPPINGS (Based on AWS Documentation - November 2025)
     // Priority: Generative → Neural → Standard
@@ -1025,41 +813,25 @@ class PollyTTSService extends GetxService {
       },
     };
 
-    // Engine priority based on configuration
     final enginePriority = _pollyEngine == 'generative'
         ? ['Generative', 'Neural', 'Standard']
         : _pollyEngine == 'neural'
             ? ['Neural', 'Standard']
             : ['Standard'];
 
-    // STRICT GENDER PREFERENCE: Only try selected gender across all engines
-    // Priority: generative → neural → standard
     for (final engine in enginePriority) {
       final voiceId = voices[fullLocale]?[engine]?[gender];
       if (voiceId != null) {
-        print('🎙️ [POLLY] Selected voice: $voiceId ($engine engine) for $fullLocale ($gender)');
         return voiceId;
       }
     }
 
-    // Ultimate fallback to en-US with selected gender
-    print('⚠️ [POLLY] No $gender voice found for $fullLocale, falling back to en-US $gender voice');
     return gender == "male" ? "Matthew" : "Joanna";
   }
 
-  /// Build SSML for a specific engine
   String _buildSSMLForEngine(String text, String engine, {Map<String, String>? prosody}) {
-    // Clean the text first to fix spacing issues
     final cleanedText = _cleanTextForSpeech(text);
-
-    // DEBUG: Log before and after cleaning
-    print('🔍 [POLLY DEBUG] Before cleaning: "$text"');
-    print('🔍 [POLLY DEBUG] After cleaning: "$cleanedText"');
-
-    // Escape XML special characters
     final escapedText = _escapeXml(cleanedText);
-
-    print('🔍 [POLLY DEBUG] After XML escape: "$escapedText"');
 
     // Generative engine has limited SSML support - only x-values work
     if (engine == 'generative') {
@@ -1265,7 +1037,7 @@ class PollyTTSService extends GetxService {
         return file;
       }
     } catch (e) {
-      print('❌ [POLLY] Error checking cache: $e');
+      // Cache check failed
     }
     return null;
   }
@@ -1274,11 +1046,9 @@ class PollyTTSService extends GetxService {
     try {
       final cachedFile = File('$_cacheDir/$cacheKey.$_pollyOutputFormat');
       await audioFile.copy(cachedFile.path);
-
-      // Clean up old cache files (configurable max)
       await _cleanupOldCache();
     } catch (e) {
-      print('❌ [POLLY] Error caching audio: $e');
+      // Caching failed
     }
   }
 
@@ -1288,21 +1058,18 @@ class PollyTTSService extends GetxService {
       final files = await dir.list().toList();
 
       if (files.length > _pollyCacheMaxFiles) {
-        // Sort by modification time
         files.sort((a, b) {
           final aStat = (a as File).statSync();
           final bStat = (b as File).statSync();
           return aStat.modified.compareTo(bStat.modified);
         });
 
-        // Delete oldest files
         for (var i = 0; i < files.length - _pollyCacheMaxFiles; i++) {
           await (files[i] as File).delete();
         }
-        print('🧹 [POLLY] Cleaned up ${files.length - _pollyCacheMaxFiles} old cache files');
       }
     } catch (e) {
-      print('❌ [POLLY] Error cleaning cache: $e');
+      // Cache cleanup failed
     }
   }
 
@@ -1311,13 +1078,7 @@ class PollyTTSService extends GetxService {
       isSpeaking.value = true;
       await _audioPlayer.play(DeviceFileSource(file.path));
     } catch (e, stackTrace) {
-      print('❌ [POLLY] Error playing audio: $e');
-      // Report audio playback error to Crashlytics
-      _crashlytics.reportTTSError(
-        e,
-        stackTrace,
-        operation: '_playAudioFile',
-      );
+      _crashlytics.reportTTSError(e, stackTrace, operation: '_playAudioFile');
       isSpeaking.value = false;
     }
   }

@@ -29,7 +29,6 @@ class StreakController extends GetxController {
     longestStreak.value = _storage.getLongestStreak();
     totalShifts.value = _storage.getTotalShifts();
     _updateStreakMessage();
-    print('🔥 [STREAK CONTROLLER] Loaded - Current: ${currentStreak.value}, Longest: ${longestStreak.value}, Total: ${totalShifts.value}');
   }
 
   void _updateStreakMessage() {
@@ -71,9 +70,7 @@ class StreakController extends GetxController {
       // Show celebration
       _showStreakCelebration(current, isNewRecord, isBroken);
     } else {
-      // Not first shift today - just update message
       _updateStreakMessage();
-      print('🔥 [STREAK] Already shifted today, total shifts: $newTotal');
     }
   }
 

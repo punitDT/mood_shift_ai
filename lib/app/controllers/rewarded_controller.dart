@@ -30,10 +30,8 @@ class RewardedController extends GetxController {
 
   // ========== 2× STRONGER FEATURE (UNLIMITED!) ==========
 
-  // No limits! Users can use this as many times as they want
-  // More ad views = more revenue!
   void useStronger() {
-    print('⚡ [STRONGER] Activated! (UNLIMITED)');
+    // No limits! Users can use this as many times as they want
   }
 
   Future<void> playStrongerEffects() async {

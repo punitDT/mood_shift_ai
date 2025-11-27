@@ -37,54 +37,39 @@ class PermissionService extends GetxService {
   /// Request microphone permission with 2025-compliant dialog
   /// Returns true if permission is granted, false otherwise
   Future<bool> requestMicrophonePermission() async {
-    print('🎤 [PERMISSION] Requesting microphone permission');
-
-    // Check current permission status
     final status = await Permission.microphone.status;
 
     if (status.isGranted) {
-      print('✅ [PERMISSION] Microphone already granted');
       return true;
     }
 
-    // If permanently denied, show settings dialog
     if (status.isPermanentlyDenied) {
-      print('⚠️  [PERMISSION] Microphone permanently denied - showing settings dialog');
       return await _showMicrophoneSettingsDialog();
     }
 
-    // If denied but not permanently, show educational dialog first
     if (status.isDenied && hasMicPermissionBeenAsked) {
-      print('⚠️  [PERMISSION] Microphone denied previously - showing settings dialog');
       return await _showMicrophoneSettingsDialog();
     }
 
-    // First time asking - show educational dialog then request
-    print('🎤 [PERMISSION] First time asking for microphone - showing educational dialog');
     final shouldRequest = await _showMicrophoneEducationalDialog();
 
     if (!shouldRequest) {
-      print('❌ [PERMISSION] User cancelled microphone permission request');
       _markMicPermissionAsked();
       return false;
     }
 
-    // Request the permission
     _markMicPermissionAsked();
     final newStatus = await Permission.microphone.request();
 
     if (newStatus.isGranted) {
-      print('✅ [PERMISSION] Microphone permission granted');
       return true;
     } else if (newStatus.isPermanentlyDenied) {
-      print('❌ [PERMISSION] Microphone permission permanently denied');
       SnackbarUtils.showWarning(
         title: 'permission_denied'.tr,
         message: 'permission_denied_message'.tr,
       );
       return false;
     } else {
-      print('❌ [PERMISSION] Microphone permission denied');
       return false;
     }
   }
@@ -360,36 +345,27 @@ class PermissionService extends GetxService {
   /// This should be called AFTER microphone permission is granted
   /// Returns true if permission is granted, false otherwise
   Future<bool> requestNotificationPermission() async {
-    print('🔔 [PERMISSION] Requesting notification permission');
-
-    // Check if already asked
     if (hasNotificationPermissionBeenAsked) {
-      print('⚠️  [PERMISSION] Notification permission already asked - skipping');
       final status = await Permission.notification.status;
       return status.isGranted;
     }
 
-    // Show educational dialog
     final shouldRequest = await _showNotificationEducationalDialog();
     _markNotificationPermissionAsked();
 
     if (!shouldRequest) {
-      print('❌ [PERMISSION] User declined notification permission');
       return false;
     }
 
-    // Request the permission
     final status = await Permission.notification.request();
 
     if (status.isGranted) {
-      print('✅ [PERMISSION] Notification permission granted');
       SnackbarUtils.showSuccess(
         title: 'reminder_set'.tr,
         message: 'reminder_set_message'.tr,
       );
       return true;
     } else {
-      print('❌ [PERMISSION] Notification permission denied');
       return false;
     }
   }
@@ -530,35 +506,23 @@ class PermissionService extends GetxService {
   /// - 'granted': true if microphone is granted, false otherwise
   /// - 'justGranted': true if permissions were just granted (user should tap again), false if already had permission
   Future<Map<String, bool>> requestPermissionsFlow() async {
-    print('🎯 [PERMISSION] Starting complete permission flow');
-
-    // Check if microphone permission is already granted
     final currentStatus = await Permission.microphone.status;
     final alreadyGranted = currentStatus.isGranted;
 
-    print('🎤 [PERMISSION] Microphone already granted: $alreadyGranted');
-
-    // Step 1: Request microphone (required)
     final micGranted = await requestMicrophonePermission();
 
     if (!micGranted) {
-      print('❌ [PERMISSION] Microphone not granted - stopping flow');
       return {'granted': false, 'justGranted': false};
     }
 
-    // If permission was already granted, no dialogs were shown
     if (alreadyGranted) {
-      print('✅ [PERMISSION] Permission already granted - user can proceed immediately');
       return {'granted': true, 'justGranted': false};
     }
 
-    // Step 2: Request notifications (optional) - only if not asked before
     if (!hasNotificationPermissionBeenAsked) {
-      print('🔔 [PERMISSION] Microphone granted - requesting notifications');
       await requestNotificationPermission();
     }
 
-    print('✅ [PERMISSION] Permission flow complete - permissions just granted');
     return {'granted': true, 'justGranted': true};
   }
 }

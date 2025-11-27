@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'ai_service.dart'; // For MoodStyle enum
+import 'ai_service.dart';
 import 'storage_service.dart';
 import 'crashlytics_service.dart';
 
@@ -21,10 +21,7 @@ class GroqLLMService extends GetxService {
   late final StorageService _storage;
   late final CrashlyticsService _crashlytics;
 
-  // Track the last selected style for the 2x stronger feature
   MoodStyle? _lastSelectedStyle;
-
-  // Track the last prosody settings from LLM
   Map<String, String> _lastProsody = {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
 
   @override
@@ -36,47 +33,29 @@ class GroqLLMService extends GetxService {
     _temperature = double.tryParse(dotenv.env['GROK_TEMPERATURE'] ?? '0.9') ?? 0.9;
     _maxTokens = int.tryParse(dotenv.env['GROK_MAX_TOKENS'] ?? '800') ?? 800;
     _timeoutSeconds = int.tryParse(dotenv.env['GROK_TIMEOUT_SECONDS'] ?? '10') ?? 10;
-    // Increased penalties to prevent repetition (from 0.5 to 0.8)
     _frequencyPenalty = double.tryParse(dotenv.env['GROK_FREQUENCY_PENALTY'] ?? '0.8') ?? 0.8;
     _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.8') ?? 0.8;
     _maxResponseWords = int.tryParse(dotenv.env['GROK_MAX_RESPONSE_WORDS'] ?? '300') ?? 300;
     _storage = Get.find<StorageService>();
     _crashlytics = Get.find<CrashlyticsService>();
-
-    if (_apiKey.isEmpty) {
-      print('⚠️ [GROQ] Warning: GROK_API_KEY not found in .env');
-    }
-
-    print('🤖 [GROQ] Using model: $_model');
-    print('🔧 [GROQ] API URL: $_groqApiUrl');
-    print('🔧 [GROQ] Temperature: $_temperature, Max Tokens: $_maxTokens, Timeout: ${_timeoutSeconds}s');
-    print('🔧 [GROQ] Max Response Words: $_maxResponseWords');
   }
 
   Future<String> generateResponse(String userInput, String language) async {
-    // Save user input to history for anti-repetition
     _storage.addUserInputToHistory(userInput);
 
-    // Check if input is empty or too short
     if (userInput.trim().isEmpty || userInput.trim().length < 3) {
-      print('⚠️ [GROQ] Input too short, using fallback');
       return _getHardcodedFallback(language);
     }
 
-    // Check cache first for offline support
     final cached = _storage.findCachedResponse(userInput, language);
     if (cached != null) {
-      print('💾 [GROQ] Using cached response');
       final response = cached['response'] as String;
       _storage.addAIResponseToHistory(response);
       return response;
     }
 
     try {
-      // Build the prompt that asks LLM to determine the style
       final prompt = _buildPromptWithStyleSelection(userInput, language);
-
-      print('🤖 [GROQ] Calling Groq API with model: $_model (LLM will determine style)');
 
       final response = await http.post(
         Uri.parse(_groqApiUrl),
@@ -105,15 +84,8 @@ class GroqLLMService extends GetxService {
       ).timeout(
         Duration(seconds: _timeoutSeconds),
         onTimeout: () {
-          print('⏱️ [GROQ] API timeout after $_timeoutSeconds seconds');
           final timeoutError = Exception('Groq API timeout after $_timeoutSeconds seconds');
-          _crashlytics.reportLLMError(
-            timeoutError,
-            StackTrace.current,
-            operation: 'generateResponse',
-            model: _model,
-            userInput: userInput,
-          );
+          _crashlytics.reportLLMError(timeoutError, StackTrace.current, operation: 'generateResponse', model: _model, userInput: userInput);
           throw timeoutError;
         },
       );
@@ -123,46 +95,21 @@ class GroqLLMService extends GetxService {
         if (data['choices'] != null && data['choices'].isNotEmpty) {
           String generatedText = data['choices'][0]['message']['content'] ?? '';
 
-          // DEBUG: Log raw LLM output
-          print('🔍 [GROQ DEBUG] Raw LLM output:');
-          print('---START---');
-          print(generatedText);
-          print('---END---');
-
-          // Parse the style, prosody, and response from the LLM output
           final parsed = _parseStyleAndResponse(generatedText);
           final selectedStyle = parsed['style'] as MoodStyle;
           final prosody = parsed['prosody'] as Map<String, String>;
           String finalResponse = parsed['response'] as String;
 
-          // DEBUG: Log parsed response before cleaning
-          print('🔍 [GROQ DEBUG] Parsed response (before cleaning): "$finalResponse"');
-
-          // Save the selected style and prosody for TTS
           _lastSelectedStyle = selectedStyle;
           _lastProsody = prosody;
 
-          print('🎯 [GROQ] LLM selected style: $selectedStyle');
-          print('🎵 [GROQ] LLM prosody: rate=${prosody['rate']}, pitch=${prosody['pitch']}, volume=${prosody['volume']}');
-
-          // Clean up and limit length
           finalResponse = _cleanResponse(finalResponse);
-
-          // DEBUG: Log after cleaning
-          print('🔍 [GROQ DEBUG] After cleaning: "$finalResponse"');
-
-          // Cache the response
           _storage.addCachedResponse(userInput, finalResponse, language);
-
-          // Save to history for anti-repetition
           _storage.addAIResponseToHistory(finalResponse);
 
-          print('✅ [GROQ] Response generated successfully (${finalResponse.length} chars)');
           return finalResponse;
         }
       } else {
-        print('❌ [GROQ] API error: ${response.statusCode} - ${response.body}');
-        // Report API error to Crashlytics
         _crashlytics.reportLLMError(
           Exception('Groq API returned status ${response.statusCode}'),
           StackTrace.current,
@@ -173,37 +120,19 @@ class GroqLLMService extends GetxService {
         );
       }
 
-      // If API fails, use hardcoded fallback
-      print('🔄 [GROQ] API returned no valid response, using fallback');
       return _getHardcodedFallback(language);
     } catch (e, stackTrace) {
-      print('❌ [GROQ] Error: $e, using fallback');
-      // Report error to Crashlytics
-      _crashlytics.reportLLMError(
-        e,
-        stackTrace,
-        operation: 'generateResponse',
-        model: _model,
-        userInput: userInput,
-      );
-      // Return hardcoded fallback
+      _crashlytics.reportLLMError(e, stackTrace, operation: 'generateResponse', model: _model, userInput: userInput);
       return _getHardcodedFallback(language);
     }
   }
 
   /// Generate a 2× STRONGER version of the original response
-  /// NEW APPROACH: Makes a fresh LLM call with the original response + style
-  /// to create a dramatically more intense, emotional, and powerful version
-  Future<String> generateStrongerResponse(
-    String originalResponse,
-    MoodStyle originalStyle,
-    String language,
-  ) async {
+  Future<String> generateStrongerResponse(String originalResponse, MoodStyle originalStyle, String language) async {
     try {
       final languageName = _getLanguageName(language);
       final styleStr = _getStyleString(originalStyle);
 
-      // Build the NEW 2× stronger prompt that preserves style
       final prompt = '''ORIGINAL RESPONSE: "$originalResponse"
 ORIGINAL STYLE: $styleStr
 
@@ -224,8 +153,6 @@ RESPONSE: [Your 2× STRONGER version]
 
 Make it feel like the AI just LEVELED UP!''';
 
-      print('⚡ [GROQ] Generating 2× STRONGER response with style: $styleStr');
-
       final response = await http.post(
         Uri.parse(_groqApiUrl),
         headers: {
@@ -235,32 +162,20 @@ Make it feel like the AI just LEVELED UP!''';
         body: jsonEncode({
           'model': _model,
           'messages': [
-            {
-              'role': 'system',
-              'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify responses to 2× intensity. Output EXACTLY 3 lines: STYLE:, PROSODY:, RESPONSE:. Never use forbidden words.',
-            },
-            {
-              'role': 'user',
-              'content': prompt,
-            },
+            {'role': 'system', 'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify responses to 2× intensity. Output EXACTLY 3 lines: STYLE:, PROSODY:, RESPONSE:. Never use forbidden words.'},
+            {'role': 'user', 'content': prompt},
           ],
-          'temperature': 0.9, // Slightly lower for more consistent format
+          'temperature': 0.9,
           'max_tokens': _maxTokens,
           'top_p': 1,
-          'frequency_penalty': 0.2, // Lower to allow more repetition of power words
-          'presence_penalty': 0.8, // Higher for more variety
+          'frequency_penalty': 0.2,
+          'presence_penalty': 0.8,
         }),
       ).timeout(
         Duration(seconds: _timeoutSeconds),
         onTimeout: () {
-          print('⏱️ [GROQ] 2× STRONGER API timeout after $_timeoutSeconds seconds');
           final timeoutError = Exception('Groq API timeout for 2× stronger after $_timeoutSeconds seconds');
-          _crashlytics.reportLLMError(
-            timeoutError,
-            StackTrace.current,
-            operation: 'generateStrongerResponse',
-            model: _model,
-          );
+          _crashlytics.reportLLMError(timeoutError, StackTrace.current, operation: 'generateStrongerResponse', model: _model);
           throw timeoutError;
         },
       );
@@ -269,29 +184,17 @@ Make it feel like the AI just LEVELED UP!''';
         final data = jsonDecode(response.body);
         if (data['choices'] != null && data['choices'].isNotEmpty) {
           String generatedText = data['choices'][0]['message']['content'] ?? '';
-
-          // Parse the style, prosody, and response from the LLM output
           final parsed = _parseStyleAndResponse(generatedText);
           final selectedStyle = parsed['style'] as MoodStyle;
           final prosody = parsed['prosody'] as Map<String, String>;
           String finalResponse = parsed['response'] as String;
 
-          // Save the selected style and prosody for TTS
           _lastSelectedStyle = selectedStyle;
           _lastProsody = prosody;
-
-          print('🎯 [GROQ] 2× STRONGER style: $selectedStyle');
-          print('🎵 [GROQ] 2× STRONGER prosody: rate=${prosody['rate']}, pitch=${prosody['pitch']}, volume=${prosody['volume']}');
-
-          // Clean up
           finalResponse = _cleanResponse(finalResponse);
-
-          print('✅ [GROQ] 2× STRONGER response generated: ${finalResponse.length} chars');
           return finalResponse;
         }
       } else {
-        print('❌ [GROQ] 2× Stronger API error: ${response.statusCode}');
-        // Report API error to Crashlytics
         _crashlytics.reportLLMError(
           Exception('Groq API returned status ${response.statusCode} for 2× stronger'),
           StackTrace.current,
@@ -301,22 +204,13 @@ Make it feel like the AI just LEVELED UP!''';
         );
       }
 
-      // Fallback: Return original with some manual amplification
       return _amplifyResponseManually(originalResponse);
     } catch (e, stackTrace) {
-      print('❌ [GROQ] Error generating 2× stronger: $e');
-      // Report error to Crashlytics
-      _crashlytics.reportLLMError(
-        e,
-        stackTrace,
-        operation: 'generateStrongerResponse',
-        model: _model,
-      );
+      _crashlytics.reportLLMError(e, stackTrace, operation: 'generateStrongerResponse', model: _model);
       return _amplifyResponseManually(originalResponse);
     }
   }
 
-  /// Convert MoodStyle enum to string for prompts
   String _getStyleString(MoodStyle style) {
     switch (style) {
       case MoodStyle.chaosEnergy:
@@ -332,15 +226,11 @@ Make it feel like the AI just LEVELED UP!''';
     }
   }
 
-  /// Manual fallback amplification if API fails
   String _amplifyResponseManually(String original) {
-    // Simple amplification: add caps, emojis, and exclamation marks
     String amplified = original.toUpperCase();
     amplified = amplified.replaceAll('.', '! 🔥');
     amplified = amplified.replaceAll('!', '!! ⚡');
     amplified = '🚀 $amplified 💪';
-
-    print('⚡ [GROQ] Using manual amplification fallback');
     return amplified;
   }
 
@@ -439,17 +329,13 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
     }
   }
 
-  /// Parse the LLM output to extract style, prosody, and response
   Map<String, dynamic> _parseStyleAndResponse(String llmOutput) {
     try {
-      print('🔍 [PARSE DEBUG] Step 1 - Raw LLM output length: ${llmOutput.length}');
-
-      // Look for STYLE:, PROSODY:, and RESPONSE: markers
       final styleMatch = RegExp(r'STYLE:\s*(CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE)', caseSensitive: false).firstMatch(llmOutput);
       final prosodyMatch = RegExp(r'PROSODY:\s*rate=(\w+)\s+pitch=(\w+)\s+volume=(\w+)', caseSensitive: false).firstMatch(llmOutput);
       final responseMatch = RegExp(r'RESPONSE:\s*(.+)', caseSensitive: false, dotAll: true).firstMatch(llmOutput);
 
-      MoodStyle selectedStyle = MoodStyle.microDare; // Default
+      MoodStyle selectedStyle = MoodStyle.microDare;
 
       if (styleMatch != null) {
         final styleStr = styleMatch.group(1)?.toUpperCase() ?? '';
@@ -472,59 +358,36 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
         }
       }
 
-      // Extract prosody settings
-      Map<String, String> prosody = {
-        'rate': 'medium',
-        'pitch': 'medium',
-        'volume': 'medium',
-      };
+      Map<String, String> prosody = {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
 
       if (prosodyMatch != null) {
         prosody['rate'] = prosodyMatch.group(1)?.toLowerCase() ?? 'medium';
         prosody['pitch'] = prosodyMatch.group(2)?.toLowerCase() ?? 'medium';
         prosody['volume'] = prosodyMatch.group(3)?.toLowerCase() ?? 'medium';
       } else {
-        // Fallback to style-based defaults if LLM doesn't provide prosody
         prosody = _getDefaultProsody(selectedStyle);
       }
 
       String response = llmOutput;
       if (responseMatch != null) {
         response = responseMatch.group(1)?.trim() ?? llmOutput;
-        print('🔍 [PARSE DEBUG] Step 2 - Extracted via RESPONSE: marker: "$response"');
       } else {
-        // If no RESPONSE: marker found, try to extract everything after PROSODY: line
         final lines = llmOutput.split('\n');
         if (lines.length > 2) {
           response = lines.skip(2).join('\n').trim();
         } else if (lines.length > 1) {
           response = lines.skip(1).join('\n').trim();
         }
-        print('🔍 [PARSE DEBUG] Step 2 - Extracted via line skipping: "$response"');
       }
 
-      // Clean up any remaining markers
-      print('🔍 [PARSE DEBUG] Step 3 - Before marker cleanup: "$response"');
       response = response.replaceAll(RegExp(r'^RESPONSE:\s*', caseSensitive: false), '');
       response = response.replaceAll(RegExp(r'^STYLE:.*$', caseSensitive: false, multiLine: true), '');
       response = response.replaceAll(RegExp(r'^PROSODY:.*$', caseSensitive: false, multiLine: true), '');
       response = response.trim();
-      print('🔍 [PARSE DEBUG] Step 4 - After marker cleanup: "$response"');
-
-      // Remove all emojis from response
-      final beforeEmoji = response;
       response = _removeEmojis(response);
-      if (beforeEmoji != response) {
-        print('🔍 [PARSE DEBUG] Step 5 - After emoji removal: "$response"');
-      }
 
-      return {
-        'style': selectedStyle,
-        'prosody': prosody,
-        'response': response,
-      };
+      return {'style': selectedStyle, 'prosody': prosody, 'response': response};
     } catch (e) {
-      print('⚠️ [GROQ] Error parsing style/response: $e, using defaults');
       return {
         'style': MoodStyle.microDare,
         'prosody': {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'},
@@ -618,15 +481,10 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
     return _lastProsody;
   }
 
-  // 10 hardcoded fallbacks for offline/error scenarios (in all languages)
   String _getHardcodedFallback(String languageCode) {
     final fallbacks = _getFallbacksByLanguage(languageCode);
     final selected = fallbacks[_random.nextInt(fallbacks.length)];
-    print('💝 [GROQ] Using hardcoded fallback: ${selected.substring(0, selected.length > 30 ? 30 : selected.length)}...');
-
-    // Save to history
     _storage.addAIResponseToHistory(selected);
-
     return selected;
   }
 

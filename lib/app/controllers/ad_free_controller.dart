@@ -52,9 +52,7 @@ class AdFreeController extends GetxController {
     } else {
       adFreeTimeRemaining.value = '';
       
-      // If ad-free period just ended, reload banner ad
       if (wasAdFree && !isAdFree.value) {
-        print('🔄 [AD-FREE DEBUG] Ad-free period ended, reloading banner ad');
         _adService.loadBannerAd();
       }
     }
