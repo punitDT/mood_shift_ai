@@ -91,5 +91,11 @@ const Map<String, String> deDE = {
   'permission_slip': 'Erlaubnisschein',
   'reality_check': 'Realitätscheck',
   'micro_dare': 'Mikro-Herausforderung',
+
+  // Notifications
+  'notification_title': '💜 Zeit für eine Stimmungsänderung?',
+  'notification_body': 'Ihr Moment der Ruhe wartet. Atmen Sie durch und ändern Sie Ihre Stimmung.',
+  'notification_channel_name': 'Tägliche Erinnerungen',
+  'notification_channel_description': 'Sanfte Erinnerungen, um Ihre Serie aufrechtzuerhalten',
 };
 

@@ -59,7 +59,7 @@ const Map<String, String> zhCN = {
   'rate_app': '评价应用',
   'share_app': '分享应用',
   'about': '关于',
-  'about_text': 'MoodShift AI是您的个人ADHD伴侣，通过AI语音响应帮助您即时转变心情。',
+  'about_text': 'MoodShift AI是您的个人心情伴侣，通过AI语音响应帮助您即时转变心情。',
   'english': 'English',
   'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',
@@ -74,7 +74,7 @@ const Map<String, String> zhCN = {
   'no_speech_detected': '未检测到语音。请重试。',
   'ai_error': 'AI服务错误。请重试。',
   'network_error': '网络错误。请检查您的连接。',
-  'share_text': '看看MoodShift AI - 您的个人ADHD伴侣！🧠✨',
+  'share_text': '看看MoodShift AI - 您的个人心情伴侣！🧠✨',
   'loading_reward': '加载奖励中...',
   'ad_not_ready': '广告尚未准备好。请重试。',
 
@@ -91,5 +91,11 @@ const Map<String, String> zhCN = {
   'permission_slip': '许可单',
   'reality_check': '现实检查',
   'micro_dare': '微挑战',
+
+  // Notifications
+  'notification_title': '💜 是时候转变心情了？',
+  'notification_body': '您的平静时刻正在等待。深呼吸，转变您的心情。',
+  'notification_channel_name': '每日提醒',
+  'notification_channel_description': '温和的提醒，帮助您保持连续记录',
 };
 

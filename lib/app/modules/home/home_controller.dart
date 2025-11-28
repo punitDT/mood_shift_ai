@@ -439,6 +439,9 @@ class HomeController extends GetxController {
     showRewardButtons.value = true;
     _resetToIdle();
     _remoteConfig.fetchConfig();
+
+    // Clean up audio files after shift completes
+    _ttsService.cleanupAudioFiles();
   }
 
   void _resetToIdle() {
@@ -563,6 +566,10 @@ class HomeController extends GetxController {
     _listeningProgressTimer?.cancel();
     _speakingProgressTimer?.cancel();
     confettiController.dispose();
+
+    // Clean up audio files when controller closes
+    _ttsService.cleanupAudioFiles();
+
     super.onClose();
   }
 }

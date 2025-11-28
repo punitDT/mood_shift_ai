@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'storage_service.dart';
+import 'habit_service.dart';
 import '../utils/snackbar_utils.dart';
 
 /// 2025-compliant permission service for MoodShift AI
@@ -360,6 +361,8 @@ class PermissionService extends GetxService {
     final status = await Permission.notification.request();
 
     if (status.isGranted) {
+      // Schedule the reminder notification now that permission is granted
+      await HabitService.scheduleReminderNotification();
       SnackbarUtils.showSuccess(
         title: 'reminder_set'.tr,
         message: 'reminder_set_message'.tr,

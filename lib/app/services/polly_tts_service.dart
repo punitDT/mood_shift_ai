@@ -28,9 +28,8 @@ class PollyTTSService extends GetxService {
   late final String _pollyEngine;
   late final String _pollyOutputFormat;
   late final int _pollyTimeoutSeconds;
-  late final int _pollyCacheMaxFiles;
 
-  String? _cacheDir;
+  String? _tempDir;
   Map<String, dynamic>? _voiceMap;
 
   @override
@@ -42,11 +41,10 @@ class PollyTTSService extends GetxService {
     _pollyEngine = dotenv.env['AWS_POLLY_ENGINE'] ?? 'generative';
     _pollyOutputFormat = dotenv.env['AWS_POLLY_OUTPUT_FORMAT'] ?? 'mp3';
     _pollyTimeoutSeconds = int.tryParse(dotenv.env['AWS_POLLY_TIMEOUT_SECONDS'] ?? '10') ?? 10;
-    _pollyCacheMaxFiles = int.tryParse(dotenv.env['AWS_POLLY_CACHE_MAX_FILES'] ?? '20') ?? 20;
     _crashlytics = Get.find<CrashlyticsService>();
 
     _initializeFallbackTTS();
-    _initializeCacheDir();
+    _initializeTempDir();
     _setupAudioPlayer();
     _initializeVoiceDiscovery();
   }
@@ -79,13 +77,13 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<void> _initializeCacheDir() async {
+  Future<void> _initializeTempDir() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      _cacheDir = '${dir.path}/polly_cache';
-      await Directory(_cacheDir!).create(recursive: true);
+      final dir = await getTemporaryDirectory();
+      _tempDir = '${dir.path}/polly_audio';
+      await Directory(_tempDir!).create(recursive: true);
     } catch (e) {
-      // Cache dir creation failed
+      // Temp dir creation failed
     }
   }
 
@@ -396,15 +394,6 @@ class PollyTTSService extends GetxService {
     await stop();
 
     final fullLocale = _storage.getFullLocale();
-    final gender = _storage.getVoiceGender();
-    final isCrystal = _storage.hasCrystalVoice();
-    final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isCrystal: isCrystal);
-    final cachedFile = await _getCachedAudio(cacheKey);
-
-    if (cachedFile != null) {
-      await _playAudioFile(cachedFile);
-      return;
-    }
 
     // Set preparing state while fetching audio from Polly
     isPreparing.value = true;
@@ -413,7 +402,6 @@ class PollyTTSService extends GetxService {
       final audioFile = await _synthesizeWithPolly(text, fullLocale, style, prosody: prosody, ssml: ssml);
       isPreparing.value = false;
       if (audioFile != null) {
-        await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
         isUsingOfflineMode.value = false;
         return;
@@ -433,14 +421,6 @@ class PollyTTSService extends GetxService {
     await stop();
 
     final fullLocale = _storage.getFullLocale();
-    final gender = _storage.getVoiceGender();
-    final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isStronger: true);
-    final cachedFile = await _getCachedAudio(cacheKey);
-
-    if (cachedFile != null) {
-      await _playAudioFile(cachedFile);
-      return;
-    }
 
     // Set preparing state while fetching audio from Polly
     isPreparing.value = true;
@@ -449,7 +429,6 @@ class PollyTTSService extends GetxService {
       final audioFile = await _synthesizeStrongerWithPolly(text, fullLocale, style, ssml: ssml);
       isPreparing.value = false;
       if (audioFile != null) {
-        await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
         isUsingOfflineMode.value = false;
         return;
@@ -508,7 +487,7 @@ class PollyTTSService extends GetxService {
           ).timeout(Duration(seconds: _pollyTimeoutSeconds), onTimeout: () => throw Exception('Polly API timeout'));
 
           if (response.statusCode == 200) {
-            final tempFile = File('${_cacheDir}/temp_stronger_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
+            final tempFile = File('${_tempDir}/audio_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
             await tempFile.writeAsBytes(response.bodyBytes);
             return tempFile;
           } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
@@ -572,7 +551,7 @@ class PollyTTSService extends GetxService {
           ).timeout(Duration(seconds: _pollyTimeoutSeconds), onTimeout: () => throw Exception('Polly API timeout'));
 
           if (response.statusCode == 200) {
-            final tempFile = File('${_cacheDir}/temp_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
+            final tempFile = File('${_tempDir}/audio_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
             await tempFile.writeAsBytes(response.bodyBytes);
             return tempFile;
           } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
@@ -1135,52 +1114,26 @@ class PollyTTSService extends GetxService {
         .replaceAll("'", '&apos;');
   }
 
-  String _getCacheKey(String text, String languageCode, MoodStyle style, {String gender = 'female', bool isStronger = false, bool isCrystal = false}) {
-    final modifier = isStronger ? '-stronger' : (isCrystal ? '-crystal' : '');
-    final combined = '$text-$languageCode-${style.toString()}-$gender$modifier';
-    return sha256.convert(utf8.encode(combined)).toString();
-  }
+  /// Clean up all audio files (call after shift completes)
+  Future<void> cleanupAudioFiles() async {
+    if (_tempDir == null) return;
 
-  Future<File?> _getCachedAudio(String cacheKey) async {
     try {
-      final file = File('$_cacheDir/$cacheKey.$_pollyOutputFormat');
-      if (await file.exists()) {
-        return file;
-      }
-    } catch (e) {
-      // Cache check failed
-    }
-    return null;
-  }
+      final dir = Directory(_tempDir!);
+      if (!await dir.exists()) return;
 
-  Future<void> _cacheAudio(String cacheKey, File audioFile) async {
-    try {
-      final cachedFile = File('$_cacheDir/$cacheKey.$_pollyOutputFormat');
-      await audioFile.copy(cachedFile.path);
-      await _cleanupOldCache();
-    } catch (e) {
-      // Caching failed
-    }
-  }
-
-  Future<void> _cleanupOldCache() async {
-    try {
-      final dir = Directory(_cacheDir!);
       final files = await dir.list().toList();
-
-      if (files.length > _pollyCacheMaxFiles) {
-        files.sort((a, b) {
-          final aStat = (a as File).statSync();
-          final bStat = (b as File).statSync();
-          return aStat.modified.compareTo(bStat.modified);
-        });
-
-        for (var i = 0; i < files.length - _pollyCacheMaxFiles; i++) {
-          await (files[i] as File).delete();
+      for (final file in files) {
+        if (file is File) {
+          try {
+            await file.delete();
+          } catch (_) {
+            // Individual file deletion failed
+          }
         }
       }
     } catch (e) {
-      // Cache cleanup failed
+      // Cleanup failed - not critical
     }
   }
 

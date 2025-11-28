@@ -3,10 +3,12 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
+import 'crashlytics_service.dart';
 import '../utils/snackbar_utils.dart';
 
 class AdService extends GetxService {
   final StorageService _storage = Get.find<StorageService>();
+  CrashlyticsService? _crashlytics;
 
   BannerAd? bannerAd; // Bottom banner
   BannerAd? topBannerAd; // Top banner
@@ -53,6 +55,14 @@ class AdService extends GetxService {
   @override
   void onInit() {
     super.onInit();
+    // Delay crashlytics access to avoid initialization order issues
+    Future.delayed(Duration.zero, () {
+      try {
+        _crashlytics = Get.find<CrashlyticsService>();
+      } catch (_) {
+        // CrashlyticsService not available yet
+      }
+    });
     loadBannerAd();
     loadInterstitialAd();
     loadRewardedAds();
@@ -131,6 +141,14 @@ class AdService extends GetxService {
               ad.dispose();
               interstitialAd = null;
               isInterstitialLoaded.value = false;
+              _crashlytics?.reportAdError(
+                Exception('Interstitial ad failed to show: ${error.message}'),
+                StackTrace.current,
+                operation: 'show_interstitial',
+                adType: 'interstitial',
+                errorCode: error.code,
+                errorMessage: error.message,
+              );
               loadInterstitialAd();
             },
           );
@@ -250,6 +268,14 @@ class AdService extends GetxService {
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
         SnackbarUtils.showError(title: 'Error', message: 'Failed to show ad. Please try again.');
+        _crashlytics?.reportAdError(
+          Exception('Rewarded ad (Stronger) failed to show: ${error.message}'),
+          StackTrace.current,
+          operation: 'show_rewarded_stronger',
+          adType: 'rewarded',
+          errorCode: error.code,
+          errorMessage: error.message,
+        );
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -318,6 +344,14 @@ class AdService extends GetxService {
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
         SnackbarUtils.showError(title: 'Error', message: 'Failed to show ad. Please try again.');
+        _crashlytics?.reportAdError(
+          Exception('Rewarded ad (Crystal) failed to show: ${error.message}'),
+          StackTrace.current,
+          operation: 'show_rewarded_crystal',
+          adType: 'rewarded',
+          errorCode: error.code,
+          errorMessage: error.message,
+        );
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),
@@ -386,6 +420,14 @@ class AdService extends GetxService {
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
         SnackbarUtils.showError(title: 'Error', message: 'Failed to show ad. Please try again.');
+        _crashlytics?.reportAdError(
+          Exception('Rewarded ad (RemoveAds) failed to show: ${error.message}'),
+          StackTrace.current,
+          operation: 'show_rewarded_remove_ads',
+          adType: 'rewarded',
+          errorCode: error.code,
+          errorMessage: error.message,
+        );
         RewardedAd.load(
           adUnitId: rewardedAdUnitId,
           request: const AdRequest(),

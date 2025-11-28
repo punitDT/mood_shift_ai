@@ -67,7 +67,7 @@ const Map<String, String> enUS = {
   'rate_app': 'Rate App',
   'share_app': 'Share App',
   'about': 'About',
-  'about_text': 'MoodShift AI is your personal ADHD companion that helps shift your mood instantly with AI-powered voice responses.',
+  'about_text': 'MoodShift AI is your personal mood companion that helps shift your mood instantly with AI-powered voice responses.',
   
   // Languages
   'english': 'English',
@@ -95,7 +95,7 @@ const Map<String, String> enUS = {
   'network_error': 'Network error. Please check your connection.',
   
   // Share
-  'share_text': 'Check out MoodShift AI - Your personal ADHD companion! 🧠✨',
+  'share_text': 'Check out MoodShift AI - Your personal mood companion! 🧠✨',
   
   // Ad Loading
   'loading_reward': 'Loading reward...',
@@ -107,5 +107,11 @@ const Map<String, String> enUS = {
   'permission_slip': 'Permission Slip',
   'reality_check': 'Reality Check',
   'micro_dare': 'Micro Dare',
+
+  // Notifications
+  'notification_title': '💜 Time for a mood shift?',
+  'notification_body': 'Your moment of calm awaits. Take a breath and shift your mood.',
+  'notification_channel_name': 'Daily Reminders',
+  'notification_channel_description': 'Gentle reminders to keep your streak alive',
 };
 

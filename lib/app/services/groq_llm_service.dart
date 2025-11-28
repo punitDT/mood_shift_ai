@@ -79,7 +79,7 @@ class GroqLLMService extends GetxService {
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI, a compassionate ADHD companion. You analyze user input and select the most appropriate coaching style, then respond in that style. Your response will be spoken aloud immediately. ALWAYS respond with valid JSON only.',
+              'content': 'You are MoodShift AI, a compassionate mood companion. You analyze user input and select the most appropriate coaching style, then respond in that style. Your response will be spoken aloud immediately. ALWAYS respond with valid JSON only.',
             },
             {
               'role': 'user',

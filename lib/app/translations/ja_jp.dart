@@ -59,7 +59,7 @@ const Map<String, String> jaJP = {
   'rate_app': 'アプリを評価',
   'share_app': 'アプリを共有',
   'about': 'について',
-  'about_text': 'MoodShift AIは、AI音声応答で気分を即座に変えるのを助けるあなたの個人的なADHDコンパニオンです。',
+  'about_text': 'MoodShift AIは、AI音声応答で気分を即座に変えるのを助けるあなたの個人的なムードコンパニオンです。',
   'english': 'English',
   'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',
@@ -74,7 +74,7 @@ const Map<String, String> jaJP = {
   'no_speech_detected': '音声が検出されませんでした。もう一度お試しください。',
   'ai_error': 'AIサービスエラー。もう一度お試しください。',
   'network_error': 'ネットワークエラー。接続を確認してください。',
-  'share_text': 'MoodShift AIをチェック - あなたの個人的なADHDコンパニオン！🧠✨',
+  'share_text': 'MoodShift AIをチェック - あなたの個人的なムードコンパニオン！🧠✨',
   'loading_reward': '報酬を読み込み中...',
   'ad_not_ready': '広告はまだ準備ができていません。もう一度お試しください。',
 
@@ -91,5 +91,11 @@ const Map<String, String> jaJP = {
   'permission_slip': '許可証',
   'reality_check': '現実チェック',
   'micro_dare': 'マイクロチャレンジ',
+
+  // Notifications
+  'notification_title': '💜 気分転換の時間ですか？',
+  'notification_body': '穏やかなひとときがあなたを待っています。深呼吸して気分を変えましょう。',
+  'notification_channel_name': '毎日のリマインダー',
+  'notification_channel_description': '連続記録を維持するための優しいリマインダー',
 };
 

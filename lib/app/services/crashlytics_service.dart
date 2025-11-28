@@ -197,6 +197,29 @@ class CrashlyticsService extends GetxService {
     );
   }
 
+  /// Report Ad errors (important for monetization)
+  void reportAdError(
+    dynamic error,
+    StackTrace? stackTrace, {
+    required String operation,
+    required String adType,
+    int? errorCode,
+    String? errorMessage,
+  }) {
+    reportError(
+      error,
+      stackTrace,
+      reason: 'Ad Error: $operation',
+      customKeys: {
+        'error_type': 'ad',
+        'ad_operation': operation,
+        'ad_type': adType,
+        if (errorCode != null) 'ad_error_code': errorCode,
+        if (errorMessage != null) 'ad_error_message': errorMessage,
+      },
+    );
+  }
+
   void log(String message) {
     if (kReleaseMode) {
       FirebaseCrashlytics.instance.log(message);

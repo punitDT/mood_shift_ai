@@ -91,5 +91,11 @@ const Map<String, String> esES = {
   'permission_slip': 'Permiso Oficial',
   'reality_check': 'Verificación de Realidad',
   'micro_dare': 'Micro Desafío',
+
+  // Notifications
+  'notification_title': '💜 ¿Hora de un cambio de ánimo?',
+  'notification_body': 'Tu momento de calma te espera. Respira y cambia tu estado de ánimo.',
+  'notification_channel_name': 'Recordatorios Diarios',
+  'notification_channel_description': 'Recordatorios suaves para mantener tu racha',
 };
 

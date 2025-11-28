@@ -91,5 +91,11 @@ const Map<String, String> arSA = {
   'permission_slip': 'إذن رسمي',
   'reality_check': 'فحص الواقع',
   'micro_dare': 'تحدي صغير',
+
+  // Notifications
+  'notification_title': '💜 حان وقت تغيير المزاج؟',
+  'notification_body': 'لحظة هدوئك في انتظارك. خذ نفسًا عميقًا وغيّر مزاجك.',
+  'notification_channel_name': 'التذكيرات اليومية',
+  'notification_channel_description': 'تذكيرات لطيفة للحفاظ على سلسلتك',
 };
 

@@ -91,5 +91,11 @@ const Map<String, String> frFR = {
   'permission_slip': 'Autorisation Officielle',
   'reality_check': 'Vérification de la Réalité',
   'micro_dare': 'Micro Défi',
+
+  // Notifications
+  'notification_title': '💜 L\'heure d\'un changement d\'humeur?',
+  'notification_body': 'Votre moment de calme vous attend. Respirez et changez votre humeur.',
+  'notification_channel_name': 'Rappels Quotidiens',
+  'notification_channel_description': 'Rappels doux pour maintenir votre série',
 };
 
