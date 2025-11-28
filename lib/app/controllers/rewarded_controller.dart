@@ -15,17 +15,17 @@ class RewardedController extends GetxController {
   final showStrongerOverlay = false.obs;
 
   // Crystal Voice Feature
-  final hasGoldenVoice = false.obs;
-  final goldenTimeRemaining = ''.obs;
-  final showGoldenGlow = false.obs;
-  final showGoldenSparkle = false.obs;
+  final hasCrystalVoice = false.obs;
+  final crystalTimeRemaining = ''.obs;
+  final showCrystalGlow = false.obs;
+  final showCrystalSparkle = false.obs;
 
-  Timer? _goldenVoiceTimer;
+  Timer? _crystalVoiceTimer;
 
   @override
   void onInit() {
     super.onInit();
-    _startGoldenVoiceTimer();
+    _startCrystalVoiceTimer();
   }
 
   // ========== 2× STRONGER FEATURE (UNLIMITED!) ==========
@@ -46,57 +46,57 @@ class RewardedController extends GetxController {
     // showStrongerOverlay.value = false;
   }
 
-  // ========== GOLDEN VOICE FEATURE ==========
+  // ========== CRYSTAL VOICE FEATURE ==========
 
-  void _startGoldenVoiceTimer() {
-    // Update golden voice status every second
-    _goldenVoiceTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _updateGoldenVoiceStatus();
+  void _startCrystalVoiceTimer() {
+    // Update crystal voice status every second
+    _crystalVoiceTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updateCrystalVoiceStatus();
     });
   }
 
-  void _updateGoldenVoiceStatus() {
-    final wasGolden = hasGoldenVoice.value;
-    hasGoldenVoice.value = _storage.hasGoldenVoice();
+  void _updateCrystalVoiceStatus() {
+    final wasCrystal = hasCrystalVoice.value;
+    hasCrystalVoice.value = _storage.hasCrystalVoice();
 
-    if (hasGoldenVoice.value) {
-      final remaining = _storage.getRemainingGoldenTime();
+    if (hasCrystalVoice.value) {
+      final remaining = _storage.getRemainingCrystalTime();
       final minutes = remaining.inMinutes;
       final seconds = remaining.inSeconds % 60;
-      goldenTimeRemaining.value = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-      
+      crystalTimeRemaining.value = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
       // Show glow when active
-      showGoldenGlow.value = true;
+      showCrystalGlow.value = true;
     } else {
-      goldenTimeRemaining.value = '';
-      showGoldenGlow.value = false;
-      
+      crystalTimeRemaining.value = '';
+      showCrystalGlow.value = false;
+
       // Show expiry notification if it just expired
-      if (wasGolden && !hasGoldenVoice.value) {
-        _showGoldenExpiredNotification();
+      if (wasCrystal && !hasCrystalVoice.value) {
+        _showCrystalExpiredNotification();
       }
     }
   }
 
-  void _showGoldenExpiredNotification() {
+  void _showCrystalExpiredNotification() {
     SnackbarUtils.showCustom(
-      title: '✨ Golden Voice Expired',
-      message: 'Golden Voice expired – renew?',
-      backgroundColor: const Color(0xFFFFC107),
-      textColor: Colors.black87,
-      icon: Icons.star_border,
+      title: '💎 Crystal Voice Expired',
+      message: 'Crystal Voice expired – renew?',
+      backgroundColor: const Color(0xFF7B1FA2),
+      textColor: Colors.white,
+      icon: Icons.diamond_outlined,
       duration: const Duration(seconds: 4),
     );
   }
 
-  Future<void> activateGoldenVoice() async {
-    _storage.setGoldenVoice1Hour();
-    _updateGoldenVoiceStatus();
+  Future<void> activateCrystalVoice() async {
+    _storage.setCrystalVoice1Hour();
+    _updateCrystalVoiceStatus();
 
     // Play sparkle animation
-    showGoldenSparkle.value = true;
+    showCrystalSparkle.value = true;
     await Future.delayed(const Duration(seconds: 2));
-    showGoldenSparkle.value = false;
+    showCrystalSparkle.value = false;
 
     // Show success snackbar
     SnackbarUtils.showCustom(
@@ -109,21 +109,21 @@ class RewardedController extends GetxController {
     );
   }
 
-  String getGoldenTimerDisplay() {
-    if (!hasGoldenVoice.value) return '';
+  String getCrystalTimerDisplay() {
+    if (!hasCrystalVoice.value) return '';
     // Compact format for top bar to prevent overflow
-    return '${goldenTimeRemaining.value}';
+    return '${crystalTimeRemaining.value}';
   }
 
-  String getGoldenTimerDisplayFull() {
-    if (!hasGoldenVoice.value) return '';
+  String getCrystalTimerDisplayFull() {
+    if (!hasCrystalVoice.value) return '';
     // Full format for bottom sheet
-    return 'Golden Voice: ${goldenTimeRemaining.value}';
+    return 'Crystal Voice: ${crystalTimeRemaining.value}';
   }
 
   @override
   void onClose() {
-    _goldenVoiceTimer?.cancel();
+    _crystalVoiceTimer?.cancel();
     super.onClose();
   }
 }

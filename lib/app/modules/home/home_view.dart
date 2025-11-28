@@ -7,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
 import '../../services/habit_service.dart';
+import '../../services/polly_tts_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -49,7 +50,7 @@ class HomeView extends GetView<HomeController> {
               : const SizedBox.shrink()),
 
           // Crystal Voice Sparkle Animation
-          Obx(() => rewardedController.showGoldenSparkle.value
+          Obx(() => rewardedController.showCrystalSparkle.value
               ? Center(
                   child: SizedBox(
                     width: 200.w,
@@ -209,7 +210,7 @@ class HomeView extends GetView<HomeController> {
             children: [
               // Crystal Voice Timer (left side) - flexible to prevent overflow
               Obx(() {
-                final timerText = rewardedController.getGoldenTimerDisplay();
+                final timerText = rewardedController.getCrystalTimerDisplay();
                 if (timerText.isEmpty) {
                   return const SizedBox.shrink();
                 }
@@ -303,12 +304,14 @@ class HomeView extends GetView<HomeController> {
   // Premium mic button - elegant, soft glow, breathing animation
   Widget _buildPremiumMicButton() {
     final rewardedController = Get.find<RewardedController>();
+    final ttsService = Get.find<PollyTTSService>();
 
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
       final isSpeaking = controller.currentState.value == AppState.speaking;
-      final isGolden = rewardedController.hasGoldenVoice.value;
+      final isPreparing = ttsService.isPreparing.value;
+      final isCrystal = rewardedController.hasCrystalVoice.value;
 
       return GestureDetector(
         onTapDown: (_) => controller.onMicPressed(),
@@ -317,8 +320,9 @@ class HomeView extends GetView<HomeController> {
         child: _BreathingMicButton(
           isListening: isListening,
           isSpeaking: isSpeaking,
+          isPreparing: isPreparing,
           isActive: isActive,
-          isGolden: isGolden,
+          isCrystal: isCrystal,
         ),
       );
     });
@@ -384,7 +388,7 @@ class HomeView extends GetView<HomeController> {
                       // Superpower cards
                       Obx(() {
                         final rewardedController = Get.find<RewardedController>();
-                        final isGolden = rewardedController.hasGoldenVoice.value;
+                        final isCrystal = rewardedController.hasCrystalVoice.value;
                         final isAdFree = adFreeController.isAdFree.value;
 
                         return Column(
@@ -397,12 +401,12 @@ class HomeView extends GetView<HomeController> {
                             ),
                             SizedBox(height: 12.h),
                             _buildSuperpowerCard(
-                              isGolden
-                                  ? 'Crystal • ${rewardedController.goldenTimeRemaining.value}'
+                              isCrystal
+                                  ? 'Crystal • ${rewardedController.crystalTimeRemaining.value}'
                                   : 'Crystal Voice',
                               Icons.diamond_outlined,
-                              isGolden ? null : controller.onUnlockGolden,
-                              isActive: isGolden,
+                              isCrystal ? null : controller.onUnlockCrystal,
+                              isActive: isCrystal,
                             ),
                             SizedBox(height: 12.h),
                             _buildSuperpowerCard(
@@ -580,14 +584,16 @@ class HomeView extends GetView<HomeController> {
 class _BreathingMicButton extends StatefulWidget {
   final bool isListening;
   final bool isSpeaking;
+  final bool isPreparing;
   final bool isActive;
-  final bool isGolden;
+  final bool isCrystal;
 
   const _BreathingMicButton({
     required this.isListening,
     required this.isSpeaking,
+    required this.isPreparing,
     required this.isActive,
-    required this.isGolden,
+    required this.isCrystal,
   });
 
   @override
@@ -735,14 +741,14 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     height: (widget.isListening || widget.isSpeaking) ? 110.w : 86.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: widget.isGolden
+                      gradient: widget.isCrystal
                           ? const LinearGradient(
                               colors: [Color(0xFFE1BEE7), Color(0xFF7B1FA2)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             )
                           : null,
-                      color: widget.isGolden ? null : Colors.white,
+                      color: widget.isCrystal ? null : Colors.white,
                       boxShadow: [
                         // Soft shadow
                         BoxShadow(
@@ -765,7 +771,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                             blurRadius: 25,
                             spreadRadius: 3,
                           ),
-                        if (widget.isGolden)
+                        if (widget.isCrystal)
                           BoxShadow(
                             color: const Color(0xFFAB30FF).withOpacity(0.7),
                             blurRadius: 40,
@@ -779,7 +785,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                   ),
 
                   // Crystal Voice sparkle overlay
-                  if (widget.isGolden)
+                  if (widget.isCrystal)
                     SizedBox(
                       width: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,
                       height: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,
@@ -799,7 +805,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           },
         ),
 
-        // "Recording..." or "Speaking..." text
+        // "Recording...", "Preparing...", or "Speaking..." text
         AnimatedOpacity(
           opacity: (widget.isListening || widget.isSpeaking) ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
@@ -814,7 +820,9 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                       children: [
                         FittedBox(
                           child: Text(
-                            widget.isListening ? 'Recording' : 'Speaking',
+                            widget.isListening
+                                ? 'Recording'
+                                : (widget.isPreparing ? 'Preparing' : 'Speaking'),
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: const Color(0xFFA0A0FF),
@@ -855,11 +863,23 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           Icon(
             Icons.mic_none_rounded,
             size: 40.sp,
-            color: widget.isGolden
+            color: widget.isCrystal
                 ? Colors.white
                 : const Color(0xFF1E1E3F),
           ),
         ],
+      );
+    } else if (widget.isSpeaking && widget.isPreparing) {
+      // Show loading indicator when preparing audio
+      return SizedBox(
+        width: 36.sp,
+        height: 36.sp,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            widget.isCrystal ? Colors.white : const Color(0xFF6D5FFD),
+          ),
+        ),
       );
     } else if (widget.isSpeaking) {
       // Show volume icon with wavy bars when Polly is speaking
@@ -887,7 +907,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           Icon(
             Icons.volume_up_rounded,
             size: 40.sp,
-            color: widget.isGolden
+            color: widget.isCrystal
                 ? Colors.white
                 : const Color(0xFF1E1E3F),
           ),
@@ -898,7 +918,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
       return Icon(
         Icons.mic_none_rounded,
         size: 36.sp,
-        color: widget.isGolden
+        color: widget.isCrystal
             ? Colors.white
             : const Color(0xFF1E1E3F),
       );

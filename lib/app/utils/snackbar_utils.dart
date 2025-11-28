@@ -211,7 +211,7 @@ class SnackbarUtils {
     );
   }
 
-  /// Show a custom themed snackbar (for special cases like Golden Voice, 2x Power, etc.)
+  /// Show a custom themed snackbar (for special cases like Crystal Voice, 2x Power, etc.)
   static void showCustom({
     required String title,
     required String message,

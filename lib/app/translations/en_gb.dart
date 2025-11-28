@@ -38,7 +38,7 @@ const Map<String, String> enGB = {
   
   // Rewarded Ad Buttons
   'make_stronger': 'Make this 2× stronger! 🎯',
-  'unlock_golden': 'Unlock Crystal Voice 1 hour 💎',
+  'unlock_crystal': 'Unlock Crystal Voice 1 hour 💎',
   'remove_ads': 'Remove ads for 24 hours 🕊️',
   'ad_free_active': 'Ad-free: ',
   'save_wallpaper': 'Save as wallpaper 🖼️',

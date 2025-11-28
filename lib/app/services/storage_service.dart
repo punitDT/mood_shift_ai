@@ -206,41 +206,41 @@ class StorageService extends GetxService {
     _box.remove('ad_free_until');
   }
 
-  bool hasGoldenVoice() {
-    final goldenUntil = _box.read('golden_voice_until');
-    if (goldenUntil == null) return false;
+  bool hasCrystalVoice() {
+    final crystalUntil = _box.read('crystal_voice_until');
+    if (crystalUntil == null) return false;
 
-    final until = DateTime.parse(goldenUntil);
-    final hasGolden = DateTime.now().isBefore(until);
+    final until = DateTime.parse(crystalUntil);
+    final hasCrystal = DateTime.now().isBefore(until);
 
-    if (!hasGolden) {
-      _box.remove('golden_voice_until');
+    if (!hasCrystal) {
+      _box.remove('crystal_voice_until');
     }
 
-    return hasGolden;
+    return hasCrystal;
   }
 
-  void setGoldenVoice1Hour() {
+  void setCrystalVoice1Hour() {
     final until = DateTime.now().add(const Duration(hours: 1));
-    _box.write('golden_voice_until', until.toIso8601String());
+    _box.write('crystal_voice_until', until.toIso8601String());
   }
 
-  Duration getRemainingGoldenTime() {
-    final goldenUntil = _box.read('golden_voice_until');
-    if (goldenUntil == null) return Duration.zero;
+  Duration getRemainingCrystalTime() {
+    final crystalUntil = _box.read('crystal_voice_until');
+    if (crystalUntil == null) return Duration.zero;
 
-    final until = DateTime.parse(goldenUntil);
+    final until = DateTime.parse(crystalUntil);
     final remaining = until.difference(DateTime.now());
 
     return remaining.isNegative ? Duration.zero : remaining;
   }
 
-  String getGoldenVoiceEndTime() {
-    return _box.read('golden_voice_until') ?? '';
+  String getCrystalVoiceEndTime() {
+    return _box.read('crystal_voice_until') ?? '';
   }
 
-  void clearGoldenVoice() {
-    _box.remove('golden_voice_until');
+  void clearCrystalVoice() {
+    _box.remove('crystal_voice_until');
   }
 
   // Last AI response for 2x stronger feature

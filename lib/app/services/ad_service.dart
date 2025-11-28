@@ -12,14 +12,14 @@ class AdService extends GetxService {
   BannerAd? topBannerAd; // Top banner
   InterstitialAd? interstitialAd;
   RewardedAd? rewardedAdStronger;
-  RewardedAd? rewardedAdGolden;
+  RewardedAd? rewardedAdCrystal;
   RewardedAd? rewardedAdRemoveAds;
 
   final isBannerLoaded = false.obs;
   final isTopBannerLoaded = false.obs; // Top banner state
   final isInterstitialLoaded = false.obs;
   final isRewardedStrongerLoaded = false.obs;
-  final isRewardedGoldenLoaded = false.obs;
+  final isRewardedCrystalLoaded = false.obs;
   final isRewardedRemoveAdsLoaded = false.obs;
 
   // Ad Unit IDs loaded from environment variables
@@ -181,11 +181,11 @@ class AdService extends GetxService {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          rewardedAdGolden = ad;
-          isRewardedGoldenLoaded.value = true;
+          rewardedAdCrystal = ad;
+          isRewardedCrystalLoaded.value = true;
         },
         onAdFailedToLoad: (error) {
-          isRewardedGoldenLoaded.value = false;
+          isRewardedCrystalLoaded.value = false;
         },
       ),
     );
@@ -273,8 +273,8 @@ class AdService extends GetxService {
     );
   }
 
-  void showRewardedAdGolden(Function onRewarded) {
-    if (rewardedAdGolden == null || !isRewardedGoldenLoaded.value) {
+  void showRewardedAdCrystal(Function onRewarded) {
+    if (rewardedAdCrystal == null || !isRewardedCrystalLoaded.value) {
       SnackbarUtils.showInfo(title: 'Loading...', message: 'Please wait a moment and try again');
 
       RewardedAd.load(
@@ -282,11 +282,11 @@ class AdService extends GetxService {
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
-            rewardedAdGolden = ad;
-            isRewardedGoldenLoaded.value = true;
+            rewardedAdCrystal = ad;
+            isRewardedCrystalLoaded.value = true;
           },
           onAdFailedToLoad: (error) {
-            isRewardedGoldenLoaded.value = false;
+            isRewardedCrystalLoaded.value = false;
           },
         ),
       );
@@ -295,7 +295,7 @@ class AdService extends GetxService {
 
     bool rewarded = false;
 
-    rewardedAdGolden?.fullScreenContentCallback = FullScreenContentCallback(
+    rewardedAdCrystal?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         if (rewarded) {
@@ -306,11 +306,11 @@ class AdService extends GetxService {
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
-              rewardedAdGolden = ad;
-              isRewardedGoldenLoaded.value = true;
+              rewardedAdCrystal = ad;
+              isRewardedCrystalLoaded.value = true;
             },
             onAdFailedToLoad: (error) {
-              isRewardedGoldenLoaded.value = false;
+              isRewardedCrystalLoaded.value = false;
             },
           ),
         );
@@ -323,18 +323,18 @@ class AdService extends GetxService {
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
-              rewardedAdGolden = ad;
-              isRewardedGoldenLoaded.value = true;
+              rewardedAdCrystal = ad;
+              isRewardedCrystalLoaded.value = true;
             },
             onAdFailedToLoad: (error) {
-              isRewardedGoldenLoaded.value = false;
+              isRewardedCrystalLoaded.value = false;
             },
           ),
         );
       },
     );
 
-    rewardedAdGolden?.show(
+    rewardedAdCrystal?.show(
       onUserEarnedReward: (ad, reward) {
         rewarded = true;
       },
@@ -415,7 +415,7 @@ class AdService extends GetxService {
     topBannerAd?.dispose();
     interstitialAd?.dispose();
     rewardedAdStronger?.dispose();
-    rewardedAdGolden?.dispose();
+    rewardedAdCrystal?.dispose();
     rewardedAdRemoveAds?.dispose();
     super.onClose();
   }

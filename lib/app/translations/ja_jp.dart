@@ -31,7 +31,7 @@ const Map<String, String> jaJP = {
   'ready_to_use': '使用準備完了',
   'tap_mic_again': 'マイクボタンをもう一度タップして録音を開始してください',
   'make_stronger': '2倍強くする！🎯',
-  'unlock_golden': 'クリスタルボイス1時間アンロック 💎',
+  'unlock_crystal': 'クリスタルボイス1時間アンロック 💎',
   'remove_ads': '24時間広告を削除 🚀',
   'ad_free_active': '広告なし: ',
   'save_wallpaper': '壁紙として保存 🖼️',

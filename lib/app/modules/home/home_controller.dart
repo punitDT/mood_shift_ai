@@ -95,6 +95,24 @@ class HomeController extends GetxController {
     _initializeServices();
     _updateStats();
     _checkForceUpdate();
+    _setupTTSListeners();
+  }
+
+  void _setupTTSListeners() {
+    // Listen for isPreparing state to update status text
+    ever(_ttsService.isPreparing, (isPreparing) {
+      if (currentState.value == AppState.speaking) {
+        if (isPreparing) {
+          statusText.value = _tr('preparing', fallback: 'Preparing...');
+        } else if (_ttsService.isSpeaking.value) {
+          if (_ttsService.isUsingOfflineMode.value) {
+            statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
+          } else {
+            statusText.value = _tr('speaking', fallback: 'Speaking...');
+          }
+        }
+      }
+    });
   }
 
   String _tr(String key, {String fallback = ''}) {
@@ -383,11 +401,8 @@ class HomeController extends GetxController {
       _storage.setLastResponse(response);
 
       currentState.value = AppState.speaking;
-      statusText.value = _tr('speaking', fallback: 'Speaking...');
-
-      if (_ttsService.isUsingOfflineMode.value) {
-        statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
-      }
+      // Start with "Preparing..." - will update to "Speaking..." when audio starts
+      statusText.value = _tr('preparing', fallback: 'Preparing...');
 
       final wordCount = response.split(' ').length;
       final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
@@ -480,7 +495,8 @@ class HomeController extends GetxController {
 
           // Set state to speaking and show animation
           currentState.value = AppState.speaking;
-          statusText.value = _tr('speaking', fallback: 'Speaking...');
+          // Start with "Preparing..." - will update to "Speaking..." when audio starts
+          statusText.value = _tr('preparing', fallback: 'Preparing...');
           showLottieAnimation.value = true;
 
           final wordCount = strongerResponse.split(' ').length;
@@ -508,10 +524,10 @@ class HomeController extends GetxController {
     });
   }
 
-  Future<void> onUnlockGolden() async {
-    _adService.showRewardedAdGolden(() async {
-      // Activate golden voice
-      await _rewardedController.activateGoldenVoice();
+  Future<void> onUnlockCrystal() async {
+    _adService.showRewardedAdCrystal(() async {
+      // Activate crystal voice
+      await _rewardedController.activateCrystalVoice();
 
       // Play confetti
       confettiController.play();

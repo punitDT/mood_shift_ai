@@ -31,7 +31,7 @@ const Map<String, String> deDE = {
   'ready_to_use': 'Bereit zur Verwendung',
   'tap_mic_again': 'Tippen Sie erneut auf die Mikrofontaste, um die Aufnahme zu starten',
   'make_stronger': 'Mach es 2× stärker! 🎯',
-  'unlock_golden': 'Kristallstimme 1 Stunde freischalten 💎',
+  'unlock_crystal': 'Kristallstimme 1 Stunde freischalten 💎',
   'remove_ads': 'Anzeigen für 24 Stunden entfernen 🚀',
   'ad_free_active': 'Werbefrei: ',
   'save_wallpaper': 'Als Hintergrundbild speichern 🖼️',

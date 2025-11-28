@@ -19,6 +19,7 @@ class PollyTTSService extends GetxService {
   late final CrashlyticsService _crashlytics;
 
   final isSpeaking = false.obs;
+  final isPreparing = false.obs;
   final isUsingOfflineMode = false.obs;
 
   late final String _awsAccessKey;
@@ -396,8 +397,8 @@ class PollyTTSService extends GetxService {
 
     final fullLocale = _storage.getFullLocale();
     final gender = _storage.getVoiceGender();
-    final isGolden = _storage.hasGoldenVoice();
-    final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isGolden: isGolden);
+    final isCrystal = _storage.hasCrystalVoice();
+    final cacheKey = _getCacheKey(text, fullLocale, style, gender: gender, isCrystal: isCrystal);
     final cachedFile = await _getCachedAudio(cacheKey);
 
     if (cachedFile != null) {
@@ -405,8 +406,12 @@ class PollyTTSService extends GetxService {
       return;
     }
 
+    // Set preparing state while fetching audio from Polly
+    isPreparing.value = true;
+
     try {
       final audioFile = await _synthesizeWithPolly(text, fullLocale, style, prosody: prosody);
+      isPreparing.value = false;
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
@@ -414,6 +419,7 @@ class PollyTTSService extends GetxService {
         return;
       }
     } catch (e, stackTrace) {
+      isPreparing.value = false;
       _crashlytics.reportTTSError(e, stackTrace, operation: 'speak', locale: fullLocale, textLength: text.length);
     }
 
@@ -436,8 +442,12 @@ class PollyTTSService extends GetxService {
       return;
     }
 
+    // Set preparing state while fetching audio from Polly
+    isPreparing.value = true;
+
     try {
       final audioFile = await _synthesizeStrongerWithPolly(text, fullLocale, style);
+      isPreparing.value = false;
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
         await _playAudioFile(audioFile);
@@ -445,6 +455,7 @@ class PollyTTSService extends GetxService {
         return;
       }
     } catch (e, stackTrace) {
+      isPreparing.value = false;
       _crashlytics.reportTTSError(e, stackTrace, operation: 'speakStronger', locale: fullLocale, textLength: text.length);
     }
 
@@ -531,8 +542,8 @@ class PollyTTSService extends GetxService {
 
       for (final engine in engines) {
         try {
-          final ssmlText = _storage.hasGoldenVoice()
-              ? _buildGoldenSSMLForEngine(text, style, engine)
+          final ssmlText = _storage.hasCrystalVoice()
+              ? _buildCrystalSSMLForEngine(text, style, engine)
               : _buildSSMLForEngine(text, engine, prosody: prosody);
 
           final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
@@ -957,7 +968,7 @@ class PollyTTSService extends GetxService {
   /// - <amazon:effect name="drc"> (Neural/Standard only)
   /// - <amazon:effect phonation="soft"> (Standard only)
   /// - <amazon:effect vocal-tract-length="+12%"> (Standard only)
-  String _buildGoldenSSMLForEngine(String text, MoodStyle style, String engine) {
+  String _buildCrystalSSMLForEngine(String text, MoodStyle style, String engine) {
     // Clean the text first to fix spacing issues
     final cleanedText = _cleanTextForSpeech(text);
 
@@ -1024,8 +1035,8 @@ class PollyTTSService extends GetxService {
         .replaceAll("'", '&apos;');
   }
 
-  String _getCacheKey(String text, String languageCode, MoodStyle style, {String gender = 'female', bool isStronger = false, bool isGolden = false}) {
-    final modifier = isStronger ? '-stronger' : (isGolden ? '-golden' : '');
+  String _getCacheKey(String text, String languageCode, MoodStyle style, {String gender = 'female', bool isStronger = false, bool isCrystal = false}) {
+    final modifier = isStronger ? '-stronger' : (isCrystal ? '-crystal' : '');
     final combined = '$text-$languageCode-${style.toString()}-$gender$modifier';
     return sha256.convert(utf8.encode(combined)).toString();
   }
@@ -1100,7 +1111,7 @@ class PollyTTSService extends GetxService {
     final rate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
     final pitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
 
-    if (_storage.hasGoldenVoice()) {
+    if (_storage.hasCrystalVoice()) {
       await _fallbackTts.setSpeechRate(rate * 0.9);
       await _fallbackTts.setPitch(pitch * 1.1);
     } else {
@@ -1165,6 +1176,7 @@ class PollyTTSService extends GetxService {
     await _audioPlayer.stop();
     await _fallbackTts.stop();
     isSpeaking.value = false;
+    isPreparing.value = false;
   }
 
   @override

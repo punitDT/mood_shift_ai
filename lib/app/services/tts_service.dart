@@ -115,8 +115,8 @@ class TTSService extends GetxService {
     final rate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
     final pitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
 
-    // Golden voice - warmer, slower, more pleasant
-    if (_storage.hasGoldenVoice()) {
+    // Crystal voice - warmer, slower, more pleasant
+    if (_storage.hasCrystalVoice()) {
       await _tts.setSpeechRate(rate * 0.9);
       await _tts.setPitch(pitch * 1.1);
     } else {

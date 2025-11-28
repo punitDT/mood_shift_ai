@@ -21,7 +21,7 @@ class CrashlyticsService extends GetxService {
         FirebaseCrashlytics.instance.setCustomKey('voice_gender', _storage.getVoiceGender());
         FirebaseCrashlytics.instance.setCustomKey('selected_lang', _storage.getLanguageCode());
         FirebaseCrashlytics.instance.setCustomKey('current_streak', _storage.getCurrentStreak());
-        FirebaseCrashlytics.instance.setCustomKey('has_golden_voice', _storage.hasGoldenVoice());
+        FirebaseCrashlytics.instance.setCustomKey('has_crystal_voice', _storage.hasCrystalVoice());
       } catch (e) {
         // Silently fail - not critical
       }

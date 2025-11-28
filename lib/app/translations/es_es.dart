@@ -31,7 +31,7 @@ const Map<String, String> esES = {
   'ready_to_use': 'Listo para usar',
   'tap_mic_again': 'Toca el botón del micrófono nuevamente para comenzar a grabar',
   'make_stronger': '¡Hazlo 2× más fuerte! 🎯',
-  'unlock_golden': 'Desbloquear Voz Cristal 1 hora 💎',
+  'unlock_crystal': 'Desbloquear Voz Cristal 1 hora 💎',
   'remove_ads': 'Eliminar anuncios por 24 horas 🚀',
   'ad_free_active': 'Sin anuncios: ',
   'save_wallpaper': 'Guardar como fondo de pantalla 🖼️',
