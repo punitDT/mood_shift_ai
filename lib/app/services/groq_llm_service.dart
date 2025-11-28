@@ -78,7 +78,7 @@ class GroqLLMService extends GetxService {
           'messages': [
             {
               'role': 'system',
-              'content': 'You are MoodShift AI, a compassionate ADHD companion. You analyze user input and select the most appropriate coaching style, then respond in that style. Your response will be spoken aloud immediately.',
+              'content': 'You are MoodShift AI, a compassionate ADHD companion. You analyze user input and select the most appropriate coaching style, then respond in that style. Your response will be spoken aloud immediately. ALWAYS respond with valid JSON only.',
             },
             {
               'role': 'user',
@@ -90,6 +90,7 @@ class GroqLLMService extends GetxService {
           'top_p': 1,
           'frequency_penalty': _frequencyPenalty,
           'presence_penalty': _presencePenalty,
+          'response_format': {'type': 'json_object'},
         }),
       ).timeout(
         Duration(seconds: _timeoutSeconds),
@@ -159,13 +160,16 @@ TRANSFORM THIS INTO 2× STRONGER VERSION:
 - Add one short power phrase (e.g., "You are UNSTOPPABLE", "This is YOUR moment")
 - Same length (50–75 words)
 - Stay in $languageName
+- No emojis
 
 FORBIDDEN WORDS (never use): safety, moderation, inappropriate, sexual, violence, hate, risk, sorry, cannot
 
-OUTPUT EXACTLY 3 LINES:
-STYLE: $styleStr
-PROSODY: rate=medium pitch=high volume=loud
-RESPONSE: [Your 2× STRONGER version]
+Respond with this exact JSON structure:
+{
+  "style": "$styleStr",
+  "prosody": {"rate": "medium", "pitch": "high", "volume": "loud"},
+  "response": "Your 2× STRONGER version here"
+}
 
 Make it feel like the AI just LEVELED UP!''';
 
@@ -178,7 +182,7 @@ Make it feel like the AI just LEVELED UP!''';
         body: jsonEncode({
           'model': _model,
           'messages': [
-            {'role': 'system', 'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify responses to 2× intensity. Output EXACTLY 3 lines: STYLE:, PROSODY:, RESPONSE:. Never use forbidden words.'},
+            {'role': 'system', 'content': 'You are MoodShift AI in MAXIMUM POWER MODE. Amplify responses to 2× intensity. ALWAYS respond with valid JSON only.'},
             {'role': 'user', 'content': prompt},
           ],
           'temperature': 0.9,
@@ -186,6 +190,7 @@ Make it feel like the AI just LEVELED UP!''';
           'top_p': 1,
           'frequency_penalty': 0.2,
           'presence_penalty': 0.8,
+          'response_format': {'type': 'json_object'},
         }),
       ).timeout(
         Duration(seconds: _timeoutSeconds),
@@ -285,128 +290,157 @@ Make it feel like the AI just LEVELED UP!''';
 
     if (shiftCount >= 8) {
       return '''
-MoodShift AI - Shift #$shiftCount
-
 User said: "$userInput"
 
-YOU MUST OUTPUT EXACTLY THESE 4 LINES:
+Respond with this exact JSON structure:
+{
+  "style": "MICRO_DARE",
+  "prosody": {"rate": "medium", "pitch": "medium", "volume": "medium"},
+  "pause_message": "$pauseMessage",
+  "response": "Your 50-75 word coaching response here"
+}
 
-PAUSE_MESSAGE: $pauseMessage
-STYLE: MICRO_DARE
-PROSODY: rate=medium pitch=medium volume=medium
-RESPONSE: [Your 50-75 word coaching response to "$userInput"]
-
-STYLE OPTIONS (change STYLE line based on mood):
-- CHAOS_ENERGY + rate=medium pitch=high volume=loud → if bored/restless/hyper
-- GENTLE_GRANDMA + rate=slow pitch=low volume=soft → if anxious/sad/overwhelmed
-- PERMISSION_SLIP + rate=medium pitch=medium volume=medium → if guilt/"should"
-- REALITY_CHECK + rate=medium pitch=medium volume=medium → if negative self-talk
-- MICRO_DARE + rate=medium pitch=medium volume=medium → if neutral (default)
+STYLE OPTIONS (choose based on user's mood):
+- "CHAOS_ENERGY" with {"rate": "medium", "pitch": "high", "volume": "loud"} → if bored/restless/hyper
+- "GENTLE_GRANDMA" with {"rate": "slow", "pitch": "low", "volume": "soft"} → if anxious/sad/overwhelmed
+- "PERMISSION_SLIP" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if guilt/"should"
+- "REALITY_CHECK" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if negative self-talk
+- "MICRO_DARE" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if neutral (default)
 
 SAFETY: If input mentions flirty/desired/sexy/dirty/punch/hurt/harm/kill/cutting/suicide/disappear/hate myself/racism/suffer → use GENTLE_GRANDMA with breathing exercise
 
-CRITICAL RULES:
-1. Line 1 MUST be exactly: PAUSE_MESSAGE: $pauseMessage
-2. Line 2 MUST start with: STYLE:
-3. Line 3 MUST start with: PROSODY:
-4. Line 4 MUST start with: RESPONSE:
-5. RESPONSE is your coaching reply, NOT the pause message
-6. FORBIDDEN words: safety, moderation, inappropriate, sexual, violence, hate, risk
+RULES:
+1. "pause_message" MUST be exactly: "$pauseMessage"
+2. "response" is your coaching reply, NOT the pause message
+3. FORBIDDEN words in response: safety, moderation, inappropriate, sexual, violence, hate, risk
+4. Response must be in $languageName language
+5. No emojis in response
 
-Context: Day $streak, $timeContext, $languageName, $voiceGender voice
+Context: Day $streak, $timeContext, $voiceGender voice
 ''';
     } else {
       return '''
-MoodShift AI - Shift #$shiftCount (early shift - no pause needed)
-
 User said: "$userInput"
 
-YOUR OUTPUT MUST BE EXACTLY 3 LINES STARTING WITH "STYLE:":
-STYLE: [CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE]
-PROSODY: rate=[slow|medium] pitch=[low|medium|high] volume=[soft|medium|loud]
-RESPONSE: [Your 50-75 word response to the user]
+Respond with this exact JSON structure:
+{
+  "style": "MICRO_DARE",
+  "prosody": {"rate": "medium", "pitch": "medium", "volume": "medium"},
+  "response": "Your 50-75 word coaching response here"
+}
 
-STYLE RULES:
-- CHAOS_ENERGY: bored, restless, hyper → rate=medium pitch=high volume=loud
-- GENTLE_GRANDMA: anxious, sad, overwhelmed → rate=slow pitch=low volume=soft
-- PERMISSION_SLIP: guilt, "should" → rate=medium pitch=medium volume=medium
-- REALITY_CHECK: negative self-talk → rate=medium pitch=medium volume=medium
-- MICRO_DARE: neutral/default → rate=medium pitch=medium volume=medium
+STYLE OPTIONS (choose based on user's mood):
+- "CHAOS_ENERGY" with {"rate": "medium", "pitch": "high", "volume": "loud"} → if bored/restless/hyper
+- "GENTLE_GRANDMA" with {"rate": "slow", "pitch": "low", "volume": "soft"} → if anxious/sad/overwhelmed
+- "PERMISSION_SLIP" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if guilt/"should"
+- "REALITY_CHECK" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if negative self-talk
+- "MICRO_DARE" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if neutral (default)
 
 SAFETY: If input mentions flirty/desired/sexy/dirty/punch/hurt/harm/kill/cutting/suicide/disappear/hate myself/racism/suffer → use GENTLE_GRANDMA with breathing exercise
 
-FORBIDDEN words: safety, moderation, inappropriate, sexual, violence, hate, risk
+RULES:
+1. FORBIDDEN words in response: safety, moderation, inappropriate, sexual, violence, hate, risk
+2. Response must be in $languageName language
+3. No emojis in response
 
-Context: Day $streak, $timeContext, $languageName, $voiceGender voice
+Context: Day $streak, $timeContext, $voiceGender voice
 Previous responses to avoid: $responsesText
-
-CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above.
 ''';
     }
   }
 
+  /// Parse JSON response from LLM
   Map<String, dynamic> _parseStyleAndResponse(String llmOutput) {
     try {
-      final styleMatch = RegExp(r'STYLE:\s*(CHAOS_ENERGY|GENTLE_GRANDMA|PERMISSION_SLIP|REALITY_CHECK|MICRO_DARE)', caseSensitive: false).firstMatch(llmOutput);
-      final prosodyMatch = RegExp(r'PROSODY:\s*rate=(\w+)\s+pitch=(\w+)\s+volume=(\w+)', caseSensitive: false).firstMatch(llmOutput);
-      final responseMatch = RegExp(r'RESPONSE:\s*(.+)', caseSensitive: false, dotAll: true).firstMatch(llmOutput);
+      // Parse JSON response
+      final json = jsonDecode(llmOutput) as Map<String, dynamic>;
 
-      MoodStyle selectedStyle = MoodStyle.microDare;
+      // Extract style
+      final styleStr = (json['style'] as String?)?.toUpperCase() ?? 'MICRO_DARE';
+      final selectedStyle = _parseStyle(styleStr);
 
-      if (styleMatch != null) {
-        final styleStr = styleMatch.group(1)?.toUpperCase() ?? '';
-        switch (styleStr) {
-          case 'CHAOS_ENERGY':
-            selectedStyle = MoodStyle.chaosEnergy;
-            break;
-          case 'GENTLE_GRANDMA':
-            selectedStyle = MoodStyle.gentleGrandma;
-            break;
-          case 'PERMISSION_SLIP':
-            selectedStyle = MoodStyle.permissionSlip;
-            break;
-          case 'REALITY_CHECK':
-            selectedStyle = MoodStyle.realityCheck;
-            break;
-          case 'MICRO_DARE':
-            selectedStyle = MoodStyle.microDare;
-            break;
-        }
-      }
-
+      // Extract prosody
       Map<String, String> prosody = {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
-
-      if (prosodyMatch != null) {
-        prosody['rate'] = prosodyMatch.group(1)?.toLowerCase() ?? 'medium';
-        prosody['pitch'] = prosodyMatch.group(2)?.toLowerCase() ?? 'medium';
-        prosody['volume'] = prosodyMatch.group(3)?.toLowerCase() ?? 'medium';
+      if (json['prosody'] != null && json['prosody'] is Map) {
+        final prosodyJson = json['prosody'] as Map<String, dynamic>;
+        prosody = {
+          'rate': (prosodyJson['rate'] as String?)?.toLowerCase() ?? 'medium',
+          'pitch': (prosodyJson['pitch'] as String?)?.toLowerCase() ?? 'medium',
+          'volume': (prosodyJson['volume'] as String?)?.toLowerCase() ?? 'medium',
+        };
       } else {
         prosody = _getDefaultProsody(selectedStyle);
       }
 
-      String response = llmOutput;
-      if (responseMatch != null) {
-        response = responseMatch.group(1)?.trim() ?? llmOutput;
-      } else {
-        final lines = llmOutput.split('\n');
-        if (lines.length > 2) {
-          response = lines.skip(2).join('\n').trim();
-        } else if (lines.length > 1) {
-          response = lines.skip(1).join('\n').trim();
-        }
-      }
-
-      response = _cleanProsodyFromResponse(response);
-      response = response.trim();
+      // Extract response
+      String response = (json['response'] as String?) ?? '';
+      response = _cleanResponse(response);
       response = _removeEmojis(response);
 
       return {'style': selectedStyle, 'prosody': prosody, 'response': response};
     } catch (e) {
-      return {
-        'style': MoodStyle.microDare,
-        'prosody': {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'},
-        'response': _removeEmojis(llmOutput),
-      };
+      // Fallback: try to extract JSON from the output if it's wrapped in other text
+      return _parseStyleAndResponseFallback(llmOutput);
+    }
+  }
+
+  /// Fallback parser for when JSON parsing fails
+  /// Tries to extract JSON from the output or falls back to regex
+  Map<String, dynamic> _parseStyleAndResponseFallback(String llmOutput) {
+    try {
+      // Try to find JSON object in the output
+      final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(llmOutput);
+      if (jsonMatch != null) {
+        final jsonStr = jsonMatch.group(0)!;
+        final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+        final styleStr = (json['style'] as String?)?.toUpperCase() ?? 'MICRO_DARE';
+        final selectedStyle = _parseStyle(styleStr);
+
+        Map<String, String> prosody = {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
+        if (json['prosody'] != null && json['prosody'] is Map) {
+          final prosodyJson = json['prosody'] as Map<String, dynamic>;
+          prosody = {
+            'rate': (prosodyJson['rate'] as String?)?.toLowerCase() ?? 'medium',
+            'pitch': (prosodyJson['pitch'] as String?)?.toLowerCase() ?? 'medium',
+            'volume': (prosodyJson['volume'] as String?)?.toLowerCase() ?? 'medium',
+          };
+        } else {
+          prosody = _getDefaultProsody(selectedStyle);
+        }
+
+        String response = (json['response'] as String?) ?? '';
+        response = _cleanResponse(response);
+        response = _removeEmojis(response);
+
+        return {'style': selectedStyle, 'prosody': prosody, 'response': response};
+      }
+    } catch (_) {
+      // JSON extraction failed, continue to default
+    }
+
+    // Ultimate fallback: return the raw output as response
+    return {
+      'style': MoodStyle.microDare,
+      'prosody': {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'},
+      'response': _removeEmojis(llmOutput),
+    };
+  }
+
+  /// Parse style string to MoodStyle enum
+  MoodStyle _parseStyle(String styleStr) {
+    switch (styleStr) {
+      case 'CHAOS_ENERGY':
+        return MoodStyle.chaosEnergy;
+      case 'GENTLE_GRANDMA':
+        return MoodStyle.gentleGrandma;
+      case 'PERMISSION_SLIP':
+        return MoodStyle.permissionSlip;
+      case 'REALITY_CHECK':
+        return MoodStyle.realityCheck;
+      case 'MICRO_DARE':
+      default:
+        return MoodStyle.microDare;
     }
   }
 
@@ -426,26 +460,7 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
     }
   }
 
-  /// Prosody-related keywords to filter from response
-  static const List<String> _prosodyKeywords = [
-    'volume', 'pitch', 'rate', 'voice', 'prosody',
-  ];
 
-  static const List<String> _prosodyValues = [
-    'loud', 'soft', 'medium', 'high', 'low', 'slow', 'fast',
-    'x-loud', 'x-soft', 'x-slow', 'x-fast', 'max', 'min',
-    'default', 'normal',
-  ];
-
-  static const List<String> _metadataLabels = [
-    'RESPONSE:', 'STYLE:', 'PROSODY:', 'PAUSE_MESSAGE:',
-  ];
-
-  static const List<String> _prosodyFillerWords = [
-    'equal', 'to', 'is', 'set', 'at', 'the', 'a', 'an',
-    'detail', 'details', 'setting', 'settings',
-    'before', 'starting', 'actual', 'answer', 'response',
-  ];
 
   // Safety: Unsafe content categories and keywords
   static const Map<String, List<String>> _unsafeKeywords = {
@@ -602,44 +617,6 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
       'default': "そのリクエストは手伝えません。あなたの気分に集中しましょう。",
     },
   };
-
-  /// Clean prosody metadata and artifacts from LLM response
-  String _cleanProsodyFromResponse(String response) {
-    // Remove metadata label lines
-    for (final label in _metadataLabels) {
-      response = response.replaceAll(
-        RegExp('^$label.*\$', caseSensitive: false, multiLine: true),
-        '',
-      );
-    }
-
-    // Split into words and filter out prosody artifacts from the beginning
-    final words = response.trim().split(RegExp(r'\s+'));
-    int startIndex = 0;
-
-    for (int i = 0; i < words.length && i < 20; i++) {
-      final word = words[i].toLowerCase().replaceAll(RegExp(r'[=:,.]'), '');
-
-      // Check if this word is a prosody keyword, value, or filler
-      final isProsodyWord = _prosodyKeywords.contains(word) ||
-          _prosodyValues.contains(word) ||
-          _prosodyFillerWords.contains(word);
-
-      if (isProsodyWord) {
-        startIndex = i + 1;
-      } else {
-        // Found a non-prosody word, stop scanning
-        break;
-      }
-    }
-
-    // Reconstruct response without leading prosody artifacts
-    if (startIndex > 0 && startIndex < words.length) {
-      response = words.sublist(startIndex).join(' ');
-    }
-
-    return response.trim();
-  }
 
   /// Remove all emojis from text
   String _removeEmojis(String text) {

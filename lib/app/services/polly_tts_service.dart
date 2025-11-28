@@ -1015,14 +1015,61 @@ class PollyTTSService extends GetxService {
   }
 
   /// Clean text for speech to fix spacing and formatting issues
+  /// Also removes any prosody artifacts that might have slipped through LLM cleaning
   String _cleanTextForSpeech(String text) {
-    // Just basic whitespace cleanup - let's see what the actual issue is first
     text = text.trim();
 
     // Clean up extra whitespace (multiple spaces, tabs, newlines -> single space)
     text = text.replaceAll(RegExp(r'\s+'), ' ');
 
+    // Remove any prosody artifacts that might have slipped through
+    // This is a safety net - the LLM service should have already cleaned these
+    text = _removeProsodyArtifacts(text);
+
     return text;
+  }
+
+  /// Remove prosody/SSML artifacts from text
+  /// Safety net for any artifacts that slip through LLM cleaning
+  String _removeProsodyArtifacts(String text) {
+    // Pattern-based removal of prosody artifacts at the beginning
+    final prosodyPatterns = [
+      // Match "attribute=value" or "attribute = value" patterns
+      RegExp(r'^[\s,;]*(?:pitch|rate|volume|voice|prosody)\s*[=:]\s*\S+', caseSensitive: false),
+
+      // Match "attribute equal/is/to value" patterns
+      RegExp(r'^[\s,;]*(?:pitch|rate|volume|voice|prosody)\s+(?:equal|equals|is|to|at|set to|set at)\s+\S+', caseSensitive: false),
+
+      // Match standalone prosody values at the beginning
+      RegExp(r'^[\s,;]*(?:x-)?(?:high|low|medium|soft|loud|slow|fast|normal|default)\s+(?:pitch|rate|volume|voice)', caseSensitive: false),
+
+      // Match comma-separated prosody settings
+      RegExp(r'^[\s]*(?:(?:pitch|rate|volume)\s*[=:]\s*\S+[\s,;]*)+', caseSensitive: false),
+    ];
+
+    // Apply patterns repeatedly until no more matches
+    bool foundMatch = true;
+    int iterations = 0;
+    const maxIterations = 10;
+
+    while (foundMatch && iterations < maxIterations) {
+      foundMatch = false;
+      iterations++;
+
+      for (final pattern in prosodyPatterns) {
+        final match = pattern.firstMatch(text);
+        if (match != null && match.start == 0) {
+          text = text.substring(match.end).trim();
+          foundMatch = true;
+          break;
+        }
+      }
+    }
+
+    // Clean up any remaining leading punctuation or whitespace
+    text = text.replaceFirst(RegExp(r'^[\s,;:.]+'), '');
+
+    return text.trim();
   }
 
   /// Escape XML special characters for SSML
