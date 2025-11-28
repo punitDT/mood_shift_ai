@@ -380,9 +380,7 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
         }
       }
 
-      response = response.replaceAll(RegExp(r'^RESPONSE:\s*', caseSensitive: false), '');
-      response = response.replaceAll(RegExp(r'^STYLE:.*$', caseSensitive: false, multiLine: true), '');
-      response = response.replaceAll(RegExp(r'^PROSODY:.*$', caseSensitive: false, multiLine: true), '');
+      response = _cleanProsodyFromResponse(response);
       response = response.trim();
       response = _removeEmojis(response);
 
@@ -410,6 +408,65 @@ CRITICAL: Your first line MUST be "STYLE:" followed by one of the 5 styles above
       case MoodStyle.microDare:
         return {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
     }
+  }
+
+  /// Prosody-related keywords to filter from response
+  static const List<String> _prosodyKeywords = [
+    'volume', 'pitch', 'rate', 'voice', 'prosody',
+  ];
+
+  static const List<String> _prosodyValues = [
+    'loud', 'soft', 'medium', 'high', 'low', 'slow', 'fast',
+    'x-loud', 'x-soft', 'x-slow', 'x-fast', 'max', 'min',
+    'default', 'normal',
+  ];
+
+  static const List<String> _metadataLabels = [
+    'RESPONSE:', 'STYLE:', 'PROSODY:', 'PAUSE_MESSAGE:',
+  ];
+
+  static const List<String> _prosodyFillerWords = [
+    'equal', 'to', 'is', 'set', 'at', 'the', 'a', 'an',
+    'detail', 'details', 'setting', 'settings',
+    'before', 'starting', 'actual', 'answer', 'response',
+  ];
+
+  /// Clean prosody metadata and artifacts from LLM response
+  String _cleanProsodyFromResponse(String response) {
+    // Remove metadata label lines
+    for (final label in _metadataLabels) {
+      response = response.replaceAll(
+        RegExp('^$label.*\$', caseSensitive: false, multiLine: true),
+        '',
+      );
+    }
+
+    // Split into words and filter out prosody artifacts from the beginning
+    final words = response.trim().split(RegExp(r'\s+'));
+    int startIndex = 0;
+
+    for (int i = 0; i < words.length && i < 20; i++) {
+      final word = words[i].toLowerCase().replaceAll(RegExp(r'[=:,.]'), '');
+
+      // Check if this word is a prosody keyword, value, or filler
+      final isProsodyWord = _prosodyKeywords.contains(word) ||
+          _prosodyValues.contains(word) ||
+          _prosodyFillerWords.contains(word);
+
+      if (isProsodyWord) {
+        startIndex = i + 1;
+      } else {
+        // Found a non-prosody word, stop scanning
+        break;
+      }
+    }
+
+    // Reconstruct response without leading prosody artifacts
+    if (startIndex > 0 && startIndex < words.length) {
+      response = words.sublist(startIndex).join(' ');
+    }
+
+    return response.trim();
   }
 
   /// Remove all emojis from text
