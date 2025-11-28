@@ -23,6 +23,7 @@ class GroqLLMService extends GetxService {
 
   MoodStyle? _lastSelectedStyle;
   Map<String, String> _lastProsody = {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'};
+  Map<String, dynamic> _lastSSML = _getDefaultSSML();
 
   @override
   void onInit() {
@@ -109,10 +110,12 @@ class GroqLLMService extends GetxService {
           final parsed = _parseStyleAndResponse(generatedText);
           final selectedStyle = parsed['style'] as MoodStyle;
           final prosody = parsed['prosody'] as Map<String, String>;
+          final ssml = parsed['ssml'] as Map<String, dynamic>;
           String finalResponse = parsed['response'] as String;
 
           _lastSelectedStyle = selectedStyle;
           _lastProsody = prosody;
+          _lastSSML = ssml;
 
           finalResponse = _cleanResponse(finalResponse);
           _storage.addCachedResponse(userInput, finalResponse, language);
@@ -168,6 +171,11 @@ Respond with this exact JSON structure:
 {
   "style": "$styleStr",
   "prosody": {"rate": "medium", "pitch": "high", "volume": "loud"},
+  "ssml": {
+    "generative": {"rate": "medium", "volume": "x-loud"},
+    "neural": {"volume_db": "+6dB"},
+    "standard": {"rate": "medium", "pitch": "+15%", "volume": "+6dB", "emphasis": "strong"}
+  },
   "response": "Your 2× STRONGER version here"
 }
 
@@ -208,10 +216,12 @@ Make it feel like the AI just LEVELED UP!''';
           final parsed = _parseStyleAndResponse(generatedText);
           final selectedStyle = parsed['style'] as MoodStyle;
           final prosody = parsed['prosody'] as Map<String, String>;
+          final ssml = parsed['ssml'] as Map<String, dynamic>? ?? _getDefaultStrongerSSML();
           String finalResponse = parsed['response'] as String;
 
           _lastSelectedStyle = selectedStyle;
           _lastProsody = prosody;
+          _lastSSML = ssml;
           finalResponse = _cleanResponse(finalResponse);
           return finalResponse;
         }
@@ -225,9 +235,12 @@ Make it feel like the AI just LEVELED UP!''';
         );
       }
 
+      // Use default stronger SSML for fallback
+      _lastSSML = _getDefaultStrongerSSML();
       return _amplifyResponseManually(originalResponse);
     } catch (e, stackTrace) {
       _crashlytics.reportLLMError(e, stackTrace, operation: 'generateStrongerResponse', model: _model);
+      _lastSSML = _getDefaultStrongerSSML();
       return _amplifyResponseManually(originalResponse);
     }
   }
@@ -262,79 +275,61 @@ Make it feel like the AI just LEVELED UP!''';
     final timeContext = _getTimeContext();
 
     // Get recent history for anti-repetition
-    final recentInputs = _storage.getRecentUserInputs();
     final recentResponses = _storage.getRecentAIResponses();
-    final inputsText = recentInputs.isEmpty ? 'None' : recentInputs.join(' | ');
     final responsesText = recentResponses.isEmpty ? 'None' : recentResponses.map((r) => r.length > 60 ? '${r.substring(0, 60)}...' : r).join(' | ');
 
     // Use injected storage service for consistency
     final String voiceGender = _storage.getVoiceGender();
-    final String genderLine = "Voice gender: $voiceGender (Male = caring dad/hype coach | Female = gentle grandma/cheerleader)";
 
-    // Count consecutive shifts from history
-    final shiftCount = recentInputs.length + 1; // +1 for current input
+    final ssmlGuide = '''
+"ssml": {
+  "generative": {"rate": "medium", "volume": "medium"},
+  "neural": {"volume_db": "+0dB"},
+  "standard": {"rate": "medium", "pitch": "medium", "volume": "medium"}
+}''';
 
-    // Determine the exact pause message based on shift count
-    String pauseMessage;
-    if (shiftCount >= 15) {
-      pauseMessage = "You matter more than any shift. Let's rest together for 90 seconds.";
-    } else if (shiftCount >= 12) {
-      pauseMessage = "You've done $shiftCount shifts today – that takes real strength. Let's pause for a minute and feel calm.";
-    } else if (shiftCount >= 10) {
-      pauseMessage = "Wow, $shiftCount shifts already. Let's rest for 45 seconds – just breathe with me. You're safe.";
-    } else if (shiftCount >= 8) {
-      pauseMessage = "You've been showing up so much – I'm proud of you. Let's take one slow breath together first.";
-    } else {
-      pauseMessage = "";
-    }
-
-    if (shiftCount >= 8) {
-      return '''
+    return '''
 User said: "$userInput"
 
 Respond with this exact JSON structure:
 {
   "style": "MICRO_DARE",
   "prosody": {"rate": "medium", "pitch": "medium", "volume": "medium"},
-  "pause_message": "$pauseMessage",
+  $ssmlGuide,
   "response": "Your 50-75 word coaching response here"
 }
 
-STYLE OPTIONS (choose based on user's mood):
-- "CHAOS_ENERGY" with {"rate": "medium", "pitch": "high", "volume": "loud"} → if bored/restless/hyper
-- "GENTLE_GRANDMA" with {"rate": "slow", "pitch": "low", "volume": "soft"} → if anxious/sad/overwhelmed
-- "PERMISSION_SLIP" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if guilt/"should"
-- "REALITY_CHECK" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if negative self-talk
-- "MICRO_DARE" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if neutral (default)
+STYLE OPTIONS with matching SSML (choose based on user's mood):
 
-SAFETY: If input mentions flirty/desired/sexy/dirty/punch/hurt/harm/kill/cutting/suicide/disappear/hate myself/racism/suffer → use GENTLE_GRANDMA with breathing exercise
+1. "CHAOS_ENERGY" → if bored/restless/hyper
+   prosody: {"rate": "medium", "pitch": "high", "volume": "loud"}
+   ssml.generative: {"rate": "medium", "volume": "x-loud"}
+   ssml.neural: {"volume_db": "+6dB"}
+   ssml.standard: {"rate": "medium", "pitch": "+10%", "volume": "loud"}
 
-RULES:
-1. "pause_message" MUST be exactly: "$pauseMessage"
-2. "response" is your coaching reply, NOT the pause message
-3. FORBIDDEN words in response: safety, moderation, inappropriate, sexual, violence, hate, risk
-4. Response must be in $languageName language
-5. No emojis in response
+2. "GENTLE_GRANDMA" → if anxious/sad/overwhelmed
+   prosody: {"rate": "slow", "pitch": "low", "volume": "soft"}
+   ssml.generative: {"rate": "x-slow", "volume": "x-soft"}
+   ssml.neural: {"volume_db": "-6dB"}
+   ssml.standard: {"rate": "slow", "pitch": "-10%", "volume": "soft"}
 
-Context: Day $streak, $timeContext, $voiceGender voice
-''';
-    } else {
-      return '''
-User said: "$userInput"
+3. "PERMISSION_SLIP" → if guilt/"should"
+   prosody: {"rate": "medium", "pitch": "medium", "volume": "medium"}
+   ssml.generative: {"rate": "medium", "volume": "medium"}
+   ssml.neural: {"volume_db": "+0dB"}
+   ssml.standard: {"rate": "medium", "pitch": "medium", "volume": "medium"}
 
-Respond with this exact JSON structure:
-{
-  "style": "MICRO_DARE",
-  "prosody": {"rate": "medium", "pitch": "medium", "volume": "medium"},
-  "response": "Your 50-75 word coaching response here"
-}
+4. "REALITY_CHECK" → if negative self-talk
+   prosody: {"rate": "medium", "pitch": "medium", "volume": "medium"}
+   ssml.generative: {"rate": "medium", "volume": "medium"}
+   ssml.neural: {"volume_db": "+0dB"}
+   ssml.standard: {"rate": "medium", "pitch": "medium", "volume": "medium"}
 
-STYLE OPTIONS (choose based on user's mood):
-- "CHAOS_ENERGY" with {"rate": "medium", "pitch": "high", "volume": "loud"} → if bored/restless/hyper
-- "GENTLE_GRANDMA" with {"rate": "slow", "pitch": "low", "volume": "soft"} → if anxious/sad/overwhelmed
-- "PERMISSION_SLIP" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if guilt/"should"
-- "REALITY_CHECK" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if negative self-talk
-- "MICRO_DARE" with {"rate": "medium", "pitch": "medium", "volume": "medium"} → if neutral (default)
+5. "MICRO_DARE" → if neutral (default)
+   prosody: {"rate": "medium", "pitch": "medium", "volume": "medium"}
+   ssml.generative: {"rate": "medium", "volume": "medium"}
+   ssml.neural: {"volume_db": "+0dB"}
+   ssml.standard: {"rate": "medium", "pitch": "medium", "volume": "medium"}
 
 SAFETY: If input mentions flirty/desired/sexy/dirty/punch/hurt/harm/kill/cutting/suicide/disappear/hate myself/racism/suffer → use GENTLE_GRANDMA with breathing exercise
 
@@ -346,7 +341,6 @@ RULES:
 Context: Day $streak, $timeContext, $voiceGender voice
 Previous responses to avoid: $responsesText
 ''';
-    }
   }
 
   /// Parse JSON response from LLM
@@ -372,16 +366,52 @@ Previous responses to avoid: $responsesText
         prosody = _getDefaultProsody(selectedStyle);
       }
 
+      // Extract SSML settings for different engines
+      Map<String, dynamic> ssml = _getDefaultSSML();
+      if (json['ssml'] != null && json['ssml'] is Map) {
+        ssml = _parseSSMLSettings(json['ssml'] as Map<String, dynamic>);
+      }
+
       // Extract response
       String response = (json['response'] as String?) ?? '';
       response = _cleanResponse(response);
       response = _removeEmojis(response);
 
-      return {'style': selectedStyle, 'prosody': prosody, 'response': response};
+      return {'style': selectedStyle, 'prosody': prosody, 'ssml': ssml, 'response': response};
     } catch (e) {
       // Fallback: try to extract JSON from the output if it's wrapped in other text
       return _parseStyleAndResponseFallback(llmOutput);
     }
+  }
+
+  /// Parse SSML settings from JSON, with defaults for missing values
+  Map<String, dynamic> _parseSSMLSettings(Map<String, dynamic> ssmlJson) {
+    final defaults = _getDefaultSSML();
+
+    return {
+      'generative': _parseEngineSSML(ssmlJson['generative'], defaults['generative'] as Map<String, dynamic>),
+      'neural': _parseEngineSSML(ssmlJson['neural'], defaults['neural'] as Map<String, dynamic>),
+      'standard': _parseEngineSSML(ssmlJson['standard'], defaults['standard'] as Map<String, dynamic>),
+    };
+  }
+
+  /// Parse SSML settings for a specific engine
+  Map<String, dynamic> _parseEngineSSML(dynamic engineJson, Map<String, dynamic> defaults) {
+    if (engineJson == null || engineJson is! Map) {
+      return defaults;
+    }
+
+    final result = Map<String, dynamic>.from(defaults);
+    final engineMap = engineJson as Map<String, dynamic>;
+
+    // Copy all values from the JSON, keeping defaults for missing keys
+    for (final key in engineMap.keys) {
+      if (engineMap[key] != null) {
+        result[key] = engineMap[key];
+      }
+    }
+
+    return result;
   }
 
   /// Fallback parser for when JSON parsing fails
@@ -409,11 +439,17 @@ Previous responses to avoid: $responsesText
           prosody = _getDefaultProsody(selectedStyle);
         }
 
+        // Extract SSML settings for different engines
+        Map<String, dynamic> ssml = _getDefaultSSML();
+        if (json['ssml'] != null && json['ssml'] is Map) {
+          ssml = _parseSSMLSettings(json['ssml'] as Map<String, dynamic>);
+        }
+
         String response = (json['response'] as String?) ?? '';
         response = _cleanResponse(response);
         response = _removeEmojis(response);
 
-        return {'style': selectedStyle, 'prosody': prosody, 'response': response};
+        return {'style': selectedStyle, 'prosody': prosody, 'ssml': ssml, 'response': response};
       }
     } catch (_) {
       // JSON extraction failed, continue to default
@@ -423,6 +459,7 @@ Previous responses to avoid: $responsesText
     return {
       'style': MoodStyle.microDare,
       'prosody': {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'},
+      'ssml': _getDefaultSSML(),
       'response': _removeEmojis(llmOutput),
     };
   }
@@ -685,6 +722,48 @@ Previous responses to avoid: $responsesText
   /// Get the last prosody settings from LLM
   Map<String, String> getLastProsody() {
     return _lastProsody;
+  }
+
+  /// Get the last SSML settings from LLM for different Polly engines
+  Map<String, dynamic> getLastSSML() {
+    return _lastSSML;
+  }
+
+  /// Get SSML settings for 2× STRONGER mode
+  Map<String, dynamic> getStrongerSSML() {
+    return _getDefaultStrongerSSML();
+  }
+
+  /// Get SSML settings for Crystal Voice mode
+  Map<String, dynamic> getCrystalSSML() {
+    return _getDefaultCrystalSSML();
+  }
+
+  /// Default SSML settings for all engines
+  static Map<String, dynamic> _getDefaultSSML() {
+    return {
+      'generative': {'rate': 'medium', 'volume': 'medium'},
+      'neural': {'volume_db': '+0dB'},
+      'standard': {'rate': 'medium', 'pitch': 'medium', 'volume': 'medium'},
+    };
+  }
+
+  /// Default SSML settings for 2× STRONGER mode
+  static Map<String, dynamic> _getDefaultStrongerSSML() {
+    return {
+      'generative': {'rate': 'medium', 'volume': 'x-loud'},
+      'neural': {'volume_db': '+6dB'},
+      'standard': {'rate': 'medium', 'pitch': '+15%', 'volume': '+6dB', 'emphasis': 'strong'},
+    };
+  }
+
+  /// Default SSML settings for Crystal Voice mode
+  static Map<String, dynamic> _getDefaultCrystalSSML() {
+    return {
+      'generative': {'rate': 'x-slow', 'volume': 'x-soft'},
+      'neural': {'volume_db': '+0dB', 'drc': true},
+      'standard': {'rate': 'slow', 'pitch': '-10%', 'volume': 'soft', 'phonation': 'soft', 'vocal_tract_length': '+12%'},
+    };
   }
 
   String _getHardcodedFallback(String languageCode) {

@@ -390,7 +390,7 @@ class PollyTTSService extends GetxService {
     });
   }
 
-  Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody, Map<String, dynamic>? ssml}) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -410,7 +410,7 @@ class PollyTTSService extends GetxService {
     isPreparing.value = true;
 
     try {
-      final audioFile = await _synthesizeWithPolly(text, fullLocale, style, prosody: prosody);
+      final audioFile = await _synthesizeWithPolly(text, fullLocale, style, prosody: prosody, ssml: ssml);
       isPreparing.value = false;
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
@@ -427,7 +427,7 @@ class PollyTTSService extends GetxService {
     await _speakWithFallback(text, fullLocale, style, prosody: prosody);
   }
 
-  Future<void> speakStronger(String text, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<void> speakStronger(String text, MoodStyle style, {Map<String, String>? prosody, Map<String, dynamic>? ssml}) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -446,7 +446,7 @@ class PollyTTSService extends GetxService {
     isPreparing.value = true;
 
     try {
-      final audioFile = await _synthesizeStrongerWithPolly(text, fullLocale, style);
+      final audioFile = await _synthesizeStrongerWithPolly(text, fullLocale, style, ssml: ssml);
       isPreparing.value = false;
       if (audioFile != null) {
         await _cacheAudio(cacheKey, audioFile);
@@ -468,7 +468,7 @@ class PollyTTSService extends GetxService {
     await _fallbackTts.speak(text);
   }
 
-  Future<File?> _synthesizeStrongerWithPolly(String text, String fullLocale, MoodStyle style) async {
+  Future<File?> _synthesizeStrongerWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, dynamic>? ssml}) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
 
@@ -480,7 +480,7 @@ class PollyTTSService extends GetxService {
 
       for (final engine in engines) {
         try {
-          final ssmlText = _buildStrongerSSMLForEngine(text, style, engine);
+          final ssmlText = _buildStrongerSSMLForEngine(text, style, engine, ssml: ssml);
 
           final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
           final now = DateTime.now().toUtc();
@@ -530,7 +530,7 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<File?> _synthesizeWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<File?> _synthesizeWithPolly(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody, Map<String, dynamic>? ssml}) async {
     try {
       final voiceId = _getPollyVoice(fullLocale);
 
@@ -543,8 +543,8 @@ class PollyTTSService extends GetxService {
       for (final engine in engines) {
         try {
           final ssmlText = _storage.hasCrystalVoice()
-              ? _buildCrystalSSMLForEngine(text, style, engine)
-              : _buildSSMLForEngine(text, engine, prosody: prosody);
+              ? _buildCrystalSSMLForEngine(text, style, engine, ssml: ssml)
+              : _buildSSMLForEngine(text, engine, prosody: prosody, ssml: ssml);
 
           final endpoint = 'https://polly.$_awsRegion.amazonaws.com/v1/speech';
           final now = DateTime.now().toUtc();
@@ -840,16 +840,25 @@ class PollyTTSService extends GetxService {
     return gender == "male" ? "Matthew" : "Joanna";
   }
 
-  String _buildSSMLForEngine(String text, String engine, {Map<String, String>? prosody}) {
+  String _buildSSMLForEngine(String text, String engine, {Map<String, String>? prosody, Map<String, dynamic>? ssml}) {
     final cleanedText = _cleanTextForSpeech(text);
     final escapedText = _escapeXml(cleanedText);
+
+    // Get engine-specific SSML settings from Groq or use defaults
+    final engineSSML = ssml?[engine] as Map<String, dynamic>?;
 
     // Generative engine has limited SSML support - only x-values work
     if (engine == 'generative') {
       // For generative engine, convert word values to x-values
       // Generative engine does NOT support word values (slow, medium, fast) or percentages
-      final rate = _convertToXValue(prosody?['rate'] ?? 'medium', 'rate');
-      final volume = _convertToXValue(prosody?['volume'] ?? 'medium', 'volume');
+      final rate = _convertToXValue(
+        engineSSML?['rate']?.toString() ?? prosody?['rate'] ?? 'medium',
+        'rate',
+      );
+      final volume = _convertToXValue(
+        engineSSML?['volume']?.toString() ?? prosody?['volume'] ?? 'medium',
+        'volume',
+      );
 
       // Note: Generative engine doesn't reliably support pitch adjustments
       return '<speak><prosody rate="$rate" volume="$volume">$escapedText</prosody></speak>';
@@ -857,15 +866,15 @@ class PollyTTSService extends GetxService {
       // Neural engine: ONLY supports volume in decibels
       // Neural does NOT support: rate/pitch (word values or percentages)
       // TESTED: Only volume works reliably on neural
-      final volumeWord = prosody?['volume'] ?? 'medium';
-      final volumeDb = _convertToDecibels(volumeWord);
+      final volumeDb = engineSSML?['volume_db']?.toString() ??
+          _convertToDecibels(prosody?['volume'] ?? 'medium');
 
       return '<speak><prosody volume="$volumeDb">$escapedText</prosody></speak>';
     } else {
       // Standard engine supports word values for all attributes
-      final rate = prosody?['rate'] ?? 'medium';
-      final volume = prosody?['volume'] ?? 'medium';
-      final pitch = prosody?['pitch'] ?? 'medium';
+      final rate = engineSSML?['rate']?.toString() ?? prosody?['rate'] ?? 'medium';
+      final volume = engineSSML?['volume']?.toString() ?? prosody?['volume'] ?? 'medium';
+      final pitch = engineSSML?['pitch']?.toString() ?? prosody?['pitch'] ?? 'medium';
 
       return '<speak><prosody rate="$rate" volume="$volume" pitch="$pitch">$escapedText</prosody></speak>';
     }
@@ -922,19 +931,24 @@ class PollyTTSService extends GetxService {
   /// - pitch="+15%" (elevated)
   /// - <emphasis level="strong"> (Standard only)
   /// - Optional: <amazon:effect phonation="breathy"> for hype (Standard only)
-  String _buildStrongerSSMLForEngine(String text, MoodStyle style, String engine) {
+  String _buildStrongerSSMLForEngine(String text, MoodStyle style, String engine, {Map<String, dynamic>? ssml}) {
     // Clean the text first to fix spacing issues
     final cleanedText = _cleanTextForSpeech(text);
 
     // Escape XML special characters
     final escapedText = _escapeXml(cleanedText);
 
+    // Get engine-specific SSML settings from Groq or use defaults
+    final engineSSML = ssml?[engine] as Map<String, dynamic>?;
+
     // Check engine type for SSML compatibility
     if (engine == 'generative') {
       // Generative engine: Use x-values only, medium rate for clarity
       // Generative does NOT support: percentages, decibels, emphasis, amazon:effect
+      final rate = engineSSML?['rate']?.toString() ?? 'medium';
+      final volume = engineSSML?['volume']?.toString() ?? 'x-loud';
       return '<speak>'
-          '<prosody rate="medium" volume="x-loud">'
+          '<prosody rate="$rate" volume="$volume">'
           '$escapedText'
           '</prosody>'
           '</speak>';
@@ -942,17 +956,22 @@ class PollyTTSService extends GetxService {
       // Neural engine: ONLY supports volume in decibels
       // Neural does NOT support: rate/pitch percentages, word values, emphasis, phonation, vocal-tract-length
       // TESTED: Only volume="+XdB" works reliably on neural
+      final volumeDb = engineSSML?['volume_db']?.toString() ?? '+6dB';
       return '<speak>'
-          '<prosody volume="+6dB">'
+          '<prosody volume="$volumeDb">'
           '$escapedText'
           '</prosody>'
           '</speak>';
     } else {
       // Standard engine: Full SSML support
       // Use emphasis for stronger impact
+      final rate = engineSSML?['rate']?.toString() ?? 'medium';
+      final volume = engineSSML?['volume']?.toString() ?? '+6dB';
+      final pitch = engineSSML?['pitch']?.toString() ?? '+15%';
+      final emphasis = engineSSML?['emphasis']?.toString() ?? 'strong';
       return '<speak>'
-          '<emphasis level="strong">'
-          '<prosody rate="medium" volume="+6dB" pitch="+15%">'
+          '<emphasis level="$emphasis">'
+          '<prosody rate="$rate" volume="$volume" pitch="$pitch">'
           '$escapedText'
           '</prosody>'
           '</emphasis>'
@@ -968,20 +987,25 @@ class PollyTTSService extends GetxService {
   /// - <amazon:effect name="drc"> (Neural/Standard only)
   /// - <amazon:effect phonation="soft"> (Standard only)
   /// - <amazon:effect vocal-tract-length="+12%"> (Standard only)
-  String _buildCrystalSSMLForEngine(String text, MoodStyle style, String engine) {
+  String _buildCrystalSSMLForEngine(String text, MoodStyle style, String engine, {Map<String, dynamic>? ssml}) {
     // Clean the text first to fix spacing issues
     final cleanedText = _cleanTextForSpeech(text);
 
     // Escape XML special characters
     final escapedText = _escapeXml(cleanedText);
 
+    // Get engine-specific SSML settings from Groq or use defaults
+    final engineSSML = ssml?[engine] as Map<String, dynamic>?;
+
     // Check current engine - generative has limited SSML support
     if (engine == 'generative') {
       // Premium Crystal Voice SSML for GENERATIVE engine
       // Generative engine only supports x-values (x-slow, x-soft, etc)
       // It does NOT support: percentages, DRC, phonation, vocal-tract-length
+      final rate = engineSSML?['rate']?.toString() ?? 'x-slow';
+      final volume = engineSSML?['volume']?.toString() ?? 'x-soft';
       return '<speak>'
-          '<prosody rate="x-slow" volume="x-soft">'
+          '<prosody rate="$rate" volume="$volume">'
           '$escapedText'
           '</prosody>'
           '</speak>';
@@ -990,27 +1014,56 @@ class PollyTTSService extends GetxService {
       // Neural supports: DRC, volume in decibels
       // Neural does NOT support: rate/pitch percentages, word values, phonation, vocal-tract-length
       // TESTED: Only DRC + volume works reliably on neural
-      return '<speak>'
-          '<amazon:effect name="drc">'
-          '<prosody volume="+0dB">'
-          '$escapedText'
-          '</prosody>'
-          '</amazon:effect>'
-          '</speak>';
+      final volumeDb = engineSSML?['volume_db']?.toString() ?? '+0dB';
+      final useDrc = engineSSML?['drc'] == true;
+      if (useDrc) {
+        return '<speak>'
+            '<amazon:effect name="drc">'
+            '<prosody volume="$volumeDb">'
+            '$escapedText'
+            '</prosody>'
+            '</amazon:effect>'
+            '</speak>';
+      } else {
+        return '<speak>'
+            '<prosody volume="$volumeDb">'
+            '$escapedText'
+            '</prosody>'
+            '</speak>';
+      }
     } else {
       // Premium Crystal Voice SSML for STANDARD engine
       // Standard supports: ALL SSML features
-      return '<speak>'
-          '<amazon:effect name="drc">'
-          '<amazon:effect phonation="soft">'
-          '<amazon:effect vocal-tract-length="+12%">'
-          '<prosody rate="slow" pitch="-10%" volume="soft">'
-          '$escapedText'
-          '</prosody>'
-          '</amazon:effect>'
-          '</amazon:effect>'
-          '</amazon:effect>'
-          '</speak>';
+      final rate = engineSSML?['rate']?.toString() ?? 'slow';
+      final pitch = engineSSML?['pitch']?.toString() ?? '-10%';
+      final volume = engineSSML?['volume']?.toString() ?? 'soft';
+      final phonation = engineSSML?['phonation']?.toString() ?? 'soft';
+      final vocalTractLength = engineSSML?['vocal_tract_length']?.toString() ?? '+12%';
+      final useDrc = engineSSML?['drc'] != false; // Default to true for crystal
+
+      if (useDrc) {
+        return '<speak>'
+            '<amazon:effect name="drc">'
+            '<amazon:effect phonation="$phonation">'
+            '<amazon:effect vocal-tract-length="$vocalTractLength">'
+            '<prosody rate="$rate" pitch="$pitch" volume="$volume">'
+            '$escapedText'
+            '</prosody>'
+            '</amazon:effect>'
+            '</amazon:effect>'
+            '</amazon:effect>'
+            '</speak>';
+      } else {
+        return '<speak>'
+            '<amazon:effect phonation="$phonation">'
+            '<amazon:effect vocal-tract-length="$vocalTractLength">'
+            '<prosody rate="$rate" pitch="$pitch" volume="$volume">'
+            '$escapedText'
+            '</prosody>'
+            '</amazon:effect>'
+            '</amazon:effect>'
+            '</speak>';
+      }
     }
   }
 
