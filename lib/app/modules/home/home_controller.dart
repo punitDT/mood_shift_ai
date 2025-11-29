@@ -20,6 +20,7 @@ import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../utils/app_logger.dart';
 
 enum AppState {
   idle,
@@ -312,7 +313,10 @@ class HomeController extends GetxController {
     _stopListeningProgress();
 
     if (currentState.value == AppState.listening) {
+      // Wait a bit for speech recognition to finish processing the last words
+      await Future.delayed(const Duration(milliseconds: 500));
       await _speechService.stopListening();
+      // Additional delay to ensure final result is captured
       await Future.delayed(const Duration(milliseconds: 300));
 
       final accumulatedText = _speechService.recognizedText.value;
@@ -380,6 +384,9 @@ class HomeController extends GetxController {
   Future<void> _processUserInput(String userInput) async {
     Timer? slowResponseTimer;
 
+    // Debug log: what user said (full text)
+    AppLogger.userSaid(userInput);
+
     try {
       currentState.value = AppState.processing;
       statusText.value = _tr('processing', fallback: 'Thinking...');
@@ -394,6 +401,9 @@ class HomeController extends GetxController {
       final languageCode = _storage.getLanguageCode();
       final response = await _llmService.generateResponse(userInput, languageCode);
       slowResponseTimer.cancel();
+
+      // Debug log: what Polly/AI said (full text)
+      AppLogger.pollySaid(response);
 
       if (response.isEmpty) {
         SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));

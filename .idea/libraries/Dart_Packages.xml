@@ -334,7 +334,7 @@
         <entry key="get">
           <value>
             <list>
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/get-4.7.2/lib" />
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/get-4.7.3/lib" />
             </list>
           </value>
         </entry>
@@ -415,6 +415,13 @@
             </list>
           </value>
         </entry>
+        <entry key="logger">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/logger-2.6.2/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="lottie">
           <value>
             <list>
@@ -447,13 +454,6 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/mime-1.0.6/lib" />
-            </list>
-          </value>
-        </entry>
-        <entry key="objective_c">
-          <value>
-            <list>
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/objective_c-9.1.0/lib" />
             </list>
           </value>
         </entry>
@@ -495,7 +495,7 @@
         <entry key="path_provider_foundation">
           <value>
             <list>
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_foundation-2.5.0/lib" />
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_foundation-2.5.1/lib" />
             </list>
           </value>
         </entry>
@@ -594,13 +594,6 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/posix-6.0.3/lib" />
-            </list>
-          </value>
-        </entry>
-        <entry key="pub_semver">
-          <value>
-            <list>
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/pub_semver-2.2.0/lib" />
             </list>
           </value>
         </entry>
@@ -903,7 +896,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_native_splash-2.4.7/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_screenutil-5.9.3/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_tts-4.2.3/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/get-4.7.2/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/get-4.7.3/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/get_storage-2.1.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/google_mobile_ads-5.3.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/html-0.15.6/lib" />
@@ -915,18 +908,18 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/leak_tracker_flutter_testing-3.0.10/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/lints-3.0.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/logger-2.6.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/lottie-3.3.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/matcher-0.12.17/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/material_color_utilities-0.11.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/meta-1.16.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/mime-1.0.6/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/objective_c-9.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/package_info_plus-8.3.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/package_info_plus_platform_interface-3.2.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path-1.9.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider-2.1.5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_android-2.2.22/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_foundation-2.5.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_foundation-2.5.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_linux-2.2.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_platform_interface-2.1.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_windows-2.3.0/lib" />
@@ -941,7 +934,6 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/platform-3.1.6/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/posix-6.0.3/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/pub_semver-2.2.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/share_plus-7.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/share_plus_platform_interface-3.4.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/source_span-1.10.1/lib" />

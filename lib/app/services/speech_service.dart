@@ -13,6 +13,9 @@ class SpeechService extends GetxService {
   final isListening = false.obs;
   final recognizedText = ''.obs;
 
+  // Accumulated text across multiple recognition sessions (for auto-restart on pause)
+  String _accumulatedText = '';
+
   // Available locales on the device
   List<LocaleName> _availableLocales = [];
   LocaleName? _systemLocale;
@@ -71,6 +74,7 @@ class SpeechService extends GetxService {
 
       if (_speech.isAvailable && !isListening.value) {
         recognizedText.value = '';
+        _accumulatedText = '';
         isListening.value = true;
 
         final fullLocale = _storage.getFullLocale();
@@ -80,7 +84,24 @@ class SpeechService extends GetxService {
         await _speech.listen(
           onResult: (result) {
             try {
-              recognizedText.value = result.recognizedWords;
+              if (result.finalResult) {
+                // When result is final, accumulate it
+                if (result.recognizedWords.isNotEmpty) {
+                  if (_accumulatedText.isNotEmpty) {
+                    _accumulatedText += ' ${result.recognizedWords}';
+                  } else {
+                    _accumulatedText = result.recognizedWords;
+                  }
+                  recognizedText.value = _accumulatedText;
+                }
+              } else {
+                // For partial results, show accumulated + current
+                if (_accumulatedText.isNotEmpty) {
+                  recognizedText.value = '$_accumulatedText ${result.recognizedWords}';
+                } else {
+                  recognizedText.value = result.recognizedWords;
+                }
+              }
             } catch (e, stackTrace) {
               _crashlytics.reportSpeechError(
                 e,

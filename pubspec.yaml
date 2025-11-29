@@ -50,6 +50,7 @@ dependencies:
   audioplayers: ^6.5.1
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
+  logger: ^2.6.2
 
 dev_dependencies:
   flutter_test:

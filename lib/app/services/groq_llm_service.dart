@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'ai_service.dart';
 import 'storage_service.dart';
 import 'crashlytics_service.dart';
+import '../utils/app_logger.dart';
 
 class GroqLLMService extends GetxService {
   final Random _random = Random();
@@ -32,8 +33,8 @@ class GroqLLMService extends GetxService {
     _temperature = double.tryParse(dotenv.env['GROK_TEMPERATURE'] ?? '0.9') ?? 0.9;
     _maxTokens = int.tryParse(dotenv.env['GROK_MAX_TOKENS'] ?? '800') ?? 800;
     _timeoutSeconds = int.tryParse(dotenv.env['GROK_TIMEOUT_SECONDS'] ?? '10') ?? 10;
-    _frequencyPenalty = double.tryParse(dotenv.env['GROK_FREQUENCY_PENALTY'] ?? '0.8') ?? 0.8;
-    _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.8') ?? 0.8;
+    _frequencyPenalty = double.tryParse(dotenv.env['GROK_FREQUENCY_PENALTY'] ?? '0.8') ?? 0.3;
+    _presencePenalty = double.tryParse(dotenv.env['GROK_PRESENCE_PENALTY'] ?? '0.8') ?? 0.3;
     _maxResponseWords = int.tryParse(dotenv.env['GROK_MAX_RESPONSE_WORDS'] ?? '300') ?? 300;
     _storage = Get.find<StorageService>();
     _crashlytics = Get.find<CrashlyticsService>();
@@ -56,6 +57,18 @@ class GroqLLMService extends GetxService {
     try {
       final messages = _buildMessagesWithHistory(userInput, language);
 
+      // Log the full request
+      AppLogger.groqRequest(
+        url: _groqApiUrl,
+        model: _model,
+        messages: messages,
+        temperature: _temperature,
+        maxTokens: _maxTokens,
+        frequencyPenalty: _frequencyPenalty,
+        presencePenalty: _presencePenalty,
+      );
+
+      final stopwatch = Stopwatch()..start();
       final response = await http.post(
         Uri.parse(_groqApiUrl),
         headers: {
@@ -79,6 +92,14 @@ class GroqLLMService extends GetxService {
           _crashlytics.reportLLMError(timeoutError, StackTrace.current, operation: 'generateResponse', model: _model, userInput: userInput);
           throw timeoutError;
         },
+      );
+      stopwatch.stop();
+
+      // Log the full response
+      AppLogger.groqResponse(
+        statusCode: response.statusCode,
+        body: response.body,
+        durationMs: stopwatch.elapsedMilliseconds,
       );
 
       if (response.statusCode == 200) {
@@ -111,6 +132,7 @@ class GroqLLMService extends GetxService {
 
       return _getHardcodedFallback(language);
     } catch (e, stackTrace) {
+      AppLogger.error('Groq API error', e, stackTrace);
       _crashlytics.reportLLMError(e, stackTrace, operation: 'generateResponse', model: _model, userInput: userInput);
       return _getHardcodedFallback(language);
     }
