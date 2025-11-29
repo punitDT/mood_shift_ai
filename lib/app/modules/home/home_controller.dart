@@ -398,7 +398,6 @@ class HomeController extends GetxController {
       lastResponse = response;
       lastStyle = _llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
       final prosody = _llmService.getLastProsody();
-      final ssml = _llmService.getLastSSML();
       _storage.setLastResponse(response);
 
       currentState.value = AppState.speaking;
@@ -411,7 +410,7 @@ class HomeController extends GetxController {
 
       _startSpeakingProgress(estimatedMs);
 
-      await _ttsService.speak(response, lastStyle!, prosody: prosody, ssml: ssml);
+      await _ttsService.speak(response, lastStyle!, prosody: prosody);
 
       await Future.delayed(const Duration(milliseconds: 500));
       while (_ttsService.isSpeaking.value) {
@@ -494,9 +493,8 @@ class HomeController extends GetxController {
             languageCode,
           );
 
-          // Get prosody and SSML for stronger response
+          // Get prosody for stronger response (SSML is now hardcoded in TTS service)
           final prosody = _llmService.getLastProsody();
-          final ssml = _llmService.getLastSSML();
 
           // Set state to speaking and show animation
           currentState.value = AppState.speaking;
@@ -511,7 +509,7 @@ class HomeController extends GetxController {
           _startSpeakingProgress(estimatedMs);
           confettiController.play();
 
-          await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody, ssml: ssml);
+          await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody);
 
           await Future.delayed(const Duration(milliseconds: 500));
           while (_ttsService.isSpeaking.value) {
