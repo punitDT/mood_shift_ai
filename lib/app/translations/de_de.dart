@@ -30,9 +30,9 @@ const Map<String, String> deDE = {
   'reminder_set_message': 'Sie erhalten eine sanfte tägliche Erinnerung, um Ihre Stimmung zu ändern.',
   'ready_to_use': 'Bereit zur Verwendung',
   'tap_mic_again': 'Tippen Sie erneut auf die Mikrofontaste, um die Aufnahme zu starten',
-  'make_stronger': 'Mach es 2× stärker! 🎯',
-  'unlock_crystal': 'Kristallstimme 1 Stunde freischalten 💎',
-  'remove_ads': 'Anzeigen für 24 Stunden entfernen 🚀',
+  'make_stronger': 'Mach es 2x stärker 🎯',
+  'unlock_crystal': 'Kristallstimme für 1 Stunde freischalten 💎',
+  'remove_ads': 'Anzeigen für 24 Stunden entfernen 🕊️',
   'ad_free_active': 'Werbefrei: ',
   'save_wallpaper': 'Als Hintergrundbild speichern 🖼️',
 
@@ -74,7 +74,7 @@ const Map<String, String> deDE = {
   'no_speech_detected': 'Keine Sprache erkannt. Bitte versuchen Sie es erneut.',
   'ai_error': 'KI-Dienstfehler. Bitte versuchen Sie es erneut.',
   'network_error': 'Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.',
-  'share_text': 'Schauen Sie sich MoodShift AI an - Ihr persönlicher ADHS-Begleiter! 🧠✨',
+  'share_text': 'Schauen Sie sich MoodShift AI an - Ihr persönlicher Stimmungsbegleiter! 🧠✨',
   'loading_reward': 'Belohnung wird geladen...',
   'ad_not_ready': 'Anzeige ist noch nicht bereit. Bitte versuchen Sie es erneut.',
 

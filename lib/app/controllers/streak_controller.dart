@@ -142,7 +142,7 @@ class StreakController extends GetxController {
   String getStreakText() {
     final current = currentStreak.value;
     final total = totalShifts.value;
-    
+
     if (current == 0) {
       return 'Start your first shift! 🌟';
     } else if (current == 1) {
@@ -154,7 +154,7 @@ class StreakController extends GetxController {
     }
   }
 
-  // Check if should show fire emoji
+  // Check if should show fire icon
   bool shouldShowFire() {
     return currentStreak.value >= 3;
   }

@@ -284,9 +284,12 @@ class HomeController extends GetxController {
           if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
             await _processUserInput(accumulatedText);
           } else {
-            SnackbarUtils.showWarning(
-              title: 'No Speech',
+            SnackbarUtils.showCustom(
+              title: 'No Speech Detected',
               message: _tr('no_speech_detected', fallback: 'No speech detected. Please try again.'),
+              backgroundColor: const Color(0xFF7B1FA2),
+              textColor: Colors.white,
+              icon: Icons.mic_off_rounded,
             );
             _resetToIdle();
           }
@@ -316,9 +319,12 @@ class HomeController extends GetxController {
       if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
         await _processUserInput(accumulatedText);
       } else {
-        SnackbarUtils.showWarning(
-          title: 'No Speech',
+        SnackbarUtils.showCustom(
+          title: 'No Speech Detected',
           message: _tr('no_speech_detected', fallback: 'No speech detected. Please try again.'),
+          backgroundColor: const Color(0xFF7B1FA2),
+          textColor: Colors.white,
+          icon: Icons.mic_off_rounded,
         );
         _resetToIdle();
       }
@@ -397,7 +403,6 @@ class HomeController extends GetxController {
 
       lastResponse = response;
       lastStyle = _llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
-      final prosody = _llmService.getLastProsody();
       _storage.setLastResponse(response);
 
       currentState.value = AppState.speaking;
@@ -410,7 +415,7 @@ class HomeController extends GetxController {
 
       _startSpeakingProgress(estimatedMs);
 
-      await _ttsService.speak(response, lastStyle!, prosody: prosody);
+      await _ttsService.speak(response, lastStyle!);
 
       await Future.delayed(const Duration(milliseconds: 500));
       while (_ttsService.isSpeaking.value) {
@@ -473,7 +478,7 @@ class HomeController extends GetxController {
 
           // Show power activated overlay
           SnackbarUtils.showCustom(
-            title: '⚡ 2× POWER ACTIVATED! ⚡',
+            title: '⚡ 2x Power Activated',
             message: 'Amplifying your response...',
             backgroundColor: const Color(0xFF7C4DFF),
             textColor: Colors.white,
@@ -493,9 +498,6 @@ class HomeController extends GetxController {
             languageCode,
           );
 
-          // Get prosody for stronger response (SSML is now hardcoded in TTS service)
-          final prosody = _llmService.getLastProsody();
-
           // Set state to speaking and show animation
           currentState.value = AppState.speaking;
           // Start with "Preparing..." - will update to "Speaking..." when audio starts
@@ -509,7 +511,7 @@ class HomeController extends GetxController {
           _startSpeakingProgress(estimatedMs);
           confettiController.play();
 
-          await _ttsService.speakStronger(strongerResponse, lastStyle!, prosody: prosody);
+          await _ttsService.speakStronger(strongerResponse, lastStyle!);
 
           await Future.delayed(const Duration(milliseconds: 500));
           while (_ttsService.isSpeaking.value) {
@@ -544,7 +546,7 @@ class HomeController extends GetxController {
 
       // Show beautiful snackbar
       SnackbarUtils.showCustom(
-        title: '🕊️ Peace Mode Activated!',
+        title: '🕊️ Peace Mode Activated',
         message: 'peace_mode_activated'.tr,
         backgroundColor: const Color(0xFF4CAF50),
         textColor: Colors.white,

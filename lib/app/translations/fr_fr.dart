@@ -30,9 +30,9 @@ const Map<String, String> frFR = {
   'reminder_set_message': 'Vous recevrez un rappel quotidien doux pour changer votre humeur.',
   'ready_to_use': 'Prêt à utiliser',
   'tap_mic_again': 'Appuyez à nouveau sur le bouton du micro pour commencer l\'enregistrement',
-  'make_stronger': 'Rendez-le 2× plus fort! 🎯',
-  'unlock_crystal': 'Débloquer Voix Cristal 1 heure 💎',
-  'remove_ads': 'Supprimer les annonces pendant 24 heures 🚀',
+  'make_stronger': 'Rendez-le 2x plus fort 🎯',
+  'unlock_crystal': 'Débloquer Voix Cristal pour 1 heure 💎',
+  'remove_ads': 'Supprimer les annonces pendant 24 heures 🕊️',
   'ad_free_active': 'Sans publicité: ',
   'save_wallpaper': 'Enregistrer comme fond d\'écran 🖼️',
 
@@ -74,7 +74,7 @@ const Map<String, String> frFR = {
   'no_speech_detected': 'Aucune parole détectée. Veuillez réessayer.',
   'ai_error': 'Erreur du service IA. Veuillez réessayer.',
   'network_error': 'Erreur réseau. Veuillez vérifier votre connexion.',
-  'share_text': 'Découvrez MoodShift AI - Votre compagnon personnel TDAH! 🧠✨',
+  'share_text': 'Découvrez MoodShift AI - Votre compagnon personnel d\'humeur! 🧠✨',
   'loading_reward': 'Chargement de la récompense...',
   'ad_not_ready': 'L\'annonce n\'est pas encore prête. Veuillez réessayer.',
 

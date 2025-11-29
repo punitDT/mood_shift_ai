@@ -30,9 +30,9 @@ const Map<String, String> zhCN = {
   'reminder_set_message': '您将收到温和的每日提醒来转变您的情绪。',
   'ready_to_use': '准备就绪',
   'tap_mic_again': '再次点击麦克风按钮开始录音',
-  'make_stronger': '让它强2倍！🎯',
+  'make_stronger': '让它强2倍 🎯',
   'unlock_crystal': '解锁水晶语音1小时 💎',
-  'remove_ads': '移除广告24小时 🚀',
+  'remove_ads': '移除广告24小时 🕊️',
   'ad_free_active': '无广告: ',
   'save_wallpaper': '保存为壁纸 🖼️',
 

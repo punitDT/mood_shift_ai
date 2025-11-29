@@ -388,7 +388,7 @@ class PollyTTSService extends GetxService {
     });
   }
 
-  Future<void> speak(String text, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<void> speak(String text, MoodStyle style) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -412,10 +412,10 @@ class PollyTTSService extends GetxService {
     }
 
     isUsingOfflineMode.value = true;
-    await _speakWithFallback(text, fullLocale, style, prosody: prosody);
+    await _speakWithFallback(text, fullLocale, style);
   }
 
-  Future<void> speakStronger(String text, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<void> speakStronger(String text, MoodStyle style) async {
     if (text.isEmpty) return;
 
     await stop();
@@ -440,7 +440,7 @@ class PollyTTSService extends GetxService {
 
     isUsingOfflineMode.value = true;
     await _fallbackTts.setVolume(1.0);
-    final extremeSettings = _getExtremeSettings(style, prosody);
+    final extremeSettings = _getExtremeSettings(style);
     await _fallbackTts.setSpeechRate(extremeSettings['rate']!);
     await _fallbackTts.setPitch(extremeSettings['pitch']!);
     await _setLanguage(fullLocale);
@@ -1114,9 +1114,9 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  Future<void> _speakWithFallback(String text, String fullLocale, MoodStyle style, {Map<String, String>? prosody}) async {
+  Future<void> _speakWithFallback(String text, String fullLocale, MoodStyle style) async {
     await _setLanguage(fullLocale);
-    await _applyProsody(prosody);
+    await _applyProsodyForStyle(style);
     await _fallbackTts.speak(text);
   }
 
@@ -1125,11 +1125,12 @@ class PollyTTSService extends GetxService {
     await _fallbackTts.setLanguage(fullLocale);
   }
 
-  /// Apply LLM-provided prosody settings to fallback TTS
-  Future<void> _applyProsody(Map<String, String>? prosody) async {
-    // Convert LLM prosody to numeric values for flutter_tts
-    final rate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
-    final pitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
+  /// Apply hardcoded prosody settings based on style for fallback TTS
+  Future<void> _applyProsodyForStyle(MoodStyle style) async {
+    // Get prosody from hardcoded style settings
+    final prosody = _getStyleSSMLSettings(style);
+    final rate = _convertRateToNumeric(prosody['rate'] ?? 'medium');
+    final pitch = _convertPitchToNumeric(prosody['pitch'] ?? 'medium');
 
     if (_storage.hasCrystalVoice()) {
       await _fallbackTts.setSpeechRate(rate * 0.9);
@@ -1140,7 +1141,7 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  /// Convert LLM rate (slow/medium/fast) to numeric value
+  /// Convert rate (slow/medium/fast) to numeric value
   double _convertRateToNumeric(String rate) {
     switch (rate.toLowerCase()) {
       case 'slow': return 0.35;
@@ -1150,7 +1151,7 @@ class PollyTTSService extends GetxService {
     }
   }
 
-  /// Convert LLM pitch (low/medium/high) to numeric value
+  /// Convert pitch (low/medium/high) to numeric value
   double _convertPitchToNumeric(String pitch) {
     switch (pitch.toLowerCase()) {
       case 'low': return 0.9;
@@ -1162,9 +1163,11 @@ class PollyTTSService extends GetxService {
 
   /// Get extreme settings for 2× STRONGER fallback TTS
   /// Style-specific amplification for maximum impact
-  Map<String, double> _getExtremeSettings(MoodStyle style, Map<String, String>? prosody) {
-    final baseRate = _convertRateToNumeric(prosody?['rate'] ?? 'medium');
-    final basePitch = _convertPitchToNumeric(prosody?['pitch'] ?? 'medium');
+  Map<String, double> _getExtremeSettings(MoodStyle style) {
+    // Get base prosody from hardcoded style settings
+    final prosody = _getStyleSSMLSettings(style);
+    final baseRate = _convertRateToNumeric(prosody['rate'] ?? 'medium');
+    final basePitch = _convertPitchToNumeric(prosody['pitch'] ?? 'medium');
 
     switch (style) {
       case MoodStyle.chaosEnergy:

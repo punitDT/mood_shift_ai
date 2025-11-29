@@ -538,7 +538,7 @@ class HomeView extends GetView<HomeController> {
       ),
       child: Column(
         children: [
-          // Day X with fire emoji (big)
+          // Day X with fire icon (big)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -555,7 +555,7 @@ class HomeView extends GetView<HomeController> {
                 SizedBox(width: 8.w),
                 Text(
                   '🔥',
-                  style: TextStyle(fontSize: 24.sp),
+                  style: TextStyle(fontSize: 20.sp),
                 ),
               ],
             ],

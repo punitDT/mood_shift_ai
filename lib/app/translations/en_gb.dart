@@ -37,8 +37,8 @@ const Map<String, String> enGB = {
   'tap_mic_again': 'Tap the mic button again to start recording',
   
   // Rewarded Ad Buttons
-  'make_stronger': 'Make this 2× stronger! 🎯',
-  'unlock_crystal': 'Unlock Crystal Voice 1 hour 💎',
+  'make_stronger': 'Make this 2x stronger 🎯',
+  'unlock_crystal': 'Unlock Crystal Voice for 1 hour 💎',
   'remove_ads': 'Remove ads for 24 hours 🕊️',
   'ad_free_active': 'Ad-free: ',
   'save_wallpaper': 'Save as wallpaper 🖼️',
