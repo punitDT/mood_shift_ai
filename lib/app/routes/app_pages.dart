@@ -4,7 +4,6 @@ import '../modules/home/home_binding.dart';
 import '../modules/home/home_view.dart';
 import '../modules/settings/settings_binding.dart';
 import '../modules/settings/settings_view.dart';
-import '../modules/crashlytics_test/crashlytics_test_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -18,11 +17,6 @@ class AppPages {
       name: AppRoutes.SETTINGS,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
-    ),
-    // TODO: Remove before production release
-    GetPage(
-      name: AppRoutes.CRASHLYTICS_TEST,
-      page: () => const CrashlyticsTestView(),
     ),
   ];
 }

@@ -11,6 +11,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage_service.dart';
 import 'ai_service.dart';
 import 'crashlytics_service.dart';
+import '../utils/app_logger.dart';
 
 class PollyTTSService extends GetxService {
   final FlutterTts _fallbackTts = FlutterTts();
@@ -411,6 +412,7 @@ class PollyTTSService extends GetxService {
       _crashlytics.reportTTSError(e, stackTrace, operation: 'speak', locale: fullLocale, textLength: text.length);
     }
 
+    AppLogger.info('🔊 POLLY FALLBACK: Using device TTS | Locale: $fullLocale');
     isUsingOfflineMode.value = true;
     await _speakWithFallback(text, fullLocale, style);
   }
@@ -438,6 +440,7 @@ class PollyTTSService extends GetxService {
       _crashlytics.reportTTSError(e, stackTrace, operation: 'speakStronger', locale: fullLocale, textLength: text.length);
     }
 
+    AppLogger.info('🔊 POLLY STRONGER FALLBACK: Using device TTS | Locale: $fullLocale');
     isUsingOfflineMode.value = true;
     await _fallbackTts.setVolume(1.0);
     final extremeSettings = _getExtremeSettings(style);
@@ -487,16 +490,19 @@ class PollyTTSService extends GetxService {
           ).timeout(Duration(seconds: _pollyTimeoutSeconds), onTimeout: () => throw Exception('Polly API timeout'));
 
           if (response.statusCode == 200) {
+            AppLogger.info('🔊 POLLY STRONGER ENGINE: $engine | Voice: $voiceId | Locale: $fullLocale');
             final tempFile = File('${_tempDir}/audio_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
             await tempFile.writeAsBytes(response.bodyBytes);
             return tempFile;
           } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
+            AppLogger.debug('🔊 POLLY STRONGER ENGINE $engine failed (400), trying next...');
             continue;
           } else {
             return null;
           }
         } catch (e) {
           if (engines.indexOf(engine) < engines.length - 1) {
+            AppLogger.debug('🔊 POLLY STRONGER ENGINE $engine failed, trying next...');
             continue;
           }
           rethrow;
@@ -551,10 +557,12 @@ class PollyTTSService extends GetxService {
           ).timeout(Duration(seconds: _pollyTimeoutSeconds), onTimeout: () => throw Exception('Polly API timeout'));
 
           if (response.statusCode == 200) {
+            AppLogger.info('🔊 POLLY ENGINE: $engine | Voice: $voiceId | Locale: $fullLocale');
             final tempFile = File('${_tempDir}/audio_${DateTime.now().millisecondsSinceEpoch}.$_pollyOutputFormat');
             await tempFile.writeAsBytes(response.bodyBytes);
             return tempFile;
           } else if (response.statusCode == 400 && engines.indexOf(engine) < engines.length - 1) {
+            AppLogger.debug('🔊 POLLY ENGINE $engine failed (400), trying next...');
             continue;
           } else {
             _crashlytics.reportTTSError(
@@ -569,6 +577,7 @@ class PollyTTSService extends GetxService {
           }
         } catch (e, stackTrace) {
           if (engines.indexOf(engine) < engines.length - 1) {
+            AppLogger.debug('🔊 POLLY ENGINE $engine failed, trying next...');
             continue;
           }
           _crashlytics.reportTTSError(e, stackTrace, operation: '_synthesizeWithPolly', engine: engine, voiceId: voiceId, locale: fullLocale);

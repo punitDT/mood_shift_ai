@@ -274,18 +274,6 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
 
-              // TODO: Remove before production - Crashlytics Test button
-              IconButton(
-                onPressed: () => Get.toNamed('/crashlytics-test'),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: Icon(
-                  Icons.bug_report_outlined,
-                  color: Colors.red.withOpacity(0.6),
-                  size: 20.sp,
-                ),
-              ),
-              SizedBox(width: 8.w),
               // Settings icon
               IconButton(
                 onPressed: controller.goToSettings,
