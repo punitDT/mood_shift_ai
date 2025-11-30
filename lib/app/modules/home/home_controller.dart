@@ -30,17 +30,21 @@ enum AppState {
 }
 
 class HomeController extends GetxController {
-  late final GroqLLMService _llmService;
-  late final SpeechService _speechService;
-  late final PollyTTSService _ttsService;
-  late final StorageService _storage;
-  late final AdService _adService;
-  late final RemoteConfigService _remoteConfig;
-  late final CrashlyticsService _crashlytics;
-  late final PermissionService _permissionService;
-  late final AdFreeController _adFreeController;
-  late final StreakController _streakController;
-  late final RewardedController _rewardedController;
+  // Services - nullable to avoid late initialization issues
+  GroqLLMService? _llmService;
+  SpeechService? _speechService;
+  PollyTTSService? _ttsService;
+  StorageService? _storage;
+  AdService? _adService;
+  RemoteConfigService? _remoteConfig;
+  CrashlyticsService? _crashlytics;
+  PermissionService? _permissionService;
+  AdFreeController? _adFreeController;
+  StreakController? _streakController;
+  RewardedController? _rewardedController;
+
+  // Track if services are properly initialized
+  final _servicesInitialized = false.obs;
 
   final currentState = AppState.idle.obs;
   final statusText = 'hold_to_speak'.obs;
@@ -53,10 +57,19 @@ class HomeController extends GetxController {
   final speakingProgress = 0.0.obs;
   final showLottieAnimation = false.obs;
 
-  late ConfettiController confettiController;
+  // Confetti controller - initialized in onInit
+  ConfettiController? _confettiController;
+  ConfettiController get confettiController {
+    _confettiController ??= ConfettiController(duration: const Duration(seconds: 3));
+    return _confettiController!;
+  }
+
   Timer? _listeningTimeoutTimer;
   Timer? _listeningProgressTimer;
   Timer? _speakingProgressTimer;
+
+  // Guard against concurrent mic operations
+  bool _isMicOperationInProgress = false;
 
   String? lastResponse;
   MoodStyle? lastStyle;
@@ -64,8 +77,10 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _initializeAllServices();
+  }
 
+  void _initializeAllServices() {
     try {
       _llmService = Get.find<GroqLLMService>();
       _speechService = Get.find<SpeechService>();
@@ -78,11 +93,20 @@ class HomeController extends GetxController {
       _adFreeController = Get.find<AdFreeController>();
       _streakController = Get.find<StreakController>();
       _rewardedController = Get.find<RewardedController>();
+
+      _servicesInitialized.value = true;
     } catch (e, stackTrace) {
+      _servicesInitialized.value = false;
       try {
         final crashlytics = Get.find<CrashlyticsService>();
-        crashlytics.reportError(e, stackTrace, reason: 'HomeController service initialization failed', customKeys: {'error_type': 'service_initialization', 'controller': 'HomeController'});
+        crashlytics.reportError(e, stackTrace,
+            reason: 'HomeController service initialization failed',
+            customKeys: {
+              'error_type': 'service_initialization',
+              'controller': 'HomeController'
+            });
       } catch (_) {
+        // Crashlytics not available
       }
 
       // Show error to user
@@ -99,14 +123,27 @@ class HomeController extends GetxController {
     _setupTTSListeners();
   }
 
+  /// Check if all required services are available
+  bool get _areServicesReady {
+    return _servicesInitialized.value &&
+        _llmService != null &&
+        _speechService != null &&
+        _ttsService != null &&
+        _storage != null &&
+        _permissionService != null;
+  }
+
   void _setupTTSListeners() {
+    final tts = _ttsService;
+    if (tts == null) return;
+
     // Listen for isPreparing state to update status text
-    ever(_ttsService.isPreparing, (isPreparing) {
+    ever(tts.isPreparing, (isPreparing) {
       if (currentState.value == AppState.speaking) {
         if (isPreparing) {
           statusText.value = _tr('preparing', fallback: 'Preparing...');
-        } else if (_ttsService.isSpeaking.value) {
-          if (_ttsService.isUsingOfflineMode.value) {
+        } else if (tts.isSpeaking.value) {
+          if (tts.isUsingOfflineMode.value) {
             statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
           } else {
             statusText.value = _tr('speaking', fallback: 'Speaking...');
@@ -130,25 +167,34 @@ class HomeController extends GetxController {
   }
 
   void _updateStats() {
-    streakDay.value = _storage.getStreakDay();
-    todayShifts.value = _storage.getTodayShifts();
+    final storage = _storage;
+    if (storage == null) return;
+
+    streakDay.value = storage.getStreakDay();
+    todayShifts.value = storage.getTodayShifts();
   }
 
   void _checkForceUpdate() {
-    ever(_remoteConfig.updateAvailable, (isUpdateAvailable) {
+    final remoteConfig = _remoteConfig;
+    if (remoteConfig == null) return;
+
+    ever(remoteConfig.updateAvailable, (isUpdateAvailable) {
       if (isUpdateAvailable) {
         _showForceUpdateDialog();
       }
     });
 
-    if (_remoteConfig.updateAvailable.value) {
+    if (remoteConfig.updateAvailable.value) {
       _showForceUpdateDialog();
     }
   }
 
   void _showForceUpdateDialog() {
+    final remoteConfig = _remoteConfig;
+    if (remoteConfig == null) return;
+
     // Check if this is a force update or optional update
-    final isForceUpdate = _remoteConfig.forceUpdate.value;
+    final isForceUpdate = remoteConfig.forceUpdate.value;
 
     Get.dialog(
       PopScope(
@@ -181,12 +227,12 @@ class HomeController extends GetxController {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _remoteConfig.getUpdateMessage(),
+                remoteConfig.getUpdateMessage(),
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 12),
               Text(
-                'Latest Version: ${_remoteConfig.latestVersion.value}',
+                'Latest Version: ${remoteConfig.latestVersion.value}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -249,18 +295,48 @@ class HomeController extends GetxController {
   }
 
   Future<void> onMicPressed() async {
+    // Guard: Check if already in non-idle state
     if (currentState.value != AppState.idle) return;
 
+    // Guard: Prevent concurrent mic operations
+    if (_isMicOperationInProgress) return;
+    _isMicOperationInProgress = true;
+
+    // Guard: Check if services are ready
+    if (!_areServicesReady) {
+      _isMicOperationInProgress = false;
+      SnackbarUtils.showError(
+        title: 'Not Ready',
+        message: 'App is still initializing. Please try again.',
+      );
+      return;
+    }
+
+    final permissionService = _permissionService;
+    final speechService = _speechService;
+
+    // Extra null check (should not happen if _areServicesReady is true)
+    if (permissionService == null || speechService == null) {
+      _isMicOperationInProgress = false;
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: 'Services not available. Please restart the app.',
+      );
+      return;
+    }
+
     try {
-      final permissionResult = await _permissionService.requestPermissionsFlow();
+      final permissionResult = await permissionService.requestPermissionsFlow();
       final hasPermission = permissionResult['granted'] ?? false;
       final justGranted = permissionResult['justGranted'] ?? false;
 
       if (!hasPermission) {
+        _isMicOperationInProgress = false;
         return;
       }
 
       if (justGranted) {
+        _isMicOperationInProgress = false;
         SnackbarUtils.showSuccess(
           title: _tr('ready_to_use', fallback: 'Ready to Use'),
           message: _tr('tap_mic_again', fallback: 'Tap the mic button again to start recording'),
@@ -276,10 +352,10 @@ class HomeController extends GetxController {
       _startListeningProgress();
 
       _listeningTimeoutTimer?.cancel();
-      _listeningTimeoutTimer = Timer(const Duration(seconds: 90), () async {
+      _listeningTimeoutTimer = Timer(const Duration(seconds: 60), () async {
         if (currentState.value == AppState.listening) {
-          final accumulatedText = _speechService.recognizedText.value;
-          await _speechService.stopListening();
+          final accumulatedText = speechService.recognizedText.value;
+          await speechService.stopListening();
           _stopListeningProgress();
 
           if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
@@ -297,29 +373,49 @@ class HomeController extends GetxController {
         }
       });
 
-      await _speechService.startListening((recognizedText) async {
+      await speechService.startListening((recognizedText) async {
         // Callback intentionally empty - processing happens on button release
       });
     } catch (e, stackTrace) {
       _listeningTimeoutTimer?.cancel();
       _stopListeningProgress();
+      _crashlytics?.reportError(e, stackTrace,
+          reason: 'Failed to start listening',
+          customKeys: {'state': currentState.value.toString()});
       SnackbarUtils.showError(title: 'Error', message: 'Failed to start listening. Please try again.');
       _resetToIdle();
+    } finally {
+      // Note: We don't reset _isMicOperationInProgress here because
+      // the operation continues until onMicReleased is called
     }
   }
 
   Future<void> onMicReleased() async {
+    // Always reset the mic operation flag
+    _isMicOperationInProgress = false;
+
     _listeningTimeoutTimer?.cancel();
     _stopListeningProgress();
 
-    if (currentState.value == AppState.listening) {
+    // Guard: Only process if we were actually listening
+    if (currentState.value != AppState.listening) {
+      return;
+    }
+
+    final speechService = _speechService;
+    if (speechService == null) {
+      _resetToIdle();
+      return;
+    }
+
+    try {
       // Wait a bit for speech recognition to finish processing the last words
       await Future.delayed(const Duration(milliseconds: 500));
-      await _speechService.stopListening();
+      await speechService.stopListening();
       // Additional delay to ensure final result is captured
       await Future.delayed(const Duration(milliseconds: 300));
 
-      final accumulatedText = _speechService.recognizedText.value;
+      final accumulatedText = speechService.recognizedText.value;
       if (accumulatedText.isNotEmpty && accumulatedText.trim().isNotEmpty) {
         await _processUserInput(accumulatedText);
       } else {
@@ -332,6 +428,11 @@ class HomeController extends GetxController {
         );
         _resetToIdle();
       }
+    } catch (e, stackTrace) {
+      _crashlytics?.reportError(e, stackTrace,
+          reason: 'Error in onMicReleased',
+          customKeys: {'state': currentState.value.toString()});
+      _resetToIdle();
     }
   }
 
@@ -339,7 +440,7 @@ class HomeController extends GetxController {
     listeningProgress.value = 0.0;
     _listeningProgressTimer?.cancel();
 
-    const maxSeconds = 90; // Changed to 90 seconds (1.5 minutes max)
+    const maxSeconds = 60; // 60 seconds max recording time
     const updateInterval = 100; // Update every 100ms
     var elapsed = 0;
 
@@ -369,7 +470,8 @@ class HomeController extends GetxController {
       elapsed += updateInterval;
       speakingProgress.value = (elapsed / estimatedDurationMs).clamp(0.0, 1.0);
 
-      if (elapsed >= estimatedDurationMs || !_ttsService.isSpeaking.value) {
+      final ttsService = _ttsService;
+      if (elapsed >= estimatedDurationMs || !(ttsService?.isSpeaking.value ?? false)) {
         timer.cancel();
         speakingProgress.value = 0.0;
       }
@@ -383,6 +485,20 @@ class HomeController extends GetxController {
 
   Future<void> _processUserInput(String userInput) async {
     Timer? slowResponseTimer;
+
+    // Guard: Check services
+    final llmService = _llmService;
+    final ttsService = _ttsService;
+    final storage = _storage;
+
+    if (llmService == null || ttsService == null || storage == null) {
+      SnackbarUtils.showError(
+        title: 'Error',
+        message: 'Services not available. Please restart the app.',
+      );
+      _resetToIdle();
+      return;
+    }
 
     // Debug log: what user said (full text)
     AppLogger.userSaid(userInput);
@@ -398,8 +514,8 @@ class HomeController extends GetxController {
         }
       });
 
-      final languageCode = _storage.getLanguageCode();
-      final response = await _llmService.generateResponse(userInput, languageCode);
+      final languageCode = storage.getLanguageCode();
+      final response = await llmService.generateResponse(userInput, languageCode);
       slowResponseTimer.cancel();
 
       // Debug log: what Polly/AI said (full text)
@@ -412,8 +528,8 @@ class HomeController extends GetxController {
       }
 
       lastResponse = response;
-      lastStyle = _llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
-      _storage.setLastResponse(response);
+      lastStyle = llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
+      storage.setLastResponse(response);
 
       currentState.value = AppState.speaking;
       // Start with "Preparing..." - will update to "Speaking..." when audio starts
@@ -425,10 +541,10 @@ class HomeController extends GetxController {
 
       _startSpeakingProgress(estimatedMs);
 
-      await _ttsService.speak(response, lastStyle!);
+      await ttsService.speak(response, lastStyle!);
 
       await Future.delayed(const Duration(milliseconds: 500));
-      while (_ttsService.isSpeaking.value) {
+      while (ttsService.isSpeaking.value) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
@@ -437,28 +553,37 @@ class HomeController extends GetxController {
     } catch (e, stackTrace) {
       slowResponseTimer?.cancel();
       _stopSpeakingProgress();
-      _crashlytics.reportUserFlowError(e, stackTrace, flow: 'mood_shift', step: 'process_input', context: {'current_state': currentState.value.toString(), 'language': _storage.getLanguageCode()});
+      _crashlytics?.reportUserFlowError(e, stackTrace,
+          flow: 'mood_shift',
+          step: 'process_input',
+          context: {
+            'current_state': currentState.value.toString(),
+            'language': storage.getLanguageCode()
+          });
       SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));
       _resetToIdle();
     }
   }
 
   void _onShiftCompleted() {
-    _streakController.incrementStreak();
+    _streakController?.incrementStreak();
     HabitService.userDidAShiftToday();
-    _storage.incrementShiftCounter();
+    _storage?.incrementShiftCounter();
     _updateStats();
     confettiController.play();
-    _adService.showInterstitialAd();
+    _adService?.showInterstitialAd();
     showRewardButtons.value = true;
     _resetToIdle();
-    _remoteConfig.fetchConfig();
+    _remoteConfig?.fetchConfig();
 
     // Clean up audio files after shift completes
-    _ttsService.cleanupAudioFiles();
+    _ttsService?.cleanupAudioFiles();
   }
 
   void _resetToIdle() {
+    // Reset mic operation flag
+    _isMicOperationInProgress = false;
+
     try {
       currentState.value = AppState.idle;
       statusText.value = _tr('hold_to_speak', fallback: 'Hold to Speak');
@@ -473,18 +598,23 @@ class HomeController extends GetxController {
 
   // Rewarded Ad Actions
   Future<void> onMakeStronger() async {
-    // UNLIMITED! No limit checks - users can spam this as much as they want
-    // More rewarded ads = more revenue!
+    final adService = _adService;
+    final rewardedController = _rewardedController;
+    final storage = _storage;
+    final llmService = _llmService;
+    final ttsService = _ttsService;
 
-    _adService.showRewardedAdStronger(() async {
+    if (adService == null) return;
+
+    adService.showRewardedAdStronger(() async {
       // User watched ad - now generate and play 2× stronger response
       if (lastResponse != null && lastStyle != null) {
         try {
           // Track usage (no decrement, just analytics)
-          _rewardedController.useStronger();
+          rewardedController?.useStronger();
 
           // Play visual effects (electric blue flash + power overlay)
-          _rewardedController.playStrongerEffects();
+          rewardedController?.playStrongerEffects();
 
           // Show power activated overlay
           SnackbarUtils.showCustom(
@@ -501,12 +631,16 @@ class HomeController extends GetxController {
           statusText.value = _tr('processing', fallback: 'Amplifying...');
 
           // Generate 2× stronger response from LLM with NEW PROMPT
-          final languageCode = _storage.getLanguageCode();
-          final strongerResponse = await _llmService.generateStrongerResponse(
+          final languageCode = storage?.getLanguageCode() ?? 'en';
+          final strongerResponse = await llmService?.generateStrongerResponse(
             lastResponse!,
             lastStyle!,
             languageCode,
           );
+
+          if (strongerResponse == null || strongerResponse.isEmpty) {
+            throw Exception('Failed to generate stronger response');
+          }
 
           // Set state to speaking and show animation
           currentState.value = AppState.speaking;
@@ -521,10 +655,10 @@ class HomeController extends GetxController {
           _startSpeakingProgress(estimatedMs);
           confettiController.play();
 
-          await _ttsService.speakStronger(strongerResponse, lastStyle!);
+          await ttsService?.speakStronger(strongerResponse, lastStyle!);
 
           await Future.delayed(const Duration(milliseconds: 500));
-          while (_ttsService.isSpeaking.value) {
+          while (ttsService?.isSpeaking.value ?? false) {
             await Future.delayed(const Duration(milliseconds: 100));
           }
 
@@ -540,9 +674,14 @@ class HomeController extends GetxController {
   }
 
   Future<void> onUnlockCrystal() async {
-    _adService.showRewardedAdCrystal(() async {
+    final adService = _adService;
+    final rewardedController = _rewardedController;
+
+    if (adService == null) return;
+
+    adService.showRewardedAdCrystal(() async {
       // Activate crystal voice
-      await _rewardedController.activateCrystalVoice();
+      await rewardedController?.activateCrystalVoice();
 
       // Play confetti
       confettiController.play();
@@ -550,7 +689,10 @@ class HomeController extends GetxController {
   }
 
   void onRemoveAds() {
-    _adFreeController.activateAdFree24h(() {
+    final adFreeController = _adFreeController;
+    if (adFreeController == null) return;
+
+    adFreeController.activateAdFree24h(() {
       // Play confetti animation
       confettiController.play();
 
@@ -575,10 +717,10 @@ class HomeController extends GetxController {
     _listeningTimeoutTimer?.cancel();
     _listeningProgressTimer?.cancel();
     _speakingProgressTimer?.cancel();
-    confettiController.dispose();
+    _confettiController?.dispose();
 
     // Clean up audio files when controller closes
-    _ttsService.cleanupAudioFiles();
+    _ttsService?.cleanupAudioFiles();
 
     super.onClose();
   }
