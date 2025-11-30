@@ -7,7 +7,6 @@ import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
 import '../../services/habit_service.dart';
-import '../../services/polly_tts_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -304,13 +303,11 @@ class HomeView extends GetView<HomeController> {
   // Premium mic button - elegant, soft glow, breathing animation
   Widget _buildPremiumMicButton() {
     final rewardedController = Get.find<RewardedController>();
-    final ttsService = Get.find<PollyTTSService>();
 
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
       final isSpeaking = controller.currentState.value == AppState.speaking;
-      final isPreparing = ttsService.isPreparing.value;
       final isCrystal = rewardedController.hasCrystalVoice.value;
 
       return GestureDetector(
@@ -320,7 +317,6 @@ class HomeView extends GetView<HomeController> {
         child: _BreathingMicButton(
           isListening: isListening,
           isSpeaking: isSpeaking,
-          isPreparing: isPreparing,
           isActive: isActive,
           isCrystal: isCrystal,
         ),
@@ -584,14 +580,12 @@ class HomeView extends GetView<HomeController> {
 class _BreathingMicButton extends StatefulWidget {
   final bool isListening;
   final bool isSpeaking;
-  final bool isPreparing;
   final bool isActive;
   final bool isCrystal;
 
   const _BreathingMicButton({
     required this.isListening,
     required this.isSpeaking,
-    required this.isPreparing,
     required this.isActive,
     required this.isCrystal,
   });
@@ -805,7 +799,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           },
         ),
 
-        // "Recording...", "Preparing...", or "Speaking..." text
+        // "Recording..." or "Speaking..." text
         AnimatedOpacity(
           opacity: (widget.isListening || widget.isSpeaking) ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
@@ -820,9 +814,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                       children: [
                         FittedBox(
                           child: Text(
-                            widget.isListening
-                                ? 'Recording'
-                                : (widget.isPreparing ? 'Preparing' : 'Speaking'),
+                            widget.isListening ? 'Recording' : 'Speaking',
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: const Color(0xFFA0A0FF),
@@ -846,72 +838,22 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
   // Mic icon with sound wave animation when recording or volume icon when speaking
   Widget _buildMicIcon() {
     if (widget.isListening) {
-      // Show mic_none with subtle sound wave animation
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          // Sound wave bars (left and right)
-          // Positioned(
-          //   left: 20.w,
-          //   child: _SoundWaveBar(delay: 0),
-          // ),
-          // Positioned(
-          //   right: 20.w,
-          //   child: _SoundWaveBar(delay: 200),
-          // ),
-          // Mic icon
-          Icon(
-            Icons.mic_none_rounded,
-            size: 40.sp,
-            color: widget.isCrystal
-                ? Colors.white
-                : const Color(0xFF1E1E3F),
-          ),
-        ],
-      );
-    } else if (widget.isSpeaking && widget.isPreparing) {
-      // Show loading indicator when preparing audio
-      return SizedBox(
-        width: 36.sp,
-        height: 36.sp,
-        child: CircularProgressIndicator(
-          strokeWidth: 3,
-          valueColor: AlwaysStoppedAnimation<Color>(
-            widget.isCrystal ? Colors.white : const Color(0xFF6D5FFD),
-          ),
-        ),
+      // Show mic icon when recording
+      return Icon(
+        Icons.mic_none_rounded,
+        size: 40.sp,
+        color: widget.isCrystal
+            ? Colors.white
+            : const Color(0xFF1E1E3F),
       );
     } else if (widget.isSpeaking) {
-      // Show volume icon with wavy bars when Polly is speaking
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          // Wavy sound bars around the icon
-          // Positioned(
-          //   left: 15.w,
-          //   child: _SpeakingWaveBar(index: 0),
-          // ),
-          // Positioned(
-          //   left: 22.w,
-          //   child: _SpeakingWaveBar(index: 1),
-          // ),
-          // Positioned(
-          //   right: 15.w,
-          //   child: _SpeakingWaveBar(index: 2),
-          // ),
-          // Positioned(
-          //   right: 22.w,
-          //   child: _SpeakingWaveBar(index: 3),
-          // ),
-          // Volume icon
-          Icon(
-            Icons.volume_up_rounded,
-            size: 40.sp,
-            color: widget.isCrystal
-                ? Colors.white
-                : const Color(0xFF1E1E3F),
-          ),
-        ],
+      // Show volume icon when speaking
+      return Icon(
+        Icons.volume_up_rounded,
+        size: 40.sp,
+        color: widget.isCrystal
+            ? Colors.white
+            : const Color(0xFF1E1E3F),
       );
     } else {
       // Idle state - simple mic icon

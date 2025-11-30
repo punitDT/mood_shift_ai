@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/storage_service.dart';
 import '../../services/crashlytics_service.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../routes/app_routes.dart';
 
 class SettingsController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
@@ -147,36 +150,32 @@ class SettingsController extends GetxController {
     );
   }
 
-  Future<void> openPrivacyPolicy() async {
-    // TODO: Replace with your actual privacy policy URL
-    const url = 'https://your-privacy-policy-url.com';
-    final uri = Uri.parse(url);
-    
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      SnackbarUtils.showError(
-        title: 'Error',
-        message: 'Could not open privacy policy',
-      );
-    }
+  void openPrivacyPolicy() {
+    final url = dotenv.env['PRIVACY_POLICY_URL'] ?? 'https://punitdt.github.io/privacy-policy';
+    Get.toNamed(
+      AppRoutes.WEBVIEW,
+      arguments: {
+        'title': 'privacy_policy'.tr,
+        'url': url,
+      },
+    );
   }
 
   Future<void> rateApp() async {
-    // TODO: Replace with your actual app store URLs
-    const androidUrl = 'https://play.google.com/store/apps/details?id=com.moodshift.ai';
-    const iosUrl = 'https://apps.apple.com/app/idYOUR_APP_ID';
-    
-    final url = GetPlatform.isAndroid ? androidUrl : iosUrl;
-    final uri = Uri.parse(url);
-    
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      SnackbarUtils.showError(
-        title: 'Error',
-        message: 'Could not open app store',
-      );
+    try {
+      final androidUrl = dotenv.env['ANDROID_PLAY_STORE_URL'] ?? 'https://play.google.com/store/apps/details?id=com.moodshift.ai';
+      final iosUrl = dotenv.env['IOS_APP_STORE_URL'] ?? 'https://apps.apple.com/app/idYOUR_APP_ID';
+
+      final url = Platform.isAndroid ? androidUrl : iosUrl;
+      final uri = Uri.parse(url);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        SnackbarUtils.showError(title: 'Error', message: 'Could not open app store');
+      }
+    } catch (e) {
+      SnackbarUtils.showError(title: 'Error', message: 'Could not open app store');
     }
   }
 
