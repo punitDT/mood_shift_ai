@@ -79,8 +79,8 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="$PROJECT_DIR$/../../MindShift_AI_Icon_Copyright_Proof_27Nov2025/MoodShift-AI-App-Icon-FINAL-2025-11-27.png" />
-                                                <entry key="scalingPercent" value="170" />
+                                                <entry key="imagePath" value="$USER_HOME$/Downloads/6c355ed1-b007-4079-bc8d-f74cdf8e2e57.jpg" />
+                                                <entry key="scalingPercent" value="179" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -108,6 +108,12 @@
                                           </PersistentState>
                                         </value>
                                       </entry>
+                                    </map>
+                                  </option>
+                                  <option name="values">
+                                    <map>
+                                      <entry key="backgroundAssetType" value="COLOR" />
+                                      <entry key="backgroundColor" value="6745a2" />
                                     </map>
                                   </option>
                                 </PersistentState>
