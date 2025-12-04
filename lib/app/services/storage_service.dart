@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -252,122 +251,12 @@ class StorageService extends GetxService {
     _box.write('last_response', response);
   }
 
-  // ========== CONVERSATION HISTORY (Anti-Repetition) ==========
-
-  // Get last 3 user inputs (optimized from 5 for better prompt efficiency)
-  List<String> getRecentUserInputs() {
-    final inputs = _box.read<List>('recent_user_inputs');
-    if (inputs == null) return [];
-    return inputs.cast<String>().take(3).toList();
-  }
-
-  // Get last 3 AI responses (optimized from 5 for better prompt efficiency)
-  List<String> getRecentAIResponses() {
-    final responses = _box.read<List>('recent_ai_responses');
-    if (responses == null) return [];
-    return responses.cast<String>().take(3).toList();
-  }
-
-  // Add user input to history (keep last 3, optimized from 5)
-  void addUserInputToHistory(String input) {
-    final inputs = getRecentUserInputs();
-    inputs.insert(0, input);
-    if (inputs.length > 3) {
-      inputs.removeRange(3, inputs.length);
-    }
-    _box.write('recent_user_inputs', inputs);
-  }
-
-  // Add AI response to history (keep last 3, optimized from 5)
-  void addAIResponseToHistory(String response) {
-    final responses = getRecentAIResponses();
-    responses.insert(0, response);
-    if (responses.length > 3) {
-      responses.removeRange(3, responses.length);
-    }
-    _box.write('recent_ai_responses', responses);
-  }
-
-  void clearConversationHistory() {
-    _box.remove('recent_user_inputs');
-    _box.remove('recent_ai_responses');
-  }
-
-  List<Map<String, dynamic>> getCachedResponses() {
-    final cached = _box.read('cached_responses');
-    if (cached == null) return [];
-    return List<Map<String, dynamic>>.from(cached);
-  }
-
-  void addCachedResponse(String userInput, String response, String language) {
-    final cached = getCachedResponses();
-
-    cached.add({
-      'userInput': userInput,
-      'response': response,
-      'language': language,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-
-    if (cached.length > 20) {
-      cached.removeRange(0, cached.length - 20);
-    }
-
-    _box.write('cached_responses', cached);
-  }
-
-  Map<String, dynamic>? findCachedResponse(String userInput, String language) {
-    final cached = getCachedResponses();
-
-    try {
-      return cached.lastWhere(
-        (item) =>
-          item['userInput'].toString().toLowerCase() == userInput.toLowerCase() &&
-          item['language'] == language,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  void clearCachedResponses() {
-    _box.remove('cached_responses');
-  }
-
   bool isFirstLaunch() {
     return _box.read('first_launch') ?? true;
   }
 
   void setFirstLaunchComplete() {
     _box.write('first_launch', false);
-  }
-
-  Map<String, dynamic>? getPollyVoiceMap() {
-    final jsonString = _box.read('polly_voice_map');
-    if (jsonString == null) return null;
-
-    try {
-      return Map<String, dynamic>.from(jsonDecode(jsonString));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  void setPollyVoiceMap(Map<String, dynamic> voiceMap) {
-    final jsonString = jsonEncode(voiceMap);
-    _box.write('polly_voice_map', jsonString);
-  }
-
-  void clearPollyVoiceMap() {
-    _box.remove('polly_voice_map');
-  }
-
-  int? getPollyVoiceMapVersion() {
-    return _box.read('polly_voice_map_version');
-  }
-
-  void setPollyVoiceMapVersion(int version) {
-    _box.write('polly_voice_map_version', version);
   }
 
   bool getCrashReportsEnabled() {

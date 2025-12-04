@@ -19,6 +19,9 @@ import 'app/services/storage_service.dart';
 import 'app/services/habit_service.dart';
 import 'app/services/crashlytics_service.dart';
 import 'app/services/permission_service.dart';
+import 'app/services/device_service.dart';
+import 'app/services/cloud_ai_service.dart';
+import 'app/services/audio_player_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
 import 'firebase_options.dart';
@@ -147,6 +150,33 @@ void main() async {
   } catch (e, stackTrace) {
     if (kReleaseMode) {
       FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'PermissionService initialization failed', fatal: false);
+    }
+  }
+
+  // Initialize DeviceService (for Cloud Functions device ID)
+  try {
+    Get.put(DeviceService());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'DeviceService initialization failed', fatal: false);
+    }
+  }
+
+  // Initialize CloudAIService
+  try {
+    Get.put(CloudAIService());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'CloudAIService initialization failed', fatal: false);
+    }
+  }
+
+  // Initialize AudioPlayerService
+  try {
+    Get.put(AudioPlayerService());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'AudioPlayerService initialization failed', fatal: false);
     }
   }
 

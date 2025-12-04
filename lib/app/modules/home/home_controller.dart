@@ -5,16 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../../services/ai_service.dart';
-import '../../services/groq_llm_service.dart';
 import '../../services/speech_service.dart';
-import '../../services/polly_tts_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/remote_config_service.dart';
 import '../../services/habit_service.dart';
 import '../../services/crashlytics_service.dart';
 import '../../services/permission_service.dart';
+import '../../services/cloud_ai_service.dart';
+import '../../services/audio_player_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -31,9 +30,7 @@ enum AppState {
 
 class HomeController extends GetxController {
   // Services - nullable to avoid late initialization issues
-  GroqLLMService? _llmService;
   SpeechService? _speechService;
-  PollyTTSService? _ttsService;
   StorageService? _storage;
   AdService? _adService;
   RemoteConfigService? _remoteConfig;
@@ -42,6 +39,10 @@ class HomeController extends GetxController {
   AdFreeController? _adFreeController;
   StreakController? _streakController;
   RewardedController? _rewardedController;
+
+  // Cloud Functions services
+  CloudAIService? _cloudAIService;
+  AudioPlayerService? _audioPlayerService;
 
   // Track if services are properly initialized
   final _servicesInitialized = false.obs;
@@ -72,7 +73,6 @@ class HomeController extends GetxController {
   bool _isMicOperationInProgress = false;
 
   String? lastResponse;
-  MoodStyle? lastStyle;
 
   @override
   void onInit() {
@@ -82,9 +82,7 @@ class HomeController extends GetxController {
 
   void _initializeAllServices() {
     try {
-      _llmService = Get.find<GroqLLMService>();
       _speechService = Get.find<SpeechService>();
-      _ttsService = Get.find<PollyTTSService>();
       _storage = Get.find<StorageService>();
       _adService = Get.find<AdService>();
       _remoteConfig = Get.find<RemoteConfigService>();
@@ -93,6 +91,10 @@ class HomeController extends GetxController {
       _adFreeController = Get.find<AdFreeController>();
       _streakController = Get.find<StreakController>();
       _rewardedController = Get.find<RewardedController>();
+
+      // Cloud Functions services
+      _cloudAIService = Get.find<CloudAIService>();
+      _audioPlayerService = Get.find<AudioPlayerService>();
 
       _servicesInitialized.value = true;
     } catch (e, stackTrace) {
@@ -120,30 +122,30 @@ class HomeController extends GetxController {
     _initializeServices();
     _updateStats();
     _checkForceUpdate();
-    _setupTTSListeners();
+    _setupAudioPlayerListeners();
   }
 
   /// Check if all required services are available
   bool get _areServicesReady {
     return _servicesInitialized.value &&
-        _llmService != null &&
         _speechService != null &&
-        _ttsService != null &&
         _storage != null &&
-        _permissionService != null;
+        _permissionService != null &&
+        _cloudAIService != null &&
+        _audioPlayerService != null;
   }
 
-  void _setupTTSListeners() {
-    final tts = _ttsService;
-    if (tts == null) return;
+  void _setupAudioPlayerListeners() {
+    final audioPlayer = _audioPlayerService;
+    if (audioPlayer == null) return;
 
     // Listen for isPreparing state to update status text
-    ever(tts.isPreparing, (isPreparing) {
+    ever(audioPlayer.isPreparing, (isPreparing) {
       if (currentState.value == AppState.speaking) {
         if (isPreparing) {
           statusText.value = _tr('preparing', fallback: 'Preparing...');
-        } else if (tts.isSpeaking.value) {
-          if (tts.isUsingOfflineMode.value) {
+        } else if (audioPlayer.isSpeaking.value) {
+          if (audioPlayer.isUsingOfflineMode.value) {
             statusText.value = _tr('speaking_offline', fallback: 'Speaking... (offline mode)');
           } else {
             statusText.value = _tr('speaking', fallback: 'Speaking...');
@@ -470,8 +472,8 @@ class HomeController extends GetxController {
       elapsed += updateInterval;
       speakingProgress.value = (elapsed / estimatedDurationMs).clamp(0.0, 1.0);
 
-      final ttsService = _ttsService;
-      if (elapsed >= estimatedDurationMs || !(ttsService?.isSpeaking.value ?? false)) {
+      final audioPlayer = _audioPlayerService;
+      if (elapsed >= estimatedDurationMs || !(audioPlayer?.isSpeaking.value ?? false)) {
         timer.cancel();
         speakingProgress.value = 0.0;
       }
@@ -483,15 +485,14 @@ class HomeController extends GetxController {
     speakingProgress.value = 0.0;
   }
 
+  /// Process user input using Cloud Functions
   Future<void> _processUserInput(String userInput) async {
     Timer? slowResponseTimer;
-
-    // Guard: Check services
-    final llmService = _llmService;
-    final ttsService = _ttsService;
+    final cloudAI = _cloudAIService;
+    final audioPlayer = _audioPlayerService;
     final storage = _storage;
 
-    if (llmService == null || ttsService == null || storage == null) {
+    if (cloudAI == null || audioPlayer == null || storage == null) {
       SnackbarUtils.showError(
         title: 'Error',
         message: 'Services not available. Please restart the app.',
@@ -500,53 +501,44 @@ class HomeController extends GetxController {
       return;
     }
 
-    // Debug log: what user said (full text)
     AppLogger.userSaid(userInput);
 
     try {
       currentState.value = AppState.processing;
       statusText.value = _tr('processing', fallback: 'Thinking...');
 
-      // Show "Taking a moment..." if API is slow (>3 seconds)
       slowResponseTimer = Timer(const Duration(seconds: 3), () {
         if (currentState.value == AppState.processing) {
           statusText.value = _tr('taking_moment', fallback: 'Taking a moment...');
         }
       });
 
-      final languageCode = storage.getLanguageCode();
-      final response = await llmService.generateResponse(userInput, languageCode);
+      final result = await cloudAI.processUserInput(userInput);
       slowResponseTimer.cancel();
 
-      // Debug log: what Polly/AI said (full text)
-      AppLogger.pollySaid(response);
-
-      if (response.isEmpty) {
+      if (!result.success || result.response.isEmpty) {
+        AppLogger.error('Cloud Function failed', result.error);
         SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));
         _resetToIdle();
         return;
       }
 
-      lastResponse = response;
-      lastStyle = llmService.getLastSelectedStyle() ?? MoodStyle.microDare;
-      storage.setLastResponse(response);
+      AppLogger.pollySaid(result.response);
+
+      lastResponse = result.response;
+      storage.setLastResponse(result.response);
 
       currentState.value = AppState.speaking;
-      // Start with "Preparing..." - will update to "Speaking..." when audio starts
       statusText.value = _tr('preparing', fallback: 'Preparing...');
 
-      final wordCount = response.split(' ').length;
+      final wordCount = result.response.split(' ').length;
       final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
       final estimatedMs = estimatedSeconds * 1000;
 
       _startSpeakingProgress(estimatedMs);
 
-      await ttsService.speak(response, lastStyle!);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-      while (ttsService.isSpeaking.value) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
+      // Play audio from Cloud Storage URL
+      await audioPlayer.playFromUrl(result.audioUrl, result.response);
 
       _stopSpeakingProgress();
       _onShiftCompleted();
@@ -554,12 +546,10 @@ class HomeController extends GetxController {
       slowResponseTimer?.cancel();
       _stopSpeakingProgress();
       _crashlytics?.reportUserFlowError(e, stackTrace,
-          flow: 'mood_shift',
+          flow: 'mood_shift_cloud',
           step: 'process_input',
-          context: {
-            'current_state': currentState.value.toString(),
-            'language': storage.getLanguageCode()
-          });
+          context: {'current_state': currentState.value.toString()});
+
       SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));
       _resetToIdle();
     }
@@ -575,9 +565,6 @@ class HomeController extends GetxController {
     showRewardButtons.value = true;
     _resetToIdle();
     _remoteConfig?.fetchConfig();
-
-    // Clean up audio files after shift completes
-    _ttsService?.cleanupAudioFiles();
   }
 
   void _resetToIdle() {
@@ -600,15 +587,14 @@ class HomeController extends GetxController {
   Future<void> onMakeStronger() async {
     final adService = _adService;
     final rewardedController = _rewardedController;
-    final storage = _storage;
-    final llmService = _llmService;
-    final ttsService = _ttsService;
+    final cloudAI = _cloudAIService;
+    final audioPlayer = _audioPlayerService;
 
     if (adService == null) return;
 
     adService.showRewardedAdStronger(() async {
       // User watched ad - now generate and play 2× stronger response
-      if (lastResponse != null && lastStyle != null) {
+      if (lastResponse != null && cloudAI != null && audioPlayer != null) {
         try {
           // Track usage (no decrement, just analytics)
           rewardedController?.useStronger();
@@ -630,37 +616,25 @@ class HomeController extends GetxController {
           currentState.value = AppState.processing;
           statusText.value = _tr('processing', fallback: 'Amplifying...');
 
-          // Generate 2× stronger response from LLM with NEW PROMPT
-          final languageCode = storage?.getLanguageCode() ?? 'en';
-          final strongerResponse = await llmService?.generateStrongerResponse(
-            lastResponse!,
-            lastStyle!,
-            languageCode,
-          );
+          // Use Cloud Functions
+          final result = await cloudAI.processStronger(lastResponse!);
 
-          if (strongerResponse == null || strongerResponse.isEmpty) {
+          if (!result.success || result.response.isEmpty) {
             throw Exception('Failed to generate stronger response');
           }
 
-          // Set state to speaking and show animation
           currentState.value = AppState.speaking;
-          // Start with "Preparing..." - will update to "Speaking..." when audio starts
           statusText.value = _tr('preparing', fallback: 'Preparing...');
           showLottieAnimation.value = true;
 
-          final wordCount = strongerResponse.split(' ').length;
+          final wordCount = result.response.split(' ').length;
           final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();
           final estimatedMs = estimatedSeconds * 1000;
 
           _startSpeakingProgress(estimatedMs);
           confettiController.play();
 
-          await ttsService?.speakStronger(strongerResponse, lastStyle!);
-
-          await Future.delayed(const Duration(milliseconds: 500));
-          while (ttsService?.isSpeaking.value ?? false) {
-            await Future.delayed(const Duration(milliseconds: 100));
-          }
+          await audioPlayer.playFromUrl(result.audioUrl, result.response);
 
           _stopSpeakingProgress();
           _resetToIdle();
@@ -718,10 +692,6 @@ class HomeController extends GetxController {
     _listeningProgressTimer?.cancel();
     _speakingProgressTimer?.cancel();
     _confettiController?.dispose();
-
-    // Clean up audio files when controller closes
-    _ttsService?.cleanupAudioFiles();
-
     super.onClose();
   }
 }

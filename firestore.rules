@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Config collections - read-only for Cloud Functions (authenticated via service account)
+    match /config/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Conversations - Cloud Functions manage this via Admin SDK
+    match /conversations/{deviceId} {
+      allow read, write: if false; // Only accessible via Admin SDK
+    }
+  }
+}
+
