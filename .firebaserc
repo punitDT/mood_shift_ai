@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "mood-shift-ai"
+    "default": "mood-shift-ai",
+    "dev": "mood-shift-ai-dev"
   }
 }
 

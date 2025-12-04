@@ -1,6 +1,7 @@
 import * as crypto from "crypto";
 import { defineSecret } from "firebase-functions/params";
-import { PollyConfig, VoiceMapping } from "../types";
+import { PollyConfig, VoiceMapping, VoiceEngine } from "../types";
+import { logger } from "../utils/logger";
 
 // Define secrets
 export const AWS_ACCESS_KEY = defineSecret("AWS_ACCESS_KEY");
@@ -16,16 +17,25 @@ export async function synthesizeSpeech(
   ssmlText: string,
   locale: string,
   voiceGender: "male" | "female",
+  preferredEngine: VoiceEngine,
   config: PollyConfig,
   voiceMapping: VoiceMapping,
   awsAccessKey: string,
   awsSecretKey: string
 ): Promise<PollyResult> {
-  const engines = getEngineOrder(config.engine);
-  const voiceId = getVoiceId(locale, voiceGender, config.engine, voiceMapping);
+  const engines = getEngineOrder(preferredEngine);
+  const voiceId = getVoiceId(locale, voiceGender, preferredEngine, voiceMapping);
+
+  logger.debug("Polly synthesizeSpeech called", {
+    preferredEngine,
+    engineOrder: engines,
+    voiceId,
+    locale,
+  });
 
   for (const engine of engines) {
     try {
+      logger.debug(`Trying Polly engine: ${engine}`, { voiceId, locale });
       const audioBuffer = await callPollyAPI(
         ssmlText,
         voiceId,
@@ -36,9 +46,10 @@ export async function synthesizeSpeech(
         awsSecretKey
       );
 
+      logger.debug(`Polly success with engine: ${engine}`, { audioSize: audioBuffer.length });
       return { audioBuffer, voiceId, engine };
     } catch (error) {
-      console.warn(`Polly engine ${engine} failed, trying next...`, error);
+      logger.warn(`Polly engine ${engine} failed, trying next`, { error: error instanceof Error ? error.message : error });
       if (engines.indexOf(engine) === engines.length - 1) {
         throw error;
       }
@@ -48,7 +59,7 @@ export async function synthesizeSpeech(
   throw new Error("All Polly engines failed");
 }
 
-function getEngineOrder(preferredEngine: string): string[] {
+function getEngineOrder(preferredEngine: VoiceEngine): VoiceEngine[] {
   if (preferredEngine === "generative") {
     return ["generative", "neural", "standard"];
   } else if (preferredEngine === "neural") {
@@ -60,7 +71,7 @@ function getEngineOrder(preferredEngine: string): string[] {
 function getVoiceId(
   locale: string,
   gender: "male" | "female",
-  preferredEngine: string,
+  preferredEngine: VoiceEngine,
   voiceMapping: VoiceMapping
 ): string {
   const localeVoices = voiceMapping[locale];

@@ -62,10 +62,21 @@ export interface PromptsConfig {
   emergencyResponse: string;
 }
 
+// Voice engine type
+export type VoiceEngine = "generative" | "neural" | "standard";
+
+// Feature-wise voice engine configuration
+export interface FeatureEngines {
+  main: VoiceEngine;
+  stronger: VoiceEngine;
+  crystal: VoiceEngine;
+}
+
 // Polly Config from Firestore
 export interface PollyConfig {
   region: string;
-  engine: string;
+  engine: VoiceEngine; // Default/fallback engine
+  featureEngines?: FeatureEngines; // Feature-specific engines
   outputFormat: string;
   timeoutSeconds: number;
 }

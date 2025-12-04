@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { ConversationMessage, ConversationDocument } from "../types";
+import { logger } from "../utils/logger";
 
 const MAX_MESSAGES = 8; // Keep last 4 user + 4 assistant messages
 
@@ -16,7 +17,7 @@ export async function getConversationHistory(deviceId: string): Promise<Conversa
     const data = doc.data() as ConversationDocument;
     return data.messages || [];
   } catch (error) {
-    console.error("Error getting conversation history:", error);
+    logger.error("Error getting conversation history", error);
     return [];
   }
 }
@@ -62,7 +63,7 @@ export async function addToConversationHistory(
       });
     }
   } catch (error) {
-    console.error("Error adding to conversation history:", error);
+    logger.error("Error adding to conversation history", error);
     // Don't throw - conversation history is not critical
   }
 }
@@ -71,8 +72,9 @@ export async function clearConversationHistory(deviceId: string): Promise<void> 
   try {
     const db = admin.firestore();
     await db.collection("conversations").doc(deviceId).delete();
+    logger.debug("Conversation history cleared", { deviceId });
   } catch (error) {
-    console.error("Error clearing conversation history:", error);
+    logger.error("Error clearing conversation history", error);
   }
 }
 

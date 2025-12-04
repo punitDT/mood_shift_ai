@@ -1,4 +1,4 @@
-import { MoodStyle, ProsodyConfig } from "../types";
+import { MoodStyle, ProsodyConfig, VoiceEngine } from "../types";
 
 // Escape XML special characters for SSML
 export function escapeXml(text: string): string {
@@ -94,7 +94,7 @@ function convertToDecibels(volumeWord: string): string {
 // Build SSML for normal response
 export function buildSSML(
   text: string,
-  engine: string,
+  engine: VoiceEngine,
   style: MoodStyle,
   prosodyConfig: ProsodyConfig
 ): string {
@@ -117,7 +117,7 @@ export function buildSSML(
 }
 
 // Build SSML for 2× stronger response
-export function buildStrongerSSML(text: string, engine: string): string {
+export function buildStrongerSSML(text: string, engine: VoiceEngine): string {
   const cleanedText = cleanTextForSpeech(text);
   const escapedText = escapeXml(cleanedText);
 
@@ -132,7 +132,7 @@ export function buildStrongerSSML(text: string, engine: string): string {
 }
 
 // Build SSML for Crystal Voice
-export function buildCrystalSSML(text: string, engine: string): string {
+export function buildCrystalSSML(text: string, engine: VoiceEngine): string {
   const cleanedText = cleanTextForSpeech(text);
   const escapedText = escapeXml(cleanedText);
 

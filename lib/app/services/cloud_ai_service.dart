@@ -62,10 +62,19 @@ class CloudAIService extends GetxService {
     _deviceService = Get.find<DeviceService>();
     _storage = Get.find<StorageService>();
     _crashlytics = Get.find<CrashlyticsService>();
-    
-    _cloudFunctionUrl = dotenv.env['CLOUD_FUNCTION_URL'] ?? 
-        'https://us-central1-mood-shift-ai.cloudfunctions.net/processUserInput';
+
+    // Use dev or prod URL based on DEBUG_MODE
+    final isDebugMode = dotenv.env['DEBUG_MODE']?.toLowerCase() == 'true';
+    if (isDebugMode) {
+      _cloudFunctionUrl = dotenv.env['CLOUD_FUNCTION_URL_DEV'] ??
+          'https://us-central1-mood-shift-ai-dev.cloudfunctions.net/processUserInput';
+    } else {
+      _cloudFunctionUrl = dotenv.env['CLOUD_FUNCTION_URL_PROD'] ??
+          'https://us-central1-mood-shift-ai.cloudfunctions.net/processUserInput';
+    }
     _timeoutSeconds = int.tryParse(dotenv.env['CLOUD_FUNCTION_TIMEOUT'] ?? '30') ?? 30;
+
+    AppLogger.info('☁️ Cloud Function URL: $_cloudFunctionUrl (DEBUG_MODE: $isDebugMode)');
   }
 
   /// Process user input through Cloud Function

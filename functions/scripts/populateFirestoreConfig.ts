@@ -1,13 +1,35 @@
 /**
  * Script to populate Firestore with initial configuration
- * Run with: npx ts-node scripts/populateFirestoreConfig.ts
+ *
+ * Usage:
+ *   npx ts-node scripts/populateFirestoreConfig.ts <project-id>
+ *
+ * Examples:
+ *   npx ts-node scripts/populateFirestoreConfig.ts mood-shift-ai-dev
+ *   npx ts-node scripts/populateFirestoreConfig.ts mood-shift-ai
  */
 
 import * as admin from "firebase-admin";
 
-// Initialize Firebase Admin with default credentials
+// Get project ID from command line argument
+const projectId = process.argv[2];
+
+if (!projectId) {
+  console.error("❌ Error: Project ID is required!");
+  console.error("");
+  console.error("Usage: npx ts-node scripts/populateFirestoreConfig.ts <project-id>");
+  console.error("");
+  console.error("Examples:");
+  console.error("  npx ts-node scripts/populateFirestoreConfig.ts mood-shift-ai-dev");
+  console.error("  npx ts-node scripts/populateFirestoreConfig.ts mood-shift-ai");
+  process.exit(1);
+}
+
+console.log(`Using Firebase project: ${projectId}`);
+
+// Initialize Firebase Admin with the specified project
 admin.initializeApp({
-  projectId: "mood-shift-ai",
+  projectId: projectId,
 });
 
 const db = admin.firestore();

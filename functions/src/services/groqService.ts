@@ -1,5 +1,6 @@
 import { defineSecret } from "firebase-functions/params";
 import { MoodStyle, GroqParsedResponse, LLMConfig, PromptsConfig } from "../types";
+import { logger } from "../utils/logger";
 
 // Define the secret
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
@@ -27,6 +28,8 @@ export async function generateResponse(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), config.timeoutSeconds * 1000);
 
+  logger.debug("Calling Groq API", { model: config.model, messageCount: messages.length });
+
   try {
     const response = await fetch(config.apiUrl, {
       method: "POST",
@@ -50,13 +53,16 @@ export async function generateResponse(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      logger.error("Groq API error", { status: response.status, statusText: response.statusText });
       throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    logger.debug("Groq API response received", { hasChoices: !!data.choices, choiceCount: data.choices?.length });
 
     if (data.choices && data.choices.length > 0) {
       const content = data.choices[0].message?.content || "";
+      logger.debug("Groq raw content", { contentLength: content.length, preview: content.substring(0, 100) });
       return parseGroqResponse(content, config.maxResponseWords);
     }
 

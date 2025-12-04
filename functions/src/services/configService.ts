@@ -7,7 +7,9 @@ import {
   ProsodyConfig,
   SSMLTemplates,
   FallbackResponses,
+  VoiceEngine,
 } from "../types";
+import { logger } from "../utils/logger";
 
 // Cache duration: 5 minutes
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -38,12 +40,13 @@ async function getConfigDoc<T>(collection: string, docId: string): Promise<T | n
     const db = admin.firestore();
     const doc = await db.collection("config").doc(docId).get();
     if (!doc.exists) {
-      console.warn(`Config document ${docId} not found`);
+      logger.warn(`Config document ${docId} not found, using defaults`);
       return null;
     }
+    logger.debug(`Config loaded: ${docId}`);
     return doc.data() as T;
   } catch (error) {
-    console.error(`Error fetching config ${docId}:`, error);
+    logger.error(`Error fetching config ${docId}`, error);
     return null;
   }
 }
@@ -87,12 +90,27 @@ export async function getPollyConfig(): Promise<PollyConfig> {
   }
 
   const config = await getConfigDoc<PollyConfig>("config", "polly");
+  const defaultEngine: VoiceEngine = "generative";
   const result: PollyConfig = config || {
     region: "us-east-1",
-    engine: "generative",
+    engine: defaultEngine,
+    featureEngines: {
+      main: defaultEngine,
+      stronger: defaultEngine,
+      crystal: defaultEngine,
+    },
     outputFormat: "mp3",
     timeoutSeconds: 10,
   };
+
+  // Ensure featureEngines exists with fallback to main engine
+  if (!result.featureEngines) {
+    result.featureEngines = {
+      main: result.engine,
+      stronger: result.engine,
+      crystal: result.engine,
+    };
+  }
 
   cache.polly = { data: result, timestamp: Date.now() };
   return result;

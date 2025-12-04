@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import { logger } from "../utils/logger";
 
 const AUDIO_BUCKET_PATH = "audio";
 const CACHE_STATS_COLLECTION = "cache_stats";
@@ -77,7 +78,7 @@ export async function checkCache(inputHash: string): Promise<CachedResponse | nu
       engine: customMetadata.engine || "",
     };
   } catch (error) {
-    console.error("Error checking cache:", error);
+    logger.error("Error checking cache", error);
     return null;
   }
 }
@@ -111,7 +112,7 @@ export async function saveToCache(
 
     return buildPublicUrl(bucket.name, filePath, downloadToken);
   } catch (error) {
-    console.error("Error saving to cache:", error);
+    logger.error("Error saving to cache", error);
     throw error;
   }
 }
