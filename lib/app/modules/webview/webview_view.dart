@@ -27,7 +27,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   void _initWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF1a0f2e))
+      ..setBackgroundColor(const Color(0xFF0a0520))
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -50,9 +50,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1a0f2e),
+      backgroundColor: const Color(0xFF0a0520),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1a0f2e),
+        backgroundColor: const Color(0xFF0a0520),
         elevation: 0,
         leading: IconButton(
           icon: Icon(

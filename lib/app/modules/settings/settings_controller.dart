@@ -1,10 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../services/storage_service.dart';
 import '../../services/crashlytics_service.dart';
 import '../../utils/snackbar_utils.dart';
@@ -159,24 +157,6 @@ class SettingsController extends GetxController {
         'url': url,
       },
     );
-  }
-
-  Future<void> rateApp() async {
-    try {
-      final androidUrl = dotenv.env['ANDROID_PLAY_STORE_URL'] ?? 'https://play.google.com/store/apps/details?id=com.moodshift.ai';
-      final iosUrl = dotenv.env['IOS_APP_STORE_URL'] ?? 'https://apps.apple.com/app/idYOUR_APP_ID';
-
-      final url = Platform.isAndroid ? androidUrl : iosUrl;
-      final uri = Uri.parse(url);
-
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        SnackbarUtils.showError(title: 'Error', message: 'Could not open app store');
-      }
-    } catch (e) {
-      SnackbarUtils.showError(title: 'Error', message: 'Could not open app store');
-    }
   }
 
   void shareApp() {

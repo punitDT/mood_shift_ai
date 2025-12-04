@@ -22,8 +22,10 @@ import 'app/services/permission_service.dart';
 import 'app/services/device_service.dart';
 import 'app/services/cloud_ai_service.dart';
 import 'app/services/audio_player_service.dart';
+import 'app/services/in_app_review_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
+import 'app/controllers/rewarded_controller.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -137,6 +139,15 @@ void main() async {
     }
   }
 
+  // Initialize RewardedController (needed globally for HomeView)
+  try {
+    Get.put(RewardedController());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'RewardedController initialization failed', fatal: false);
+    }
+  }
+
   // Initialize CrashlyticsService
   try {
     Get.put(CrashlyticsService());
@@ -180,6 +191,15 @@ void main() async {
     }
   }
 
+  // Initialize InAppReviewService
+  try {
+    await Get.putAsync(() => InAppReviewService().init());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'InAppReviewService initialization failed', fatal: false);
+    }
+  }
+
   // Set portrait orientation only
   try {
     await SystemChrome.setPreferredOrientations([
@@ -217,7 +237,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final storageService = Get.find<StorageService>();
-    
+
+    // Determine initial route based on onboarding status
+    final hasSeenOnboarding = storageService.hasSeenOnboarding();
+    final initialRoute = hasSeenOnboarding ? AppRoutes.ONBOARDING : AppRoutes.ONBOARDING;
+
     return ScreenUtilInit(
       designSize: const Size(375, 812),
       minTextAdapt: true,
@@ -228,7 +252,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primarySwatch: Colors.deepPurple,
-            scaffoldBackgroundColor: const Color(0xFF1a0f2e),
+            scaffoldBackgroundColor: const Color(0xFF0a0520),
             fontFamily: 'Poppins',
             brightness: Brightness.dark,
             useMaterial3: true,
@@ -236,7 +260,7 @@ class MyApp extends StatelessWidget {
           translations: AppTranslations(),
           locale: storageService.getLocale(),
           fallbackLocale: const Locale('en', 'US'),
-          initialRoute: AppRoutes.HOME,
+          initialRoute: initialRoute,
           getPages: AppPages.pages,
         );
       },

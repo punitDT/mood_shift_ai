@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -7,6 +8,10 @@ class StorageService extends GetxService {
 
   // Expose box for permission service
   GetStorage get box => _box;
+
+  // Crystal voice period in minutes (from env, default 10)
+  int get crystalVoicePeriodMinutes =>
+      int.tryParse(dotenv.env['CRYSTAL_VOICE_PERIOD_MINUTES'] ?? '10') ?? 10;
 
   Future<StorageService> init() async {
     _box = GetStorage();
@@ -219,8 +224,8 @@ class StorageService extends GetxService {
     return hasCrystal;
   }
 
-  void setCrystalVoice1Hour() {
-    final until = DateTime.now().add(const Duration(hours: 1));
+  void setCrystalVoice() {
+    final until = DateTime.now().add(Duration(minutes: crystalVoicePeriodMinutes));
     _box.write('crystal_voice_until', until.toIso8601String());
   }
 
@@ -265,6 +270,24 @@ class StorageService extends GetxService {
 
   void setCrashReportsEnabled(bool enabled) {
     _box.write('crash_reports_enabled', enabled);
+  }
+
+  // Onboarding
+  bool hasSeenOnboarding() {
+    return _box.read('seenOnboarding') ?? false;
+  }
+
+  void setSeenOnboarding(bool seen) {
+    _box.write('seenOnboarding', seen);
+  }
+
+  // Generic bool getter/setter for flexible storage
+  bool? getBool(String key) {
+    return _box.read(key);
+  }
+
+  void setBool(String key, bool value) {
+    _box.write(key, value);
   }
 }
 

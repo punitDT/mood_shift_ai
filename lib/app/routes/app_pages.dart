@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../modules/home/home_binding.dart';
 import '../modules/home/home_view.dart';
+import '../modules/onboarding/onboarding_view.dart';
 import '../modules/settings/settings_binding.dart';
 import '../modules/settings/settings_view.dart';
 import '../modules/webview/webview_view.dart';
@@ -9,6 +10,10 @@ import 'app_routes.dart';
 
 class AppPages {
   static final pages = [
+    GetPage(
+      name: AppRoutes.ONBOARDING,
+      page: () => const OnboardingView(),
+    ),
     GetPage(
       name: AppRoutes.HOME,
       page: () => const HomeView(),

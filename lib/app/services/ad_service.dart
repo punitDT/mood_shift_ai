@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/scheduler.dart';
 import 'storage_service.dart';
 import 'crashlytics_service.dart';
 import '../utils/snackbar_utils.dart';
@@ -55,8 +56,8 @@ class AdService extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    // Delay crashlytics access to avoid initialization order issues
-    Future.delayed(Duration.zero, () {
+    // Use post-frame callback to access CrashlyticsService after initialization completes
+    SchedulerBinding.instance.addPostFrameCallback((_) {
       try {
         _crashlytics = Get.find<CrashlyticsService>();
       } catch (_) {

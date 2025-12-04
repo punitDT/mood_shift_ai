@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:confetti/confetti.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,6 +15,7 @@ import '../../services/crashlytics_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/cloud_ai_service.dart';
 import '../../services/audio_player_service.dart';
+import '../../services/in_app_review_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
@@ -43,6 +45,9 @@ class HomeController extends GetxController {
   // Cloud Functions services
   CloudAIService? _cloudAIService;
   AudioPlayerService? _audioPlayerService;
+
+  // In-app review service
+  InAppReviewService? _inAppReviewService;
 
   // Track if services are properly initialized
   final _servicesInitialized = false.obs;
@@ -96,6 +101,9 @@ class HomeController extends GetxController {
       _cloudAIService = Get.find<CloudAIService>();
       _audioPlayerService = Get.find<AudioPlayerService>();
 
+      // In-app review service
+      _inAppReviewService = Get.find<InAppReviewService>();
+
       _servicesInitialized.value = true;
     } catch (e, stackTrace) {
       _servicesInitialized.value = false;
@@ -134,6 +142,13 @@ class HomeController extends GetxController {
         _cloudAIService != null &&
         _audioPlayerService != null;
   }
+
+  /// Public getters for services needed by HomeView
+  AdService? get adService => _adService;
+  RewardedController? get rewardedController => _rewardedController;
+  StreakController? get streakController => _streakController;
+  AdFreeController? get adFreeController => _adFreeController;
+  bool get servicesInitialized => _servicesInitialized.value;
 
   void _setupAudioPlayerListeners() {
     final audioPlayer = _audioPlayerService;
@@ -186,8 +201,12 @@ class HomeController extends GetxController {
       }
     });
 
+    // Defer dialog showing to after the build phase completes
+    // This prevents "visitChildElements() called during build" error
     if (remoteConfig.updateAvailable.value) {
-      _showForceUpdateDialog();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showForceUpdateDialog();
+      });
     }
   }
 
@@ -565,6 +584,27 @@ class HomeController extends GetxController {
     showRewardButtons.value = true;
     _resetToIdle();
     _remoteConfig?.fetchConfig();
+
+    // Check for in-app review after session ends (doesn't interrupt voice flow)
+    _checkAndRequestReview();
+  }
+
+  /// Check if we should show the in-app review prompt
+  /// Only triggers when user reaches exactly 15 shifts and hasn't been prompted before
+  void _checkAndRequestReview() {
+    final reviewService = _inAppReviewService;
+    final storage = _storage;
+
+    if (reviewService == null || storage == null) return;
+
+    final totalShifts = storage.getTotalShifts();
+
+    if (reviewService.shouldShowReview(totalShifts)) {
+      // Wait for current frame to complete before showing review dialog
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        reviewService.requestReview();
+      });
+    }
   }
 
   void _resetToIdle() {
@@ -614,7 +654,8 @@ class HomeController extends GetxController {
 
           // Set state to processing while generating
           currentState.value = AppState.processing;
-          statusText.value = _tr('processing', fallback: 'Amplifying...');
+          statusText.value = _tr('processing', fallback: 'Thinking...');
+          showLottieAnimation.value = true;
 
           // Use Cloud Functions
           final result = await cloudAI.processStronger(lastResponse!);
@@ -625,7 +666,6 @@ class HomeController extends GetxController {
 
           currentState.value = AppState.speaking;
           statusText.value = _tr('preparing', fallback: 'Preparing...');
-          showLottieAnimation.value = true;
 
           final wordCount = result.response.split(' ').length;
           final estimatedSeconds = ((wordCount / 150) * 60).clamp(5, 30).toInt();

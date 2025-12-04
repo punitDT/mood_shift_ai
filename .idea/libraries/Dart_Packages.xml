@@ -478,6 +478,20 @@
             </list>
           </value>
         </entry>
+        <entry key="in_app_review">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/in_app_review-2.0.11/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="in_app_review_platform_interface">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/in_app_review_platform_interface-2.0.5/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="io">
           <value>
             <list>
@@ -1113,6 +1127,8 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/http_multi_server-3.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/http_parser-4.1.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/image-4.5.4/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/in_app_review-2.0.11/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/in_app_review_platform_interface-2.0.5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/io-1.0.5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/json_annotation-4.9.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/leak_tracker-11.0.2/lib" />

@@ -679,100 +679,6 @@ class MockStorageService extends _i1.Mock implements _i4.StorageService {
       );
 
   @override
-  List<String> getRecentUserInputs() => (super.noSuchMethod(
-        Invocation.method(
-          #getRecentUserInputs,
-          [],
-        ),
-        returnValue: <String>[],
-      ) as List<String>);
-
-  @override
-  List<String> getRecentAIResponses() => (super.noSuchMethod(
-        Invocation.method(
-          #getRecentAIResponses,
-          [],
-        ),
-        returnValue: <String>[],
-      ) as List<String>);
-
-  @override
-  void addUserInputToHistory(String? input) => super.noSuchMethod(
-        Invocation.method(
-          #addUserInputToHistory,
-          [input],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void addAIResponseToHistory(String? response) => super.noSuchMethod(
-        Invocation.method(
-          #addAIResponseToHistory,
-          [response],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void clearConversationHistory() => super.noSuchMethod(
-        Invocation.method(
-          #clearConversationHistory,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  List<Map<String, dynamic>> getCachedResponses() => (super.noSuchMethod(
-        Invocation.method(
-          #getCachedResponses,
-          [],
-        ),
-        returnValue: <Map<String, dynamic>>[],
-      ) as List<Map<String, dynamic>>);
-
-  @override
-  void addCachedResponse(
-    String? userInput,
-    String? response,
-    String? language,
-  ) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #addCachedResponse,
-          [
-            userInput,
-            response,
-            language,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  Map<String, dynamic>? findCachedResponse(
-    String? userInput,
-    String? language,
-  ) =>
-      (super.noSuchMethod(Invocation.method(
-        #findCachedResponse,
-        [
-          userInput,
-          language,
-        ],
-      )) as Map<String, dynamic>?);
-
-  @override
-  void clearCachedResponses() => super.noSuchMethod(
-        Invocation.method(
-          #clearCachedResponses,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
   bool isFirstLaunch() => (super.noSuchMethod(
         Invocation.method(
           #isFirstLaunch,
@@ -791,33 +697,6 @@ class MockStorageService extends _i1.Mock implements _i4.StorageService {
       );
 
   @override
-  void setPollyVoiceMap(Map<String, dynamic>? voiceMap) => super.noSuchMethod(
-        Invocation.method(
-          #setPollyVoiceMap,
-          [voiceMap],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void clearPollyVoiceMap() => super.noSuchMethod(
-        Invocation.method(
-          #clearPollyVoiceMap,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void setPollyVoiceMapVersion(int? version) => super.noSuchMethod(
-        Invocation.method(
-          #setPollyVoiceMapVersion,
-          [version],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
   bool getCrashReportsEnabled() => (super.noSuchMethod(
         Invocation.method(
           #getCrashReportsEnabled,
@@ -831,6 +710,24 @@ class MockStorageService extends _i1.Mock implements _i4.StorageService {
         Invocation.method(
           #setCrashReportsEnabled,
           [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  bool hasSeenOnboarding() => (super.noSuchMethod(
+        Invocation.method(
+          #hasSeenOnboarding,
+          [],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  void setSeenOnboarding(bool? seen) => super.noSuchMethod(
+        Invocation.method(
+          #setSeenOnboarding,
+          [seen],
         ),
         returnValueForMissingStub: null,
       );

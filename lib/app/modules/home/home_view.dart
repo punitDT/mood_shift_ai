@@ -7,8 +7,6 @@ import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
 import '../../services/habit_service.dart';
-import '../../controllers/ad_free_controller.dart';
-import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -16,9 +14,38 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final adService = Get.find<AdService>();
-    final rewardedController = Get.find<RewardedController>();
+    return Obx(() {
+      // Wait for services to be initialized
+      if (!controller.servicesInitialized) {
+        return const Scaffold(
+          backgroundColor: Color(0xFF0a0520),
+          body: Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF7B5EBF),
+            ),
+          ),
+        );
+      }
 
+      final adService = controller.adService;
+      final rewardedController = controller.rewardedController;
+
+      if (adService == null || rewardedController == null) {
+        return const Scaffold(
+          backgroundColor: Color(0xFF0a0520),
+          body: Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF7B5EBF),
+            ),
+          ),
+        );
+      }
+
+      return _buildMainContent(adService, rewardedController);
+    });
+  }
+
+  Widget _buildMainContent(AdService adService, RewardedController rewardedController) {
     return Scaffold(
       body: Stack(
         children: [
@@ -171,7 +198,7 @@ class HomeView extends GetView<HomeController> {
           Align(
             alignment: Alignment.center,
             child: ConfettiWidget(
-              confettiController: Get.find<StreakController>().confettiController,
+              confettiController: controller.streakController!.confettiController,
               blastDirectionality: BlastDirectionality.explosive,
               particleDrag: 0.05,
               emissionFrequency: 0.03,
@@ -199,7 +226,7 @@ class HomeView extends GetView<HomeController> {
 
   // Minimal top bar - clean and spacious
   Widget _buildMinimalTopBar() {
-    final rewardedController = Get.find<RewardedController>();
+    final rewardedController = controller.rewardedController!;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -302,11 +329,12 @@ class HomeView extends GetView<HomeController> {
 
   // Premium mic button - elegant, soft glow, breathing animation
   Widget _buildPremiumMicButton() {
-    final rewardedController = Get.find<RewardedController>();
+    final rewardedController = controller.rewardedController!;
 
     return Obx(() {
       final isActive = controller.currentState.value != AppState.idle;
       final isListening = controller.currentState.value == AppState.listening;
+      final isProcessing = controller.currentState.value == AppState.processing;
       final isSpeaking = controller.currentState.value == AppState.speaking;
       final isCrystal = rewardedController.hasCrystalVoice.value;
 
@@ -317,6 +345,7 @@ class HomeView extends GetView<HomeController> {
         child: _BreathingMicButton(
           isListening: isListening,
           isSpeaking: isSpeaking,
+          isProcessing: isProcessing,
           isActive: isActive,
           isCrystal: isCrystal,
         ),
@@ -326,7 +355,7 @@ class HomeView extends GetView<HomeController> {
 
   // Superpower bottom sheet - elegant, slides up after shift
   Widget _buildSuperpowerBottomSheet() {
-    final adFreeController = Get.find<AdFreeController>();
+    final adFreeController = controller.adFreeController!;
 
     return Positioned(
       bottom: 0,
@@ -383,7 +412,7 @@ class HomeView extends GetView<HomeController> {
 
                       // Superpower cards
                       Obx(() {
-                        final rewardedController = Get.find<RewardedController>();
+                        final rewardedController = controller.rewardedController!;
                         final isCrystal = rewardedController.hasCrystalVoice.value;
                         final isAdFree = adFreeController.isAdFree.value;
 
@@ -404,15 +433,16 @@ class HomeView extends GetView<HomeController> {
                               isCrystal ? null : controller.onUnlockCrystal,
                               isActive: isCrystal,
                             ),
-                            SizedBox(height: 12.h),
-                            _buildSuperpowerCard(
-                              isAdFree
-                                  ? 'Ad-free • ${adFreeController.adFreeTimeRemaining.value}'
-                                  : 'Remove ads',
-                              Icons.spa_outlined,
-                              isAdFree ? null : controller.onRemoveAds,
-                              isActive: isAdFree,
-                            ),
+                            // TODO: Uncomment for enhancement phase
+                            // SizedBox(height: 12.h),
+                            // _buildSuperpowerCard(
+                            //   isAdFree
+                            //       ? 'Ad-free • ${adFreeController.adFreeTimeRemaining.value}'
+                            //       : 'Remove ads',
+                            //   Icons.spa_outlined,
+                            //   isAdFree ? null : controller.onRemoveAds,
+                            //   isActive: isAdFree,
+                            // ),
                           ],
                         );
                       }),
@@ -508,7 +538,7 @@ class HomeView extends GetView<HomeController> {
 
   // Habit stats widget - shows streak, today's shifts, total shifts, active days
   Widget _buildHabitStats() {
-    final streakController = Get.find<StreakController>();
+    final streakController = controller.streakController!;
 
     return Obx(() => Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -580,12 +610,14 @@ class HomeView extends GetView<HomeController> {
 class _BreathingMicButton extends StatefulWidget {
   final bool isListening;
   final bool isSpeaking;
+  final bool isProcessing;
   final bool isActive;
   final bool isCrystal;
 
   const _BreathingMicButton({
     required this.isListening,
     required this.isSpeaking,
+    required this.isProcessing,
     required this.isActive,
     required this.isCrystal,
   });
@@ -636,12 +668,13 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
   void didUpdateWidget(_BreathingMicButton oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Start/stop pulse animation based on listening or speaking state
-    if ((widget.isListening || widget.isSpeaking) &&
-        !(oldWidget.isListening || oldWidget.isSpeaking)) {
+    // Start/stop pulse animation based on listening, processing, or speaking state
+    final isActiveNow = widget.isListening || widget.isSpeaking || widget.isProcessing;
+    final wasActive = oldWidget.isListening || oldWidget.isSpeaking || oldWidget.isProcessing;
+
+    if (isActiveNow && !wasActive) {
       _pulseController.repeat(reverse: true);
-    } else if (!(widget.isListening || widget.isSpeaking) &&
-               (oldWidget.isListening || oldWidget.isSpeaking)) {
+    } else if (!isActiveNow && wasActive) {
       _pulseController.stop();
       _pulseController.reset();
     }
@@ -799,14 +832,14 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
           },
         ),
 
-        // "Recording..." or "Speaking..." text
+        // "Recording...", "Thinking...", or "Speaking..." text
         AnimatedOpacity(
-          opacity: (widget.isListening || widget.isSpeaking) ? 1.0 : 0.0,
+          opacity: (widget.isListening || widget.isSpeaking || widget.isProcessing) ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            height: (widget.isListening || widget.isSpeaking) ? 30.h : 0,
-            child: (widget.isListening || widget.isSpeaking)
+            height: (widget.isListening || widget.isSpeaking || widget.isProcessing) ? 30.h : 0,
+            child: (widget.isListening || widget.isSpeaking || widget.isProcessing)
                 ? Padding(
                     padding: EdgeInsets.only(top: 12.h),
                     child: Row(
@@ -814,7 +847,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                       children: [
                         FittedBox(
                           child: Text(
-                            widget.isListening ? 'Recording' : 'Speaking',
+                            widget.isListening ? 'Recording' : (widget.isProcessing ? 'Thinking' : 'Speaking'),
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: const Color(0xFFA0A0FF),

@@ -90,7 +90,7 @@ class RewardedController extends GetxController {
   }
 
   Future<void> activateCrystalVoice() async {
-    _storage.setCrystalVoice1Hour();
+    _storage.setCrystalVoice();
     _updateCrystalVoiceStatus();
 
     // Play sparkle animation
@@ -101,7 +101,7 @@ class RewardedController extends GetxController {
     // Show success snackbar
     SnackbarUtils.showCustom(
       title: '💎 Crystal Voice Unlocked',
-      message: 'Premium clarity for 1 hour',
+      message: 'Premium clarity activated',
       backgroundColor: const Color(0xFF7B1FA2),
       textColor: Colors.white,
       icon: Icons.diamond,

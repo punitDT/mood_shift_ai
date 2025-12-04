@@ -13,14 +13,14 @@ class SettingsView extends GetView<SettingsController> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF1a0f2e),
-              const Color(0xFF2d1b4e),
-              const Color(0xFF4a2c6f),
+              Color(0xFF0a0520), // Very dark blue-purple
+              Color(0xFF150a2e), // Deep purple
+              Color(0xFF0d0618), // Almost black
             ],
           ),
         ),
@@ -120,22 +120,9 @@ class SettingsView extends GetView<SettingsController> {
                       ),
                       onTap: controller.openPrivacyPolicy,
                     ),
-                    
+
                     SizedBox(height: 12.h),
-                    
-                    _buildSettingItem(
-                      icon: Icons.star_outline_rounded,
-                      title: 'rate_app'.tr,
-                      trailing: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 16.sp,
-                        color: Colors.white.withOpacity(0.5),
-                      ),
-                      onTap: controller.rateApp,
-                    ),
-                    
-                    SizedBox(height: 12.h),
-                    
+
                     _buildSettingItem(
                       icon: Icons.share_rounded,
                       title: 'share_app'.tr,

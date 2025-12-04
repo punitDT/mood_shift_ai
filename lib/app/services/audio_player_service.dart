@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -17,6 +18,10 @@ class AudioPlayerService extends GetxService {
   final isPreparing = false.obs;
   final isUsingOfflineMode = false.obs;
 
+  // Completers for waiting on playback completion
+  Completer<void>? _audioCompleter;
+  Completer<void>? _ttsCompleter;
+
   @override
   void onInit() {
     super.onInit();
@@ -33,11 +38,19 @@ class AudioPlayerService extends GetxService {
         isPreparing.value = false;
       } else if (state == PlayerState.completed || state == PlayerState.stopped) {
         isSpeaking.value = false;
+        // Complete the audio completer when playback finishes
+        _audioCompleter?.complete();
+        _audioCompleter = null;
       }
     });
 
     _audioPlayer.onPlayerComplete.listen((_) {
       isSpeaking.value = false;
+      // Ensure completer is completed on player complete event
+      if (_audioCompleter != null && !_audioCompleter!.isCompleted) {
+        _audioCompleter?.complete();
+        _audioCompleter = null;
+      }
     });
   }
 
@@ -50,10 +63,20 @@ class AudioPlayerService extends GetxService {
 
     _fallbackTts.setCompletionHandler(() {
       isSpeaking.value = false;
+      // Complete the TTS completer when speech finishes
+      if (_ttsCompleter != null && !_ttsCompleter!.isCompleted) {
+        _ttsCompleter?.complete();
+        _ttsCompleter = null;
+      }
     });
 
     _fallbackTts.setErrorHandler((msg) {
       isSpeaking.value = false;
+      // Complete with error on TTS failure
+      if (_ttsCompleter != null && !_ttsCompleter!.isCompleted) {
+        _ttsCompleter?.complete();
+        _ttsCompleter = null;
+      }
     });
 
     await _fallbackTts.setVolume(1.0);
@@ -76,20 +99,21 @@ class AudioPlayerService extends GetxService {
 
     try {
       AppLogger.info('🔊 Playing audio from URL: ${audioUrl.substring(0, 50)}...');
-      
+
+      // Create a completer to wait for playback completion
+      _audioCompleter = Completer<void>();
+
       await _audioPlayer.play(UrlSource(audioUrl));
       isPreparing.value = false;
-      
-      // Wait for playback to complete
-      await Future.delayed(const Duration(milliseconds: 500));
-      while (isSpeaking.value) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
+
+      // Wait for playback to complete using the completer
+      await _audioCompleter?.future;
     } catch (e, stackTrace) {
       isPreparing.value = false;
+      _audioCompleter = null;
       AppLogger.error('Audio URL playback failed', e, stackTrace);
       _crashlytics.reportError(e, stackTrace, reason: 'Audio URL playback failed');
-      
+
       // Fallback to device TTS
       isUsingOfflineMode.value = true;
       await _speakWithFallback(fallbackText);
@@ -101,19 +125,29 @@ class AudioPlayerService extends GetxService {
 
     isUsingOfflineMode.value = true;
     final fullLocale = _storage.getFullLocale();
-    
+
+    // Create a completer to wait for TTS completion
+    _ttsCompleter = Completer<void>();
+
     await _fallbackTts.setLanguage(fullLocale);
     await _fallbackTts.speak(text);
-    
-    // Wait for TTS to complete
-    await Future.delayed(const Duration(milliseconds: 500));
-    while (isSpeaking.value) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
+
+    // Wait for TTS to complete using the completer
+    await _ttsCompleter?.future;
   }
 
   /// Stop any currently playing audio
   Future<void> stop() async {
+    // Complete any pending completers before stopping
+    if (_audioCompleter != null && !_audioCompleter!.isCompleted) {
+      _audioCompleter?.complete();
+      _audioCompleter = null;
+    }
+    if (_ttsCompleter != null && !_ttsCompleter!.isCompleted) {
+      _ttsCompleter?.complete();
+      _ttsCompleter = null;
+    }
+
     await _audioPlayer.stop();
     await _fallbackTts.stop();
     isSpeaking.value = false;
