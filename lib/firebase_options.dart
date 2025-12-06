@@ -41,22 +41,20 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // TODO: Replace with your actual Firebase Android configuration
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: '1:YOUR_APP_ID:android:YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyDHJkwBJVtr79twIZ1ITPJYbs7mdmDuKzs',
+    appId: '1:767376759120:android:0100b73b7a4f6e60d13455',
+    messagingSenderId: '767376759120',
+    projectId: 'mood-shift-ai',
+    storageBucket: 'mood-shift-ai.firebasestorage.app',
   );
 
-  // TODO: Replace with your actual Firebase iOS configuration
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: '1:YOUR_APP_ID:ios:YOUR_IOS_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyCRLCHpsOtPj8FQSLj1lZyAXcNs_5dwSPM',
+    appId: '1:767376759120:ios:c8e95e98beb16370d13455',
+    messagingSenderId: '767376759120',
+    projectId: 'mood-shift-ai',
+    storageBucket: 'mood-shift-ai.firebasestorage.app',
     iosBundleId: 'com.moodshift.ai',
   );
 }

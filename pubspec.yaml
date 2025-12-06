@@ -1,5 +1,5 @@
 name: mood_shift_ai
-description: A viral ADHD/mood shifter app with AI voice responses
+description: A mood shifter app with AI voice responses
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -54,6 +54,7 @@ dependencies:
   webview_flutter: ^4.13.0
   uuid: ^4.5.2
   in_app_review: ^2.0.11
+  firebase_app_check: ^0.2.2
 
 dev_dependencies:
   flutter_test:

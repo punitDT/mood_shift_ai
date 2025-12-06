@@ -1,6 +1,6 @@
 # MoodShift AI 🧠✨
 
-A viral ADHD/mood shifter app with AI-powered voice responses. Built with Flutter and GetX.
+A mood shifter app with AI-powered voice responses. Built with Flutter and GetX.
 
 ## 🎯 Main Feature
 

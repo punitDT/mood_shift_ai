@@ -28,6 +28,7 @@
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_native_splash-2.4.7/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_tts-4.2.3/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/google_mobile_ads-5.3.1/android" />
+            <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/in_app_review-2.0.11/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/package_info_plus-8.3.1/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/path_provider_android-2.2.22/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0/android" />
@@ -35,9 +36,9 @@
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/speech_to_text-7.3.0/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/url_launcher_android-6.3.28/android" />
             <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/webview_flutter_android-4.10.9/android" />
+            <option value="$USER_HOME$/Source/FlutterSDK/flutter/packages/flutter_tools/gradle" />
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$USER_HOME$/Source/FlutterSDK/flutter/packages/flutter_tools/gradle" />
           </set>
         </option>
       </GradleProjectSettings>

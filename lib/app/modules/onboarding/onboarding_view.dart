@@ -27,7 +27,7 @@ class _OnboardingViewState extends State<OnboardingView> {
     ),
     _OnboardingSlide(
       icon: _SpeechBubbleAnimation(),
-      title: 'Just talk. No typing.',
+      title: 'Just talk.\nNo typing.',
       subtitle: 'Hold and speak for up to 1 minute — we\'ll hear everything',
     ),
     _OnboardingSlide(
@@ -212,7 +212,6 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   void _completeOnboarding() {
-
     final storageService = Get.find<StorageService>();
     storageService.setSeenOnboarding(true);
     Get.offAllNamed(AppRoutes.HOME);
@@ -231,49 +230,99 @@ class _OnboardingSlide {
   });
 }
 
-// Slide 1: Gentle glowing light with particles animation
-class _GentleLightAnimation extends StatefulWidget {
+// Slide 1: Pulsing circles animation (matching SVG design)
+class _GentleLightAnimation extends StatelessWidget {
   const _GentleLightAnimation();
 
   @override
-  State<_GentleLightAnimation> createState() => _GentleLightAnimationState();
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220.w,
+      height: 220.w,
+      child: const Stack(
+        alignment: Alignment.center,
+        children: [
+          // 3 pulsing rings with staggered delays (like the SVG)
+          _PulsingRing(delay: 0, duration: 3500),
+          _PulsingRing(delay: 1167, duration: 3500),
+          _PulsingRing(delay: 2333, duration: 3500),
+          // Glowing core layers (matching SVG)
+          _GlowingCore(),
+        ],
+      ),
+    );
+  }
 }
 
-class _GentleLightAnimationState extends State<_GentleLightAnimation>
-    with TickerProviderStateMixin {
-  late AnimationController _glowController;
-  late AnimationController _particleController;
+// Pulsing ring that expands outward and fades
+class _PulsingRing extends StatefulWidget {
+  final int delay;
+  final int duration;
+
+  const _PulsingRing({required this.delay, required this.duration});
+
+  @override
+  State<_PulsingRing> createState() => _PulsingRingState();
+}
+
+class _PulsingRingState extends State<_PulsingRing>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _radiusAnimation;
+  late Animation<double> _opacityAnimation;
+  late Animation<double> _strokeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _glowController = AnimationController(
-      duration: const Duration(seconds: 3),
+    _controller = AnimationController(
+      duration: Duration(milliseconds: widget.duration),
       vsync: this,
-    )..repeat(reverse: true);
-    _particleController = AnimationController(
-      duration: const Duration(seconds: 6),
-      vsync: this,
-    )..repeat();
+    );
+
+    // Radius expands from small to large
+    _radiusAnimation = Tween<double>(begin: 15, end: 85).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Cubic(0.5, 0, 0.3, 1),
+      ),
+    );
+
+    // Opacity fades from 0.9 to 0
+    _opacityAnimation = Tween<double>(begin: 0.9, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    // Stroke width animates (thicker in middle)
+    _strokeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 24, end: 34), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 34, end: 24), weight: 50),
+    ]).animate(_controller);
+
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        _controller.repeat();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _glowController.dispose();
-    _particleController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_glowController, _particleController]),
+      animation: _controller,
       builder: (context, child) {
         return CustomPaint(
           size: Size(220.w, 220.w),
-          painter: _GentleLightPainter(
-            glowProgress: _glowController.value,
-            particleProgress: _particleController.value,
+          painter: _PulsingRingPainter(
+            radius: _radiusAnimation.value,
+            opacity: _opacityAnimation.value,
+            strokeWidth: _strokeAnimation.value,
           ),
         );
       },
@@ -281,70 +330,123 @@ class _GentleLightAnimationState extends State<_GentleLightAnimation>
   }
 }
 
-class _GentleLightPainter extends CustomPainter {
-  final double glowProgress;
-  final double particleProgress;
+class _PulsingRingPainter extends CustomPainter {
+  final double radius;
+  final double opacity;
+  final double strokeWidth;
 
-  _GentleLightPainter({
-    required this.glowProgress,
-    required this.particleProgress,
+  _PulsingRingPainter({
+    required this.radius,
+    required this.opacity,
+    required this.strokeWidth,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final baseUnit = size.width / 220; // Scale factor based on 220 as reference
+    final baseUnit = size.width / 220;
 
-    // Outer soft glow rings
-    for (int i = 3; i >= 0; i--) {
-      final ringRadius = (50.0 + (i * 25) + (glowProgress * 10)) * baseUnit;
-      final ringPaint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFFB39DDB).withValues(alpha: 0.3 - (i * 0.07)),
-            const Color(0xFF9575CD).withValues(alpha: 0.1 - (i * 0.02)),
-            const Color(0xFF7B5EBF).withValues(alpha: 0.0),
-          ],
-        ).createShader(Rect.fromCircle(center: center, radius: ringRadius));
-      canvas.drawCircle(center, ringRadius, ringPaint);
-    }
+    final paint = Paint()
+      ..color = const Color(0xFF633C99).withValues(alpha: opacity)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth * baseUnit;
 
-    // Central glowing orb
-    final orbRadius = (40 + (glowProgress * 8)) * baseUnit;
-    final orbPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.95),
-          const Color(0xFFE1BEE7).withValues(alpha: 0.8),
-          const Color(0xFFCE93D8).withValues(alpha: 0.6),
-          const Color(0xFFBA68C8).withValues(alpha: 0.0),
-        ],
-        stops: const [0.0, 0.3, 0.6, 1.0],
-      ).createShader(Rect.fromCircle(center: center, radius: orbRadius));
-    canvas.drawCircle(center, orbRadius, orbPaint);
-
-    // Floating particles around the orb
-    final particlePaint = Paint()..style = PaintingStyle.fill;
-    for (int i = 0; i < 12; i++) {
-      final angle = (i * math.pi * 2 / 12) + (particleProgress * math.pi * 2);
-      final distance = (65 + math.sin(particleProgress * math.pi * 2 + i) * 15) * baseUnit;
-      final particleX = center.dx + math.cos(angle) * distance;
-      final particleY = center.dy + math.sin(angle) * distance;
-      final particleSize = (3.0 + math.sin(particleProgress * math.pi * 4 + i * 0.5) * 2) * baseUnit;
-
-      particlePaint.shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.9),
-          const Color(0xFFE1BEE7).withValues(alpha: 0.0),
-        ],
-      ).createShader(Rect.fromCircle(center: Offset(particleX, particleY), radius: particleSize + 3 * baseUnit));
-
-      canvas.drawCircle(Offset(particleX, particleY), particleSize, particlePaint);
-    }
+    canvas.drawCircle(center, radius * baseUnit, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _GentleLightPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _PulsingRingPainter oldDelegate) => true;
+}
+
+// Glowing core with 3 layers (matching SVG)
+class _GlowingCore extends StatefulWidget {
+  const _GlowingCore();
+
+  @override
+  State<_GlowingCore> createState() => _GlowingCoreState();
+}
+
+class _GlowingCoreState extends State<_GlowingCore>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 4),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 16, end: 24).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          size: Size(220.w, 220.w),
+          painter: _GlowingCorePainter(
+            innerRadius: _pulseAnimation.value,
+            innerOpacity: _opacityAnimation.value,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _GlowingCorePainter extends CustomPainter {
+  final double innerRadius;
+  final double innerOpacity;
+
+  _GlowingCorePainter({
+    required this.innerRadius,
+    required this.innerOpacity,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final baseUnit = size.width / 220;
+
+    // Outer layer - dark purple
+    final outerPaint = Paint()
+      ..color = const Color(0xFF4C1D95).withValues(alpha: 0.65)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, 44 * baseUnit, outerPaint);
+
+    // Middle layer - medium purple
+    final middlePaint = Paint()
+      ..color = const Color(0xFF633C99)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, 32 * baseUnit, middlePaint);
+
+    // Inner layer - light purple with pulse
+    final innerPaint = Paint()
+      ..color = const Color(0xFFA78BFA).withValues(alpha: innerOpacity)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, innerRadius * baseUnit, innerPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GlowingCorePainter oldDelegate) => true;
 }
 
 // Slide 2: Speech bubble with voice lines animation

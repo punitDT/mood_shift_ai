@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'device_service.dart';
 import 'storage_service.dart';
 import 'crashlytics_service.dart';
@@ -120,9 +121,24 @@ class CloudAIService extends GetxService {
 
       AppLogger.info('🌐 CLOUD FUNCTION REQUEST: $requestBody');
 
+      // Get App Check token for request authentication
+      String? appCheckToken;
+      try {
+        appCheckToken = await FirebaseAppCheck.instance.getToken();
+        AppLogger.info('🔐 App Check token obtained');
+      } catch (e) {
+        AppLogger.warning('🔐 Failed to get App Check token: $e');
+        // Continue without token - Cloud Function will reject in release mode
+      }
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        if (appCheckToken != null) 'X-Firebase-AppCheck': appCheckToken,
+      };
+
       final response = await http.post(
         Uri.parse(_cloudFunctionUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode(requestBody),
       ).timeout(
         Duration(seconds: _timeoutSeconds),

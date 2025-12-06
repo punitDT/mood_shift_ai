@@ -54,7 +54,7 @@
 	
 	<!-- AdMob App ID -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-7229717343877316~2628027718</string>
 	
 	<!-- SKAdNetwork Items for AdMob -->
 	<key>SKAdNetworkItems</key>

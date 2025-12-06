@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import { getAppCheck } from "firebase-admin/app-check";
 import {
   ProcessUserInputRequest,
   ProcessUserInputResponse,
@@ -57,7 +58,20 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-logger.info("Cloud Function initialized", { project: process.env.GCLOUD_PROJECT });
+// Determine if this is the production project based on project ID
+// Production project: mood-shift-ai
+// Dev project: mood-shift-ai-dev
+const PROJECT_ID = process.env.GCLOUD_PROJECT || "";
+const IS_PRODUCTION = PROJECT_ID === "mood-shift-ai";
+
+// Enforce App Check only in production
+const ENFORCE_APP_CHECK = IS_PRODUCTION;
+
+logger.info("Cloud Function initialized", {
+  project: PROJECT_ID,
+  isProduction: IS_PRODUCTION,
+  appCheckEnforced: ENFORCE_APP_CHECK,
+});
 
 export const processUserInput = onRequest(
   {
@@ -76,6 +90,27 @@ export const processUserInput = onRequest(
       logger.warn("Invalid method", { method: req.method });
       res.status(405).json({ success: false, error: "Method not allowed" });
       return;
+    }
+
+    // Verify Firebase App Check token (only if enforcement is enabled)
+    if (ENFORCE_APP_CHECK) {
+      const appCheckToken = req.header("X-Firebase-AppCheck");
+      if (!appCheckToken) {
+        logger.warn("Missing App Check token");
+        res.status(401).json({ success: false, error: "Unauthorized: Missing App Check token" });
+        return;
+      }
+
+      try {
+        await getAppCheck().verifyToken(appCheckToken);
+        logger.debug("App Check token verified successfully");
+      } catch (error) {
+        logger.warn("Invalid App Check token", { error });
+        res.status(401).json({ success: false, error: "Unauthorized: Invalid App Check token" });
+        return;
+      }
+    } else {
+      logger.debug("App Check verification skipped (not enforced)");
     }
 
     try {

@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -46,6 +47,29 @@ void main() async {
   } catch (e, stackTrace) {
     if (!e.toString().contains('duplicate-app')) {
       rethrow;
+    }
+  }
+
+  // Initialize Firebase App Check (release mode only)
+  // Uses DeviceCheck on iOS and Play Integrity on Android
+  if (kReleaseMode) {
+    try {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.playIntegrity,
+        appleProvider: AppleProvider.deviceCheck,
+      );
+    } catch (e) {
+      // Continue without App Check - will be rejected by Cloud Functions
+    }
+  } else {
+    // Use debug provider for development
+    try {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
+    } catch (e) {
+      // Continue without App Check in debug mode
     }
   }
 
@@ -240,7 +264,7 @@ class MyApp extends StatelessWidget {
 
     // Determine initial route based on onboarding status
     final hasSeenOnboarding = storageService.hasSeenOnboarding();
-    final initialRoute = hasSeenOnboarding ? AppRoutes.ONBOARDING : AppRoutes.ONBOARDING;
+    final initialRoute = hasSeenOnboarding ? AppRoutes.HOME : AppRoutes.ONBOARDING;
 
     return ScreenUtilInit(
       designSize: const Size(375, 812),

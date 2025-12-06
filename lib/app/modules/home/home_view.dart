@@ -118,7 +118,7 @@ class HomeView extends GetView<HomeController> {
                     _buildMinimalTopBar(),
 
                     // Spacer - creates the 70-80% empty space
-                    const Spacer(flex: 1),
+                    const Spacer(flex: 2),
 
                     // Instructional text above mic button
                     Padding(
@@ -152,15 +152,13 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
 
-                    const Spacer(flex: 1),
+                    SizedBox(height: 50.h),
 
                     // Mic Button (center of screen)
                     _buildPremiumMicButton(),
 
-                    // Spacer
-                    const Spacer(flex: 5),
-
-                    SizedBox(height: 20.h),
+                    // Spacer - equal flex to center the mic button
+                    const Spacer(flex: 3),
 
                     // Banner Ad Space (only if loaded and not ad-free)
                     Obx(() => adService.isBannerLoaded.value
@@ -238,7 +236,7 @@ class HomeView extends GetView<HomeController> {
               Obx(() {
                 final timerText = rewardedController.getCrystalTimerDisplay();
                 if (timerText.isEmpty) {
-                  return const SizedBox.shrink();
+                  return const IconButton(onPressed: null, icon: SizedBox.shrink());
                 }
 
                 return Container(
@@ -314,9 +312,10 @@ class HomeView extends GetView<HomeController> {
             ],
           ),
 
-          // Habit stats - clean and informative
-          SizedBox(height: 12.h),
-          _buildHabitStats(),
+          // TODO: Uncomment to show habit stats container
+          // // Habit stats - clean and informative
+          // SizedBox(height: 12.h),
+          // _buildHabitStats(),
         ],
       ),
     );
@@ -575,31 +574,32 @@ class HomeView extends GetView<HomeController> {
             ],
           ),
 
-          SizedBox(height: 8.h),
-
-          // Today's shifts
-          Text(
-            'Today: ${HabitService.todayShifts} shift${HabitService.todayShifts == 1 ? '' : 's'}',
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: const Color(0xFF9B7FDB).withOpacity(0.8),
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.3,
-            ),
-          ),
-
-          SizedBox(height: 4.h),
-
-          // Total shifts and active days
-          Text(
-            'Total: ${streakController.totalShifts.value} shifts • ${HabitService.activeDays} active day${HabitService.activeDays == 1 ? '' : 's'}',
-            style: TextStyle(
-              fontSize: 11.sp,
-              color: Colors.white.withOpacity(0.5),
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.3,
-            ),
-          ),
+          // TODO: Uncomment to show day shifts and active days sections
+          // SizedBox(height: 8.h),
+          //
+          // // Today's shifts
+          // Text(
+          //   'Today: ${HabitService.todayShifts} shift${HabitService.todayShifts == 1 ? '' : 's'}',
+          //   style: TextStyle(
+          //     fontSize: 13.sp,
+          //     color: const Color(0xFF9B7FDB).withOpacity(0.8),
+          //     fontWeight: FontWeight.w500,
+          //     letterSpacing: 0.3,
+          //   ),
+          // ),
+          //
+          // SizedBox(height: 4.h),
+          //
+          // // Total shifts and active days
+          // Text(
+          //   'Total: ${streakController.totalShifts.value} shifts • ${HabitService.activeDays} active day${HabitService.activeDays == 1 ? '' : 's'}',
+          //   style: TextStyle(
+          //     fontSize: 11.sp,
+          //     color: Colors.white.withOpacity(0.5),
+          //     fontWeight: FontWeight.w400,
+          //     letterSpacing: 0.3,
+          //   ),
+          // ),
         ],
       ),
     ));

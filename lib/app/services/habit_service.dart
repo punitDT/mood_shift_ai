@@ -1,8 +1,6 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:flutter/foundation.dart';
 
 /// HabitService - Smart daily streak + shift counter + non-annoying notifications
@@ -12,7 +10,7 @@ import 'package:flutter/foundation.dart';
 /// - Today's shift count
 /// - Total lifetime shifts
 /// - Total active days (days with at least 1 shift)
-/// - Smart local notifications (every 2 days at 9 AM)
+/// - Weekly reminder notifications
 class HabitService extends GetxService {
   static HabitService get to => Get.find();
 
@@ -35,10 +33,6 @@ class HabitService extends GetxService {
       _box = GetStorage();
       _notifications = FlutterLocalNotificationsPlugin();
 
-      // Initialize timezone with device's local timezone
-      tz.initializeTimeZones();
-      await _setLocalTimezone();
-
       if (_box.read(_keyInstallDate) == null) {
         _box.write(_keyInstallDate, DateTime.now().toIso8601String());
       }
@@ -51,34 +45,6 @@ class HabitService extends GetxService {
     } catch (e) {
       debugPrint('HabitService init error: $e');
       return this;
-    }
-  }
-
-  /// Sets the local timezone based on device's timezone offset
-  Future<void> _setLocalTimezone() async {
-    try {
-      // Get device timezone offset
-      final now = DateTime.now();
-      final offset = now.timeZoneOffset;
-
-      // Find a timezone that matches the offset
-      // This is a simple approach - find first matching timezone
-      for (final location in tz.timeZoneDatabase.locations.values) {
-        final tzNow = tz.TZDateTime.now(location);
-        if (tzNow.timeZoneOffset == offset) {
-          tz.setLocalLocation(location);
-          debugPrint('Timezone set to: ${location.name}');
-          return;
-        }
-      }
-
-      // Fallback to UTC if no match found
-      tz.setLocalLocation(tz.UTC);
-      debugPrint('Timezone fallback to UTC');
-    } catch (e) {
-      // Fallback to UTC on error
-      tz.setLocalLocation(tz.UTC);
-      debugPrint('Timezone error, using UTC: $e');
     }
   }
 
@@ -235,9 +201,11 @@ class HabitService extends GetxService {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  /// Schedules notification for every 2 days at 9 AM local time
+  /// Schedules weekly reminder notification
+  /// Uses simple periodic notification - works in all locales without timezone complexity
   Future<void> _scheduleNotification() async {
     try {
+      // Cancel any existing notifications before scheduling new one
       await _notifications.cancelAll();
 
       final title = 'notification_title'.tr;
@@ -263,33 +231,19 @@ class HabitService extends GetxService {
         ),
       );
 
-      // Calculate next notification time: 2 days from now at 9 AM
-      final now = tz.TZDateTime.now(tz.local);
-      var scheduledDate = tz.TZDateTime(
-        tz.local,
-        now.year,
-        now.month,
-        now.day + 2, // 2 days from now
-        9, // 9 AM
-        0,
-      );
-
-      // If 9 AM today + 2 days has already passed (edge case), add another day
-      if (scheduledDate.isBefore(now)) {
-        scheduledDate = scheduledDate.add(const Duration(days: 1));
-      }
-
-      await _notifications.zonedSchedule(
+      // Schedule weekly repeating notification
+      // This uses the system's AlarmManager (Android) / UNUserNotificationCenter (iOS)
+      // which handles timezone and locale automatically
+      await _notifications.periodicallyShow(
         _notificationId,
         title,
         body,
-        scheduledDate,
+        RepeatInterval.weekly,
         notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        matchDateTimeComponents: null,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
 
-      debugPrint('📅 Notification scheduled for: $scheduledDate');
+      debugPrint('📅 Weekly notification reminder scheduled successfully');
     } catch (e) {
       debugPrint('Notification schedule error: $e');
     }
