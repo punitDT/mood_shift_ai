@@ -1,12 +1,12 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import { getAppCheck } from "firebase-admin/app-check";
 import {
   ProcessUserInputRequest,
   ProcessUserInputResponse,
   MoodStyle,
   VoiceEngine,
   PollyConfig,
+  TokenUsage,
 } from "./types";
 import {
   getLLMConfig,
@@ -102,7 +102,7 @@ export const processUserInput = onRequest(
       }
 
       try {
-        await getAppCheck().verifyToken(appCheckToken);
+        await admin.appCheck().verifyToken(appCheckToken);
         logger.debug("App Check token verified successfully");
       } catch (error) {
         logger.warn("Invalid App Check token", { error });
@@ -199,6 +199,7 @@ export const processUserInput = onRequest(
       const languageName = getLanguageName(request.language);
       let responseText: string;
       let style: MoodStyle = MoodStyle.microDare;
+      let tokenUsage: TokenUsage | undefined;
 
       // Get API keys from secrets
       const groqApiKey = GROQ_API_KEY.value();
@@ -221,10 +222,12 @@ export const processUserInput = onRequest(
           );
           responseText = result.response;
           style = result.style;
+          tokenUsage = result.tokenUsage;
           logger.info("Stronger response generated", {
             duration: `${Date.now() - llmStartTime}ms`,
             style,
             responseLength: responseText.length,
+            tokenUsage,
           });
         } catch (error) {
           logger.error("Stronger response generation failed", error);
@@ -250,11 +253,13 @@ export const processUserInput = onRequest(
           const result = await generateResponse(messages, llmConfig, groqApiKey);
           responseText = result.response;
           style = result.style;
+          tokenUsage = result.tokenUsage;
           logger.info("LLM response generated", {
             duration: `${Date.now() - llmStartTime}ms`,
             style,
             responseLength: responseText.length,
             responsePreview: responseText.substring(0, 80) + "...",
+            tokenUsage,
           });
 
           // Save to conversation history
@@ -344,6 +349,7 @@ export const processUserInput = onRequest(
         audioUrl,
         voiceId,
         engine,
+        tokenUsage,
       };
 
       logger.flow("Request completed successfully", {
@@ -351,6 +357,7 @@ export const processUserInput = onRequest(
         voiceId,
         engine,
         responseLength: responseText.length,
+        tokenUsage,
       });
       res.status(200).json(response);
     } catch (error) {

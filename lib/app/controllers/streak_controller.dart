@@ -68,7 +68,7 @@ class StreakController extends GetxController {
       _updateStreakMessage();
 
       // Show celebration
-      _showStreakCelebration(current, isNewRecord, isBroken);
+      // _showStreakCelebration(current, isNewRecord, isBroken);
     } else {
       _updateStreakMessage();
     }

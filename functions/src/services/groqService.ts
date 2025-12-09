@@ -1,5 +1,5 @@
 import { defineSecret } from "firebase-functions/params";
-import { MoodStyle, GroqParsedResponse, LLMConfig, PromptsConfig } from "../types";
+import { MoodStyle, GroqParsedResponse, LLMConfig, PromptsConfig, TokenUsage } from "../types";
 import { logger } from "../utils/logger";
 
 // Define the secret
@@ -60,10 +60,18 @@ export async function generateResponse(
     const data = await response.json();
     logger.debug("Groq API response received", { hasChoices: !!data.choices, choiceCount: data.choices?.length });
 
+    // Extract token usage from Groq API response
+    const tokenUsage: TokenUsage = {
+      inputTokens: data.usage?.prompt_tokens || 0,
+      outputTokens: data.usage?.completion_tokens || 0,
+      totalTokens: data.usage?.total_tokens || 0,
+    };
+    logger.debug("Token usage", tokenUsage);
+
     if (data.choices && data.choices.length > 0) {
       const content = data.choices[0].message?.content || "";
       logger.debug("Groq raw content", { contentLength: content.length, preview: content.substring(0, 100) });
-      return parseGroqResponse(content, config.maxResponseWords);
+      return parseGroqResponse(content, config.maxResponseWords, tokenUsage);
     }
 
     throw new Error("No response from Groq API");
@@ -130,9 +138,17 @@ ${prompt}`;
 
     const data = await response.json();
 
+    // Extract token usage from Groq API response
+    const tokenUsage: TokenUsage = {
+      inputTokens: data.usage?.prompt_tokens || 0,
+      outputTokens: data.usage?.completion_tokens || 0,
+      totalTokens: data.usage?.total_tokens || 0,
+    };
+    logger.debug("Stronger token usage", tokenUsage);
+
     if (data.choices && data.choices.length > 0) {
       const content = data.choices[0].message?.content || "";
-      return parseGroqResponse(content, config.maxResponseWords);
+      return parseGroqResponse(content, config.maxResponseWords, tokenUsage);
     }
 
     throw new Error("No response from Groq API");
@@ -142,7 +158,7 @@ ${prompt}`;
   }
 }
 
-function parseGroqResponse(content: string, maxWords: number): GroqParsedResponse {
+function parseGroqResponse(content: string, maxWords: number, tokenUsage: TokenUsage): GroqParsedResponse {
   try {
     const json = JSON.parse(content);
     let response = json.response || "";
@@ -152,6 +168,7 @@ function parseGroqResponse(content: string, maxWords: number): GroqParsedRespons
     return {
       style: MoodStyle.microDare, // Default style
       response,
+      tokenUsage,
     };
   } catch {
     // Try to extract JSON from the content
@@ -162,12 +179,12 @@ function parseGroqResponse(content: string, maxWords: number): GroqParsedRespons
         let response = json.response || "";
         response = cleanResponse(response, maxWords);
         response = removeEmojis(response);
-        return { style: MoodStyle.microDare, response };
+        return { style: MoodStyle.microDare, response, tokenUsage };
       } catch {
         // Fall through to return raw content
       }
     }
-    return { style: MoodStyle.microDare, response: removeEmojis(content) };
+    return { style: MoodStyle.microDare, response: removeEmojis(content), tokenUsage };
   }
 }
 

@@ -8,8 +8,10 @@ import 'package:get_storage/get_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mood_shift_ai/app/utils/app_logger.dart';
 
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
@@ -24,6 +26,7 @@ import 'app/services/device_service.dart';
 import 'app/services/cloud_ai_service.dart';
 import 'app/services/audio_player_service.dart';
 import 'app/services/in_app_review_service.dart';
+import 'app/services/analytics_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
 import 'app/controllers/rewarded_controller.dart';
@@ -50,26 +53,47 @@ void main() async {
     }
   }
 
-  // Initialize Firebase App Check (release mode only)
-  // Uses DeviceCheck on iOS and Play Integrity on Android
+  // Initialize Firebase App Check
+  // Uses DeviceCheck on iOS and Play Integrity on Android for release
+  // Uses debug provider for development (prints debug token to console)
   if (kReleaseMode) {
     try {
       await FirebaseAppCheck.instance.activate(
         androidProvider: AndroidProvider.playIntegrity,
         appleProvider: AppleProvider.deviceCheck,
       );
-    } catch (e) {
-      // Continue without App Check - will be rejected by Cloud Functions
+
+    } catch (e, stackTrace) {
+      // Report App Check initialization failure to Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'App Check activation failed in release mode',
+        fatal: false,
+      );
     }
   } else {
     // Use debug provider for development
+    // The debug token will be printed to console - copy it to Firebase Console
     try {
       await FirebaseAppCheck.instance.activate(
         androidProvider: AndroidProvider.debug,
         appleProvider: AppleProvider.debug,
       );
+      // Print debug token to console for Firebase Console registration
+      FirebaseAppCheck.instance.onTokenChange.listen((token) {
+        // ignore: avoid_print
+        AppLogger.info('🔐 APP CHECK DEBUG TOKEN: $token');
+        AppLogger.info('👆 Copy this token to Firebase Console > App Check > Apps > Manage debug tokens');
+      });
+      // Also try to get token immediately
+      final token = await FirebaseAppCheck.instance.getToken();
+      // ignore: avoid_print
+      AppLogger.info('🔐 APP CHECK DEBUG TOKEN (initial): $token');
+      AppLogger.info('👆 Copy this token to Firebase Console > App Check > Apps > Manage debug tokens');
     } catch (e) {
-      // Continue without App Check in debug mode
+      // ignore: avoid_print
+      AppLogger.error('⚠️ App Check debug activation failed: $e');
     }
   }
 
@@ -224,6 +248,15 @@ void main() async {
     }
   }
 
+  // Initialize AnalyticsService (Firebase Analytics)
+  try {
+    await Get.putAsync(() => AnalyticsService().init());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'AnalyticsService initialization failed', fatal: false);
+    }
+  }
+
   // Set portrait orientation only
   try {
     await SystemChrome.setPreferredOrientations([
@@ -262,6 +295,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final storageService = Get.find<StorageService>();
 
+    // Get analytics observer for navigation tracking (if available)
+    FirebaseAnalyticsObserver? analyticsObserver;
+    try {
+      analyticsObserver = Get.find<AnalyticsService>().observer;
+    } catch (_) {
+      // AnalyticsService not available - continue without observer
+    }
+
     // Determine initial route based on onboarding status
     final hasSeenOnboarding = storageService.hasSeenOnboarding();
     final initialRoute = hasSeenOnboarding ? AppRoutes.HOME : AppRoutes.ONBOARDING;
@@ -286,6 +327,10 @@ class MyApp extends StatelessWidget {
           fallbackLocale: const Locale('en', 'US'),
           initialRoute: initialRoute,
           getPages: AppPages.pages,
+          // Firebase Analytics observer for automatic screen tracking
+          navigatorObservers: analyticsObserver != null
+              ? [analyticsObserver]
+              : [],
         );
       },
     );

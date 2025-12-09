@@ -569,6 +569,7 @@ class HomeController extends GetxController {
           step: 'process_input',
           context: {'current_state': currentState.value.toString()});
 
+      AppLogger.error('processUserInput failed', e);
       SnackbarUtils.showError(title: 'Error', message: _tr('ai_error', fallback: 'AI service error'));
       _resetToIdle();
     }

@@ -19,6 +19,13 @@ export interface ProcessUserInputRequest {
   originalResponse?: string; // Only for strongerMode
 }
 
+// Token usage from Groq API
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
 // Response to Flutter client
 export interface ProcessUserInputResponse {
   success: boolean;
@@ -26,6 +33,7 @@ export interface ProcessUserInputResponse {
   audioUrl: string;
   voiceId: string;
   engine: string;
+  tokenUsage?: TokenUsage;
   error?: string;
 }
 
@@ -138,6 +146,7 @@ export interface GroqAPIResponse {
 export interface GroqParsedResponse {
   style: MoodStyle;
   response: string;
+  tokenUsage: TokenUsage;
 }
 
 // Audio cache entry

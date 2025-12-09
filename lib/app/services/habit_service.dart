@@ -3,6 +3,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 
+import '../utils/app_logger.dart';
+
 /// HabitService - Smart daily streak + shift counter + non-annoying notifications
 ///
 /// Features:
@@ -43,7 +45,7 @@ class HabitService extends GetxService {
 
       return this;
     } catch (e) {
-      debugPrint('HabitService init error: $e');
+      AppLogger.error('HabitService init error: $e');
       return this;
     }
   }
@@ -88,13 +90,13 @@ class HabitService extends GetxService {
       await _notifications.initialize(
         settings,
         onDidReceiveNotificationResponse: (details) {
-          debugPrint('Notification tapped: ${details.payload}');
+          AppLogger.info('Notification tapped: ${details.payload}');
         },
       );
 
-      debugPrint('Notifications initialized successfully');
+      AppLogger.info('Notifications initialized successfully');
     } catch (e) {
-      debugPrint('Notification init error: $e');
+      AppLogger.error('Notification init error: $e');
     }
   }
   
@@ -243,9 +245,9 @@ class HabitService extends GetxService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
 
-      debugPrint('📅 Weekly notification reminder scheduled successfully');
+      AppLogger.info('📅 Weekly notification reminder scheduled successfully');
     } catch (e) {
-      debugPrint('Notification schedule error: $e');
+      AppLogger.error('Notification schedule error: $e');
     }
   }
 
