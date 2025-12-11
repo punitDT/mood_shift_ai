@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../services/storage_service.dart';
 import '../../routes/app_routes.dart';
+import '../../utils/responsive_utils.dart';
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({super.key});
@@ -19,21 +20,22 @@ class _OnboardingViewState extends State<OnboardingView> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<_OnboardingSlide> _slides = const [
-    _OnboardingSlide(
-      icon: _GentleLightAnimation(),
-      title: 'Welcome to MoodShift',
-      subtitle: 'Your pocket friend who always listens',
+  // Slides with translation keys
+  List<_OnboardingSlideData> get _slides => [
+    _OnboardingSlideData(
+      icon: const _GentleLightAnimation(),
+      titleKey: 'onboarding_title_1',
+      subtitleKey: 'onboarding_subtitle_1',
     ),
-    _OnboardingSlide(
-      icon: _SpeechBubbleAnimation(),
-      title: 'Just talk.\nNo typing.',
-      subtitle: 'Hold and speak for up to 1 minute — we\'ll hear everything',
+    _OnboardingSlideData(
+      icon: const _SpeechBubbleAnimation(),
+      titleKey: 'onboarding_title_2',
+      subtitleKey: 'onboarding_subtitle_2',
     ),
-    _OnboardingSlide(
-      icon: _BloomingFlowerAnimation(),
-      title: 'Feel better in seconds',
-      subtitle: 'We\'ll gently shift your mood with kindness and understanding',
+    _OnboardingSlideData(
+      icon: const _BloomingFlowerAnimation(),
+      titleKey: 'onboarding_title_3',
+      subtitleKey: 'onboarding_subtitle_3',
     ),
   ];
 
@@ -45,7 +47,10 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final isTablet = ResponsiveUtils.isTablet(context);
+
+    return ResponsiveScaffold(
+      showCardOnTablet: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -59,82 +64,95 @@ class _OnboardingViewState extends State<OnboardingView> {
           ),
         ),
         child: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              // Skip button at top right
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: TextButton(
-                    onPressed: _completeOnboarding,
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16.sp,
-                        fontFamily: 'Poppins',
+              // Main content centered
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: isTablet ? 600 : double.infinity),
+                  child: Column(
+                    children: [
+                      // Spacer for skip button area
+                      SizedBox(height: isTablet ? 60 : 50.h),
+                      // PageView for slides
+                      Expanded(
+                        child: PageView.builder(
+                          controller: _pageController,
+                          itemCount: _slides.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentPage = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            return _buildSlide(_slides[index], isTablet);
+                          },
+                        ),
                       ),
+                  // Page indicators
+                  Padding(
+                    padding: EdgeInsets.only(bottom: isTablet ? 24 : 20.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        _slides.length,
+                        (index) => _buildDotIndicator(index, isTablet),
+                      ),
+                    ),
+                  ),
+                  // Bottom button
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isTablet ? 60 : 40.w,
+                      vertical: isTablet ? 24 : 20.h,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: isTablet ? 60 : 56.h,
+                      child: ElevatedButton(
+                        onPressed: _currentPage == _slides.length - 1
+                            ? _completeOnboarding
+                            : _nextPage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryPurple,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(isTablet ? 30 : 30.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          _currentPage == _slides.length - 1 ? 'get_started'.tr : 'next'.tr,
+                          style: TextStyle(
+                            fontSize: isTablet ? 20 : 18.sp,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                      SizedBox(height: isTablet ? 24 : 20.h),
+                    ],
+                  ),
+                ),
+              ),
+              // Skip button at absolute top right
+              Positioned(
+                top: isTablet ? 16 : 12.h,
+                right: isTablet ? 16 : 12.w,
+                child: TextButton(
+                  onPressed: _completeOnboarding,
+                  child: Text(
+                    'skip'.tr,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: isTablet ? 18 : 16.sp,
+                      fontFamily: 'Poppins',
                     ),
                   ),
                 ),
               ),
-              // PageView for slides
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _slides.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  itemBuilder: (context, index) {
-                    return _buildSlide(_slides[index]);
-                  },
-                ),
-              ),
-              // Page indicators
-              Padding(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    _slides.length,
-                    (index) => _buildDotIndicator(index),
-                  ),
-                ),
-              ),
-              // Bottom button
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 20.h),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56.h,
-                  child: ElevatedButton(
-                    onPressed: _currentPage == _slides.length - 1
-                        ? _completeOnboarding
-                        : _nextPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryPurple,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      _currentPage == _slides.length - 1 ? 'Start Talking' : 'Next',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 20.h),
             ],
           ),
         ),
@@ -142,66 +160,91 @@ class _OnboardingViewState extends State<OnboardingView> {
     );
   }
 
-  Widget _buildDotIndicator(int index) {
+  Widget _buildDotIndicator(int index, bool isTablet) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: EdgeInsets.symmetric(horizontal: 4.w),
-      width: _currentPage == index ? 24.w : 8.w,
-      height: 8.w,
+      margin: EdgeInsets.symmetric(horizontal: isTablet ? 5 : 4.w),
+      width: _currentPage == index ? (isTablet ? 28 : 24.w) : (isTablet ? 10 : 8.w),
+      height: isTablet ? 10 : 8.w,
       decoration: BoxDecoration(
         color: _currentPage == index ? _lightPurple : _lightPurple.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(4.r),
+        borderRadius: BorderRadius.circular(isTablet ? 5 : 4.r),
       ),
     );
   }
 
-  Widget _buildSlide(_OnboardingSlide slide) {
+  Widget _buildSlide(_OnboardingSlideData slide, bool isTablet) {
+    final iconSize = isTablet ? 280.0 : 220.w;
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 40.w),
+      padding: EdgeInsets.symmetric(horizontal: isTablet ? 50 : 40.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 220.w,
-            height: 220.w,
+            width: iconSize,
+            height: iconSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: _lightPurple.withValues(alpha: 0.15),
-                  blurRadius: 20,
-                  spreadRadius: 2,
+                  blurRadius: isTablet ? 30 : 20,
+                  spreadRadius: isTablet ? 4 : 2,
                 ),
               ],
             ),
-            child: slide.icon,
+            child: _buildResponsiveIcon(slide.icon, isTablet),
           ),
-          SizedBox(height: 50.h),
+          SizedBox(height: isTablet ? 40 : 30.h),
           Text(
-            slide.title,
+            slide.titleKey.tr,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 28.sp,
+              fontSize: isTablet ? 32 : 24.sp,
               fontWeight: FontWeight.bold,
               color: Colors.white,
               fontFamily: 'Poppins',
               height: 1.2,
             ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: isTablet ? 16 : 12.h),
           Text(
-            slide.subtitle,
+            slide.subtitleKey.tr,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: isTablet ? 16 : 14.sp,
               color: Colors.white70,
               fontFamily: 'Poppins',
-              height: 1.5,
+              height: 1.4,
             ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildResponsiveIcon(Widget icon, bool isTablet) {
+    // For tablet, we need to wrap the icon to scale it properly
+    if (isTablet) {
+      return SizedBox(
+        width: 280,
+        height: 280,
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: SizedBox(
+            width: 220,
+            height: 220,
+            child: icon,
+          ),
+        ),
+      );
+    }
+    return icon;
   }
 
   void _nextPage() {
@@ -218,15 +261,16 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 }
 
-class _OnboardingSlide {
+// Data class for onboarding slides with translation keys
+class _OnboardingSlideData {
   final Widget icon;
-  final String title;
-  final String subtitle;
+  final String titleKey;
+  final String subtitleKey;
 
-  const _OnboardingSlide({
+  _OnboardingSlideData({
     required this.icon,
-    required this.title,
-    required this.subtitle,
+    required this.titleKey,
+    required this.subtitleKey,
   });
 }
 

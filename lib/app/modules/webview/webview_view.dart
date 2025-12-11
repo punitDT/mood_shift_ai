@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../../utils/responsive_utils.dart';
 
 class WebViewScreen extends StatefulWidget {
   const WebViewScreen({super.key});
@@ -14,7 +15,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _controller;
   final _isLoading = true.obs;
   final _progress = 0.0.obs;
-  
+
   String get title => Get.arguments?['title'] ?? 'Web Page';
   String get url => Get.arguments?['url'] ?? '';
 
@@ -49,8 +50,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0a0520),
+    final isTablet = ResponsiveUtils.isTablet(context);
+
+    return ResponsiveScaffold(
+      showCardOnTablet: true,
       appBar: AppBar(
         backgroundColor: const Color(0xFF0a0520),
         elevation: 0,
@@ -58,7 +61,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           icon: Icon(
             Icons.arrow_back_ios_rounded,
             color: Colors.white,
-            size: 20.sp,
+            size: isTablet ? 24 : 20.sp,
           ),
           onPressed: () => Get.back(),
         ),
@@ -66,13 +69,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
           title,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 18.sp,
+            fontSize: isTablet ? 20 : 18.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(2.h),
+          preferredSize: Size.fromHeight(isTablet ? 3 : 2.h),
           child: Obx(() => _isLoading.value
               ? LinearProgressIndicator(
                   value: _progress.value,

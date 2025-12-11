@@ -12,6 +12,29 @@ const Map<String, String> esES = {
   'shifts': 'cambios',
   'shift': 'cambio',
 
+  // Mic button states
+  'recording': 'Grabando',
+  'thinking': 'Pensando',
+  'speaking_state': 'Hablando',
+  'skip': 'Omitir',
+  'get_started': 'Comenzar',
+  'next': 'Siguiente',
+
+  // Onboarding
+  'onboarding_title_1': 'Bienvenido a MoodShift',
+  'onboarding_subtitle_1': 'Tu amigo de bolsillo que siempre escucha',
+  'onboarding_title_2': 'Solo habla.\nSin escribir.',
+  'onboarding_subtitle_2': 'Mantén presionado y habla hasta 1 minuto — escucharemos todo',
+  'onboarding_title_3': 'Siéntete mejor en segundos',
+  'onboarding_subtitle_3': 'Cambiaremos suavemente tu ánimo con amabilidad y comprensión',
+
+  // Superpower Cards
+  'stronger_2x': '2× Más Fuerte!',
+  'crystal_voice': 'Voz Cristal',
+  'crystal_active': 'Cristal',
+  'peace_mode': 'Modo Paz',
+  'peace_active': 'Paz',
+
   // Permissions
   'mic_permission_title': 'Acceso al micrófono requerido',
   'mic_permission_message': 'MoodShift necesita el micrófono para escuchar tu voz y crear tu cambio de ánimo personalizado.\n\n• Solo accedemos al micrófono cuando mantienes presionado el botón Hablar\n• Tu voz se procesa de forma segura y nunca se almacena\n• No se guardan grabaciones en tu dispositivo ni en ningún otro lugar',

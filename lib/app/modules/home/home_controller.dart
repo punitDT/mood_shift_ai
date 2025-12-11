@@ -19,7 +19,6 @@ import '../../services/in_app_review_service.dart';
 import '../../controllers/ad_free_controller.dart';
 import '../../controllers/streak_controller.dart';
 import '../../controllers/rewarded_controller.dart';
-import '../../routes/app_routes.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../utils/app_logger.dart';
 
@@ -232,7 +231,7 @@ class HomeController extends GetxController {
                 size: 28,
               ),
               const SizedBox(width: 12),
-              Expanded(
+              Flexible(
                 child: Text(
                   isForceUpdate ? 'update_required'.tr : 'update_available'.tr,
                   style: const TextStyle(
@@ -243,24 +242,26 @@ class HomeController extends GetxController {
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                remoteConfig.getUpdateMessage(),
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Latest Version: ${remoteConfig.latestVersion.value}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  remoteConfig.getUpdateMessage(),
+                  style: const TextStyle(fontSize: 16),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  'Latest Version: ${remoteConfig.latestVersion.value}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             // Show "Later" button only if not force update
@@ -272,21 +273,26 @@ class HomeController extends GetxController {
                   style: const TextStyle(color: Colors.grey),
                 ),
               ),
-            ElevatedButton(
-              onPressed: _openAppStore,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C4DFF),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Flexible(
+              child: ElevatedButton(
+                onPressed: _openAppStore,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C4DFF),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              child: Text(
-                'update_now'.tr,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'update_now'.tr,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -721,10 +727,6 @@ class HomeController extends GetxController {
         duration: const Duration(seconds: 4),
       );
     });
-  }
-
-  void goToSettings() {
-    Get.toNamed(AppRoutes.SETTINGS);
   }
 
   @override

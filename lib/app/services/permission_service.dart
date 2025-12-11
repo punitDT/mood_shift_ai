@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'storage_service.dart';
 import 'habit_service.dart';
 import '../utils/snackbar_utils.dart';
+import '../utils/responsive_utils.dart';
 
 /// 2025-compliant permission service for MoodShift AI
 /// Handles microphone and notification permissions with Apple & Google approved dialogs
@@ -78,125 +79,155 @@ class PermissionService extends GetxService {
   /// Show educational dialog explaining why microphone is needed
   /// Returns true if user wants to proceed, false if cancelled
   Future<bool> _showMicrophoneEducationalDialog() async {
+    final context = Get.context;
+    final isTablet = context != null ? ResponsiveUtils.isTablet(context) : false;
+
     final result = await Get.dialog<bool>(
-      WillPopScope(
-        onWillPop: () async => false, // Prevent dismissing by tapping outside
+      PopScope(
+        canPop: false, // Prevent dismissing by tapping outside
         child: Dialog(
-          backgroundColor: const Color(0xFF2A1F3D),
+          backgroundColor: const Color(0xFF1A1030),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24.r),
+            borderRadius: BorderRadius.circular(isTablet ? 24 : 24.r),
           ),
-          child: Padding(
-            padding: EdgeInsets.all(24.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon
-                Container(
-                  width: 64.w,
-                  height: 64.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7C4DFF).withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.mic_rounded,
-                    size: 32.sp,
-                    color: const Color(0xFF7C4DFF),
-                  ),
-                ),
-
-                SizedBox(height: 20.h),
-
-                // Title
-                Text(
-                  'mic_permission_title'.tr,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(height: 16.h),
-
-                // Content
-                Text(
-                  'mic_permission_message'.tr,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.8),
-                    height: 1.5,
-                    letterSpacing: 0.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(height: 24.h),
-
-                // Buttons
-                Row(
-                  children: [
-                    // Cancel button
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Get.back(result: false),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.1),
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'permission_cancel'.tr,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.7),
-                              letterSpacing: 0.3,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
+              maxWidth: isTablet ? 420 : 400,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isTablet ? 28 : 24.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Scrollable content
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Icon with gradient background
+                          Container(
+                            width: isTablet ? 72 : 64.w,
+                            height: isTablet ? 72 : 64.w,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF7C4DFF), Color(0xFF6D5FFD)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF7C4DFF).withOpacity(0.3),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.mic_rounded,
+                              size: isTablet ? 36 : 32.sp,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                      ),
-                    ),
 
-                    SizedBox(width: 12.w),
+                          SizedBox(height: isTablet ? 24 : 20.h),
 
-                    // Continue button
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Get.back(result: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C4DFF),
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'permission_continue'.tr,
+                          // Title
+                          Text(
+                            'mic_permission_title'.tr,
                             style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
+                              fontSize: isTablet ? 22 : 20.sp,
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
                               letterSpacing: 0.3,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          SizedBox(height: isTablet ? 16 : 16.h),
+
+                          // Content
+                          Text(
+                            'mic_permission_message'.tr,
+                            style: TextStyle(
+                              fontSize: isTablet ? 16 : 14.sp,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white.withOpacity(0.8),
+                              height: 1.5,
+                              letterSpacing: 0.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: isTablet ? 28 : 24.h),
+
+                  // Buttons (fixed at bottom)
+                  Row(
+                    children: [
+                      // Cancel button
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Get.back(result: false),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'permission_cancel'.tr,
+                              style: TextStyle(
+                                fontSize: isTablet ? 16 : 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.7),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+
+                      SizedBox(width: isTablet ? 16 : 12.w),
+
+                      // Continue button
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Get.back(result: true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7C4DFF),
+                            padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'permission_continue'.tr,
+                              style: TextStyle(
+                                fontSize: isTablet ? 16 : 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -210,128 +241,158 @@ class PermissionService extends GetxService {
   /// Show settings dialog when permission is denied/permanently denied
   /// Returns true if permission is granted after opening settings, false otherwise
   Future<bool> _showMicrophoneSettingsDialog() async {
+    final context = Get.context;
+    final isTablet = context != null ? ResponsiveUtils.isTablet(context) : false;
+
     final result = await Get.dialog<bool>(
-      WillPopScope(
-        onWillPop: () async => false,
+      PopScope(
+        canPop: false,
         child: Dialog(
-          backgroundColor: const Color(0xFF2A1F3D),
+          backgroundColor: const Color(0xFF1A1030),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24.r),
+            borderRadius: BorderRadius.circular(isTablet ? 24 : 24.r),
           ),
-          child: Padding(
-            padding: EdgeInsets.all(24.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon
-                Container(
-                  width: 64.w,
-                  height: 64.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE53935).withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.settings_rounded,
-                    size: 32.sp,
-                    color: const Color(0xFFE53935),
-                  ),
-                ),
-
-                SizedBox(height: 20.h),
-
-                // Title
-                Text(
-                  'mic_permission_settings_title'.tr,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(height: 16.h),
-
-                // Content
-                Text(
-                  'mic_permission_settings_message'.tr,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.8),
-                    height: 1.5,
-                    letterSpacing: 0.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(height: 24.h),
-
-                // Buttons
-                Row(
-                  children: [
-                    // Cancel button
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Get.back(result: false),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.1),
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'permission_cancel'.tr,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.7),
-                              letterSpacing: 0.3,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
+              maxWidth: isTablet ? 420 : 400,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isTablet ? 28 : 18.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Scrollable content
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Icon with gradient background
+                          Container(
+                            width: isTablet ? 72 : 64.w,
+                            height: isTablet ? 72 : 64.w,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFE53935), Color(0xFFFF5252)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFE53935).withOpacity(0.3),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.settings_rounded,
+                              size: isTablet ? 36 : 32.sp,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                      ),
-                    ),
 
-                    SizedBox(width: 12.w),
+                          SizedBox(height: isTablet ? 24 : 20.h),
 
-                    // Open Settings button
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Get.back(result: false);
-                          await openAppSettings();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C4DFF),
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'permission_open_settings'.tr,
+                          // Title
+                          Text(
+                            'mic_permission_settings_title'.tr,
                             style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
+                              fontSize: isTablet ? 22 : 20.sp,
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
                               letterSpacing: 0.3,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          SizedBox(height: isTablet ? 16 : 16.h),
+
+                          // Content
+                          Text(
+                            'mic_permission_settings_message'.tr,
+                            style: TextStyle(
+                              fontSize: isTablet ? 16 : 14.sp,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white.withOpacity(0.8),
+                              height: 1.5,
+                              letterSpacing: 0.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: isTablet ? 28 : 24.h),
+
+                  // Buttons (fixed at bottom)
+                  Row(
+                    children: [
+                      // Cancel button
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Get.back(result: false),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'permission_cancel'.tr,
+                              style: TextStyle(
+                                fontSize: isTablet ? 16 : 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.7),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+
+                      SizedBox(width: isTablet ? 16 : 12.w),
+
+                      // Open Settings button
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Get.back(result: false);
+                            await openAppSettings();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7C4DFF),
+                            padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'permission_open_settings'.tr,
+                              style: TextStyle(
+                                fontSize: isTablet ? 16 : 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -376,123 +437,153 @@ class PermissionService extends GetxService {
   /// Show educational dialog for notification permission (optional, skippable)
   /// Returns true if user wants to enable, false if not now
   Future<bool> _showNotificationEducationalDialog() async {
+    final context = Get.context;
+    final isTablet = context != null ? ResponsiveUtils.isTablet(context) : false;
+
     final result = await Get.dialog<bool>(
       Dialog(
-        backgroundColor: const Color(0xFF2A1F3D),
+        backgroundColor: const Color(0xFF1A1030),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(isTablet ? 24 : 24.r),
         ),
-        child: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon
-              Container(
-                width: 64.w,
-                height: 64.w,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.notifications_rounded,
-                  size: 32.sp,
-                  color: const Color(0xFF4CAF50),
-                ),
-              ),
-
-              SizedBox(height: 20.h),
-
-              // Title
-              Text(
-                'notification_permission_title'.tr,
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 0.3,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              SizedBox(height: 16.h),
-
-              // Content
-              Text(
-                'notification_permission_message'.tr,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.8),
-                  height: 1.5,
-                  letterSpacing: 0.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              SizedBox(height: 24.h),
-
-              // Buttons
-              Row(
-                children: [
-                  // Not now button
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Get.back(result: false),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.1),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'permission_not_now'.tr,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.7),
-                            letterSpacing: 0.3,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
+            maxWidth: isTablet ? 420 : 400,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(isTablet ? 28 : 24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Scrollable content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Icon with gradient background
+                        Container(
+                          width: isTablet ? 72 : 64.w,
+                          height: isTablet ? 72 : 64.w,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF4CAF50).withOpacity(0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.notifications_rounded,
+                            size: isTablet ? 36 : 32.sp,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                    ),
-                  ),
 
-                  SizedBox(width: 12.w),
+                        SizedBox(height: isTablet ? 24 : 20.h),
 
-                  // Yes, remind me button
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Get.back(result: true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'permission_yes_remind'.tr,
+                        // Title
+                        Text(
+                          'notification_permission_title'.tr,
                           style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
+                            fontSize: isTablet ? 22 : 20.sp,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
                             letterSpacing: 0.3,
                           ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        SizedBox(height: isTablet ? 16 : 16.h),
+
+                        // Content
+                        Text(
+                          'notification_permission_message'.tr,
+                          style: TextStyle(
+                            fontSize: isTablet ? 16 : 14.sp,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withOpacity(0.8),
+                            height: 1.5,
+                            letterSpacing: 0.2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: isTablet ? 28 : 24.h),
+
+                // Buttons (fixed at bottom)
+                Row(
+                  children: [
+                    // Not now button
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Get.back(result: false),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                          padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'permission_not_now'.tr,
+                            style: TextStyle(
+                              fontSize: isTablet ? 16 : 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.7),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+
+                    SizedBox(width: isTablet ? 16 : 12.w),
+
+                    // Yes, remind me button
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Get.back(result: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4CAF50),
+                          padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'permission_yes_remind'.tr,
+                            style: TextStyle(
+                              fontSize: isTablet ? 16 : 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,10 +1,10 @@
 const Map<String, String> enGB = {
   // App
   'app_name': 'MoodShift AI',
-  
+
   // Splash
   'loading': 'Loading...',
-  
+
   // Home
   'hold_to_speak': 'Hold to Speak',
   'get_ready': 'Get ready...',
@@ -16,6 +16,29 @@ const Map<String, String> enGB = {
   'day': 'Day',
   'shifts': 'shifts',
   'shift': 'shift',
+
+  // Mic button states
+  'recording': 'Recording',
+  'thinking': 'Thinking',
+  'speaking_state': 'Speaking',
+  'skip': 'Skip',
+  'get_started': 'Get Started',
+  'next': 'Next',
+
+  // Onboarding
+  'onboarding_title_1': 'Welcome to MoodShift',
+  'onboarding_subtitle_1': 'Your pocket friend who always listens',
+  'onboarding_title_2': 'Just talk.\nNo typing.',
+  'onboarding_subtitle_2': 'Hold and speak for up to 1 minute — we\'ll hear everything',
+  'onboarding_title_3': 'Feel better in seconds',
+  'onboarding_subtitle_3': 'We\'ll gently shift your mood with kindness and understanding',
+
+  // Superpower Cards
+  'stronger_2x': '2× Stronger!',
+  'crystal_voice': 'Crystal Voice',
+  'crystal_active': 'Crystal',
+  'peace_mode': 'Peace Mode',
+  'peace_active': 'Peace',
 
   // Permissions
   'mic_permission_title': 'Microphone Access Required',

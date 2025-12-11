@@ -12,6 +12,29 @@ const Map<String, String> jaJP = {
   'shifts': 'シフト',
   'shift': 'シフト',
 
+  // Mic button states
+  'recording': '録音中',
+  'thinking': '考え中',
+  'speaking_state': '再生中',
+  'skip': 'スキップ',
+  'get_started': '始める',
+  'next': '次へ',
+
+  // Onboarding
+  'onboarding_title_1': 'MoodShiftへようこそ',
+  'onboarding_subtitle_1': 'いつも聞いてくれるポケットの友達',
+  'onboarding_title_2': '話すだけ。\nタイピング不要。',
+  'onboarding_subtitle_2': '長押しして最大1分間話してください — すべて聞きます',
+  'onboarding_title_3': '数秒で気分が良くなる',
+  'onboarding_subtitle_3': '優しさと理解で穏やかに気分を変えます',
+
+  // Superpower Cards
+  'stronger_2x': '2倍強力!',
+  'crystal_voice': 'クリスタルボイス',
+  'crystal_active': 'クリスタル',
+  'peace_mode': 'ピースモード',
+  'peace_active': 'ピース',
+
   // Permissions
   'mic_permission_title': 'マイクへのアクセスが必要です',
   'mic_permission_message': 'MoodShiftは、あなたの声を聞き、パーソナライズされた気分転換を作成するためにマイクが必要です。\n\n• 話すボタンを押している間のみマイクにアクセスします\n• あなたの声は安全に処理され、保存されることはありません\n• デバイスやその他の場所に録音は保存されません',

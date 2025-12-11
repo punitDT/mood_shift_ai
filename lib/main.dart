@@ -123,6 +123,16 @@ void main() async {
   // Initialize Mobile Ads
   try {
     await MobileAds.instance.initialize();
+
+    if (!kReleaseMode) {
+      // Add test device ID for testing ads
+      MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(
+          testDeviceIds: ['02A6202E54609AE5D879AF04CD50B973'],
+        ),
+      );
+    }
+
   } catch (e, stackTrace) {
     if (kReleaseMode) {
       FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'Mobile Ads initialization failed', fatal: false);
@@ -257,11 +267,11 @@ void main() async {
     }
   }
 
-  // Set portrait orientation only
+  // Allow both portrait and landscape orientations for phones and tablets
   try {
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
+      DeviceOrientation.portraitDown
     ]);
   } catch (e, stackTrace) {
     if (kReleaseMode) {

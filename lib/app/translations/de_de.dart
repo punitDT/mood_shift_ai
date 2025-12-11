@@ -12,6 +12,29 @@ const Map<String, String> deDE = {
   'shifts': 'Verschiebungen',
   'shift': 'Verschiebung',
 
+  // Mic button states
+  'recording': 'Aufnahme',
+  'thinking': 'Denkt nach',
+  'speaking_state': 'Spricht',
+  'skip': 'Überspringen',
+  'get_started': 'Loslegen',
+  'next': 'Weiter',
+
+  // Onboarding
+  'onboarding_title_1': 'Willkommen bei MoodShift',
+  'onboarding_subtitle_1': 'Dein Taschenfreund, der immer zuhört',
+  'onboarding_title_2': 'Einfach sprechen.\nKein Tippen.',
+  'onboarding_subtitle_2': 'Halte gedrückt und sprich bis zu 1 Minute — wir hören alles',
+  'onboarding_title_3': 'Fühle dich in Sekunden besser',
+  'onboarding_subtitle_3': 'Wir werden sanft deine Stimmung mit Freundlichkeit und Verständnis verändern',
+
+  // Superpower Cards
+  'stronger_2x': '2× Stärker!',
+  'crystal_voice': 'Kristallstimme',
+  'crystal_active': 'Kristall',
+  'peace_mode': 'Friedensmodus',
+  'peace_active': 'Frieden',
+
   // Permissions
   'mic_permission_title': 'Mikrofonzugriff erforderlich',
   'mic_permission_message': 'MoodShift benötigt das Mikrofon, um Ihre Stimme zu hören und Ihre personalisierte Stimmungsänderung zu erstellen.\n\n• Wir greifen nur auf das Mikrofon zu, wenn Sie die Sprechen-Taste gedrückt halten\n• Ihre Stimme wird sicher verarbeitet und niemals gespeichert\n• Es werden keine Aufnahmen auf Ihrem Gerät oder anderswo gespeichert',

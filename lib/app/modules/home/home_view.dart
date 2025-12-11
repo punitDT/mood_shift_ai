@@ -6,12 +6,24 @@ import 'package:confetti/confetti.dart';
 import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
-import '../../services/habit_service.dart';
 import '../../controllers/rewarded_controller.dart';
-import '../../controllers/ad_free_controller.dart';
+import '../../utils/responsive_utils.dart';
+import '../../widgets/settings_drawer.dart';
 
-class HomeView extends GetView<HomeController> {
-  const HomeView({super.key});
+class HomeView extends GetResponsiveView<HomeController> {
+  HomeView({super.key});
+
+  @override
+  Widget? phone() => _HomeViewContent(isTablet: false);
+
+  @override
+  Widget? tablet() => _HomeViewContent(isTablet: true);
+}
+
+class _HomeViewContent extends GetView<HomeController> {
+  final bool isTablet;
+
+  const _HomeViewContent({required this.isTablet});
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +54,23 @@ class HomeView extends GetView<HomeController> {
         );
       }
 
-      return _buildMainContent(adService, rewardedController);
+      return _buildMainContent(context, adService, rewardedController);
     });
   }
 
-  Widget _buildMainContent(AdService adService, RewardedController rewardedController) {
+  Widget _buildMainContent(BuildContext context, AdService adService, RewardedController rewardedController) {
+    final isTabletDevice = ResponsiveUtils.isTablet(context);
+
+    // Load adaptive banner ad if not already loaded
+    if (!adService.isBannerLoaded.value && adService.bannerAd == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        adService.loadAdaptiveBannerAd(context);
+      });
+    }
+
     return Scaffold(
+      backgroundColor: const Color(0xFF0a0520),
+      endDrawer: const SettingsDrawer(),
       body: Stack(
         children: [
           // Premium Background Gradient (deep blue → purple → black)
@@ -112,37 +135,38 @@ class HomeView extends GetView<HomeController> {
               children: [
                 // Center content
                 Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Top Banner Ad removed - no longer needed
-
                     // Top Bar (minimal)
                     _buildMinimalTopBar(),
 
                     // Spacer - creates the 70-80% empty space
-                    const Spacer(flex: 2),
+                    const Spacer(flex: 3),
 
                     // Instructional text above mic button
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 25.w),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTabletDevice ? 60 : 25.w,
+                      ),
                       child: Column(
                         children: [
                           Text(
                             'mic_instruction_line1'.tr,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 15.sp,
+                              fontSize: isTabletDevice ? 20 : 15.sp,
                               color: Colors.white.withOpacity(0.7),
                               fontWeight: FontWeight.w400,
                               letterSpacing: 0.3,
                               height: 1.4,
                             ),
                           ),
-                          SizedBox(height: 4.h),
+                          SizedBox(height: isTabletDevice ? 8 : 4.h),
                           Text(
                             'mic_instruction_line2'.tr,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 15.sp,
+                              fontSize: isTabletDevice ? 20 : 15.sp,
                               color: Colors.white.withOpacity(0.7),
                               fontWeight: FontWeight.w400,
                               letterSpacing: 0.3,
@@ -153,18 +177,18 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
 
-                    SizedBox(height: 50.h),
+                    SizedBox(height: isTabletDevice ? 40 : 50.h),
 
                     // Mic Button (center of screen)
                     _buildPremiumMicButton(),
 
                     // Spacer - equal flex to center the mic button
-                    const Spacer(flex: 3),
+                    const Spacer(flex: 5),
 
                     // Banner Ad Space (only if loaded and not ad-free)
                     Obx(() => adService.isBannerLoaded.value
                         ? _buildBannerAd(adService)
-                        : SizedBox(height: 50.h)),
+                        : SizedBox(height: isTabletDevice ? 60 : 50.h)),
                   ],
                 ),
 
@@ -228,170 +252,194 @@ class HomeView extends GetView<HomeController> {
     final rewardedController = controller.rewardedController!;
     final adFreeController = controller.adFreeController!;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Crystal Voice Timer (left side) with stop button
-              Obx(() {
-                final timerText = rewardedController.getCrystalTimerDisplay();
-                if (timerText.isEmpty) {
-                  return const IconButton(onPressed: null, icon: SizedBox.shrink());
-                }
+    return Builder(
+      builder: (context) {
+        final isTabletDevice = ResponsiveUtils.isTablet(context);
 
-                return Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE1BEE7), Color(0xFF7B1FA2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFAB30FF).withOpacity(0.4),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.diamond,
-                        color: Colors.white,
-                        size: 13.sp,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        timerText,
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: isTabletDevice ? 24 : 20.w),
+          child: Column(
+            children: [
+              // Use Stack to center title absolutely, with Crystal timer and menu on sides
+              SizedBox(
+                height: isTabletDevice ? 44 : 40.h,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // App name - absolutely centered
+                    Center(
+                      child: Text(
+                        'MoodShift AI',
                         style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white,
+                          fontSize: isTabletDevice ? 20 : 18.sp,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                          color: Colors.white,
+                          letterSpacing: 1.0,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
-                      SizedBox(width: 6.w),
-                      // Stop button
-                      GestureDetector(
-                        onTap: () => rewardedController.stopCrystalVoice(),
-                        child: Container(
-                          padding: EdgeInsets.all(2.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
+                    ),
+                    // Crystal Voice Timer (left side) with stop button
+                    Positioned(
+                      left: 0,
+                      child: Obx(() {
+                        final timerText = rewardedController.getCrystalTimerDisplay();
+                        if (timerText.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTabletDevice ? 14 : 10.w,
+                            vertical: isTabletDevice ? 8 : 6.h,
                           ),
-                          child: Icon(
-                            Icons.stop_rounded, 
-                            color: Colors.white,
-                            size: 12.sp,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFE1BEE7), Color(0xFF7B1FA2)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(isTabletDevice ? 24 : 20.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFAB30FF).withOpacity(0.4),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.diamond,
+                                color: Colors.white,
+                                size: isTabletDevice ? 18 : 13.sp,
+                              ),
+                              SizedBox(width: isTabletDevice ? 6 : 4.w),
+                              Text(
+                                timerText,
+                                style: TextStyle(
+                                  fontSize: isTabletDevice ? 16 : 11.sp,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              SizedBox(width: isTabletDevice ? 10 : 6.w),
+                              // Stop button
+                              GestureDetector(
+                                onTap: () => rewardedController.stopCrystalVoice(),
+                                child: Container(
+                                  padding: EdgeInsets.all(isTabletDevice ? 4 : 2.w),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.stop_rounded,
+                                    color: Colors.white,
+                                    size: isTabletDevice ? 18 : 12.sp,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                    // Settings menu icon - opens drawer (right side)
+                    Positioned(
+                      right: 0,
+                      child: Builder(
+                        builder: (context) => IconButton(
+                          onPressed: () => Scaffold.of(context).openEndDrawer(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            Icons.menu_rounded,
+                            color: Colors.white.withOpacity(0.6),
+                            size: isTabletDevice ? 26 : 24.sp,
                           ),
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Peace Mode Timer (top center, below main bar)
+              Obx(() {
+                final peaceModeTimer = adFreeController.getPeaceModeTimerDisplay();
+                if (peaceModeTimer.isEmpty) {
+                  return SizedBox(height: isTabletDevice ? 40 : 35.h);
+                }
+
+                return Padding(
+                  padding: EdgeInsets.only(top: isTabletDevice ? 12 : 10.h),
+                  child: Center(
+                    child: Container(
+                      height: isTabletDevice ? 44 : 35.h,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTabletDevice ? 18 : 14.w,
+                        vertical: isTabletDevice ? 10 : 8.h,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(isTabletDevice ? 24 : 20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4CAF50).withOpacity(0.4),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.spa_rounded,
+                            color: Colors.white,
+                            size: isTabletDevice ? 20 : 14.sp,
+                          ),
+                          SizedBox(width: isTabletDevice ? 8 : 6.w),
+                          Text(
+                            'peace_mode'.tr,
+                            style: TextStyle(
+                              fontSize: isTabletDevice ? 16 : 11.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          SizedBox(width: isTabletDevice ? 8 : 6.w),
+                          Text(
+                            peaceModeTimer,
+                            style: TextStyle(
+                              fontSize: isTabletDevice ? 18 : 12.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               }),
-
-              // App name - centered, flexible
-              Expanded(
-                child: Center(
-                  child: Text(
-                    'MoodShift AI',
-                    style: TextStyle(
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w300,
-                      color: Colors.white,
-                      letterSpacing: 1.0,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ),
-
-              // Settings icon
-              IconButton(
-                onPressed: controller.goToSettings,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: Icon(
-                  Icons.settings_outlined,
-                  color: Colors.white.withOpacity(0.6),
-                  size: 22.sp,
-                ),
-              ),
             ],
           ),
-
-          // Peace Mode Timer (top center, below main bar)
-          Obx(() {
-            final peaceModeTimer = adFreeController.getPeaceModeTimerDisplay();
-            if (peaceModeTimer.isEmpty) {
-              return const SizedBox.shrink();
-            }
-
-            return Padding(
-              padding: EdgeInsets.only(top: 10.h),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4CAF50).withOpacity(0.4),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.spa_rounded,
-                      color: Colors.white,
-                      size: 14.sp,
-                    ),
-                    SizedBox(width: 6.w),
-                    Text(
-                      'Peace Mode',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Text(
-                      peaceModeTimer,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -430,101 +478,214 @@ class HomeView extends GetView<HomeController> {
   Widget _buildSuperpowerBottomSheet() {
     final adFreeController = controller.adFreeController!;
 
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-        builder: (context, value, child) {
-          return Transform.translate(
-            offset: Offset(0, (1 - value) * 300),
-            child: Opacity(
-              opacity: value,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFF1a1030).withOpacity(0.95), // Dark translucent
-                      const Color(0xFF0d0618).withOpacity(0.98),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24.r),
-                    topRight: Radius.circular(24.r),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, -5),
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Handle bar
-                      Container(
-                        width: 40.w,
-                        height: 4.h,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(2.r),
-                        ),
+    return Builder(
+      builder: (context) {
+        final isTabletDevice = ResponsiveUtils.isTablet(context);
+        final isSmallPhone = ResponsiveUtils.isSmallPhone(context);
+        final screenWidth = MediaQuery.of(context).size.width;
+
+        // On tablet: constrain width and center the bottom sheet
+        final sheetWidth = isTabletDevice ? 500.0 : screenWidth;
+        final horizontalMargin = isTabletDevice ? (screenWidth - sheetWidth) / 2 : 0.0;
+
+        // Use horizontal layout for small phones and tablets to save vertical space
+        final useHorizontalLayout = isTabletDevice || isSmallPhone;
+
+        return Positioned(
+          bottom: 0,
+          left: horizontalMargin,
+          right: horizontalMargin,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, (1 - value) * 300),
+                child: Opacity(
+                  opacity: value,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0xFF1a1030).withOpacity(0.95),
+                          const Color(0xFF0d0618).withOpacity(0.98),
+                        ],
                       ),
-
-                      SizedBox(height: 20.h),
-
-                      // Superpower cards
-                      Obx(() {
-                        final rewardedController = controller.rewardedController!;
-                        final isCrystal = rewardedController.hasCrystalVoice.value;
-                        final isPeaceMode = adFreeController.isPeaceModeActive.value;
-
-                        return Column(
-                          children: [
-                            _buildSuperpowerCard(
-                              '2× Stronger!', // UNLIMITED - always available!
-                              Icons.bolt_outlined,
-                              controller.onMakeStronger, // Always enabled
-                              isActive: false, // Never disabled
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(isTabletDevice ? 32 : 24.r),
+                        topRight: Radius.circular(isTabletDevice ? 32 : 24.r),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, -5),
+                        ),
+                      ],
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isTabletDevice ? 32 : (isSmallPhone ? 16.w : 20.w),
+                      vertical: isTabletDevice ? 20 : (isSmallPhone ? 16.h : 24.h),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Handle bar
+                          Container(
+                            width: isTabletDevice ? 50 : 40.w,
+                            height: isTabletDevice ? 5 : 4.h,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(isTabletDevice ? 3 : 2.r),
                             ),
-                            SizedBox(height: 12.h),
-                            _buildSuperpowerCard(
-                              isCrystal
-                                  ? 'Crystal • ${rewardedController.crystalTimeRemaining.value}'
-                                  : 'Crystal Voice',
-                              Icons.diamond_outlined,
-                              isCrystal ? null : controller.onUnlockCrystal,
-                              isActive: isCrystal,
-                            ),
-                            SizedBox(height: 12.h),
-                            _buildSuperpowerCard(
-                              isPeaceMode
-                                  ? 'Peace Mode • ${adFreeController.peaceModeTimeRemaining.value}'
-                                  : 'Peace Mode',
-                              Icons.spa_outlined,
-                              isPeaceMode ? null : controller.onActivatePeaceMode,
-                              isActive: isPeaceMode,
-                            ),
-                          ],
-                        );
-                      }),
-                    ],
+                          ),
+
+                          SizedBox(height: isTabletDevice ? 16 : (isSmallPhone ? 12.h : 20.h)),
+
+                          // Superpower cards - horizontal on tablet and small phones, vertical on regular phones
+                          Obx(() {
+                            final rewardedController = controller.rewardedController!;
+                            final isCrystal = rewardedController.hasCrystalVoice.value;
+                            final isPeaceMode = adFreeController.isPeaceModeActive.value;
+
+                            if (useHorizontalLayout) {
+                              // Tablet and small phones: horizontal row layout to save vertical space
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildSuperpowerCardCompact(
+                                      'stronger_2x'.tr,
+                                      Icons.bolt_outlined,
+                                      controller.onMakeStronger,
+                                      isActive: false,
+                                      isSmallPhone: isSmallPhone,
+                                    ),
+                                  ),
+                                  SizedBox(width: isSmallPhone ? 8 : 12),
+                                  Expanded(
+                                    child: _buildSuperpowerCardCompact(
+                                      isCrystal
+                                          ? '${'crystal_active'.tr} • ${rewardedController.crystalTimeRemaining.value}'
+                                          : 'crystal_voice'.tr,
+                                      Icons.diamond_outlined,
+                                      isCrystal ? null : controller.onUnlockCrystal,
+                                      isActive: isCrystal,
+                                      isSmallPhone: isSmallPhone,
+                                    ),
+                                  ),
+                                  SizedBox(width: isSmallPhone ? 8 : 12),
+                                  Expanded(
+                                    child: _buildSuperpowerCardCompact(
+                                      isPeaceMode
+                                          ? '${'peace_active'.tr} • ${adFreeController.peaceModeTimeRemaining.value}'
+                                          : 'peace_mode'.tr,
+                                      Icons.spa_outlined,
+                                      isPeaceMode ? null : controller.onActivatePeaceMode,
+                                      isActive: isPeaceMode,
+                                      isSmallPhone: isSmallPhone,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            // Regular phone: vertical column layout
+                            return Column(
+                              children: [
+                                _buildSuperpowerCard(
+                                  'stronger_2x'.tr,
+                                  Icons.bolt_outlined,
+                                  controller.onMakeStronger,
+                                  isActive: false,
+                                ),
+                                SizedBox(height: 12.h),
+                                _buildSuperpowerCard(
+                                  isCrystal
+                                      ? '${'crystal_active'.tr} • ${rewardedController.crystalTimeRemaining.value}'
+                                      : 'crystal_voice'.tr,
+                                  Icons.diamond_outlined,
+                                  isCrystal ? null : controller.onUnlockCrystal,
+                                  isActive: isCrystal,
+                                ),
+                                SizedBox(height: 12.h),
+                                _buildSuperpowerCard(
+                                  isPeaceMode
+                                      ? '${'peace_mode'.tr} • ${adFreeController.peaceModeTimeRemaining.value}'
+                                      : 'peace_mode'.tr,
+                                  Icons.spa_outlined,
+                                  isPeaceMode ? null : controller.onActivatePeaceMode,
+                                  isActive: isPeaceMode,
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // Compact superpower card for tablet and small phone horizontal layout
+  Widget _buildSuperpowerCardCompact(
+    String title,
+    IconData icon,
+    VoidCallback? onTap, {
+    bool isActive = false,
+    bool isSmallPhone = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmallPhone ? 8 : 12,
+          vertical: isSmallPhone ? 10 : 14,
+        ),
+        decoration: BoxDecoration(
+          color: isActive
+              ? Colors.white.withOpacity(0.15)
+              : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(isSmallPhone ? 12 : 16),
+          border: Border.all(
+            color: isActive
+                ? Colors.white.withOpacity(0.3)
+                : Colors.white.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? Colors.white : Colors.white.withOpacity(0.8),
+              size: isSmallPhone ? 22 : 28,
             ),
-          );
-        },
+            SizedBox(height: isSmallPhone ? 4 : 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: isSmallPhone ? 11 : 13,
+                color: isActive ? Colors.white : Colors.white.withOpacity(0.9),
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -598,9 +759,13 @@ class HomeView extends GetView<HomeController> {
   }
 
   Widget _buildBannerAd(AdService adService) {
+    // Use the adaptive banner size if available, otherwise fallback to standard height
+    final adHeight = adService.bannerAdSize?.height.toDouble() ?? 50.0;
+
     return Container(
       width: double.infinity,
-      height: 50.h,
+      height: adHeight,
+      alignment: Alignment.center,
       color: Colors.transparent,
       child: adService.bannerAd != null
           ? AdWidget(ad: adService.bannerAd!)
@@ -780,11 +945,12 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     AnimatedBuilder(
                       animation: _pulseAnimation,
                       builder: (context, child) {
+                        final size = ResponsiveUtils.micButtonSize(context) * 1.3;
                         return Transform.scale(
                           scale: _pulseAnimation.value,
                           child: Container(
-                            width: 130.w,
-                            height: 130.w,
+                            width: size,
+                            height: size,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
@@ -804,11 +970,12 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     AnimatedBuilder(
                       animation: _pulseAnimation,
                       builder: (context, child) {
+                        final size = ResponsiveUtils.micButtonSize(context) * 1.2;
                         return Transform.scale(
                           scale: 1.0 + (_pulseAnimation.value - 1.0) * 0.6,
                           child: Container(
-                            width: 120.w,
-                            height: 120.w,
+                            width: size,
+                            height: size,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
@@ -828,17 +995,21 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
 
                   // Wavy rings (when Polly is speaking)
                   if (widget.isSpeaking) ...[
-                    _WaveRing(size: 140.w, delay: 0),
-                    _WaveRing(size: 120.w, delay: 300),
-                    _WaveRing(size: 100.w, delay: 600),
+                    _WaveRing(size: ResponsiveUtils.micButtonSize(context) * 1.4, delay: 0),
+                    _WaveRing(size: ResponsiveUtils.micButtonSize(context) * 1.2, delay: 300),
+                    _WaveRing(size: ResponsiveUtils.micButtonSize(context), delay: 600),
                   ],
 
                   // Main button with size animation
-                  AnimatedContainer(
+                  Builder(builder: (context) {
+                    final baseSize = ResponsiveUtils.micButtonSize(context);
+                    final activeSize = baseSize * 1.1;
+                    final inactiveSize = baseSize * 0.86;
+                    return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOut,
-                    width: (widget.isListening || widget.isSpeaking) ? 110.w : 86.w,
-                    height: (widget.isListening || widget.isSpeaking) ? 110.w : 86.w,
+                    width: (widget.isListening || widget.isSpeaking) ? activeSize : inactiveSize,
+                    height: (widget.isListening || widget.isSpeaking) ? activeSize : inactiveSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: widget.isCrystal
@@ -882,23 +1053,29 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                     child: Center(
                       child: _buildMicIcon(),
                     ),
-                  ),
+                  );
+                  }),
 
                   // Crystal Voice sparkle overlay
                   if (widget.isCrystal)
-                    SizedBox(
-                      width: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,
-                      height: (widget.isListening || widget.isSpeaking) ? 130.w : 106.w,
-                      child: Lottie.asset(
-                        'assets/animations/sparkle.json',
-                        repeat: true,
-                        animate: true,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
+                    Builder(builder: (context) {
+                      final baseSize = ResponsiveUtils.micButtonSize(context);
+                      final activeSize = baseSize * 1.3;
+                      final inactiveSize = baseSize * 1.06;
+                      return SizedBox(
+                        width: (widget.isListening || widget.isSpeaking) ? activeSize : inactiveSize,
+                        height: (widget.isListening || widget.isSpeaking) ? activeSize : inactiveSize,
+                        child: Lottie.asset(
+                          'assets/animations/sparkle.json',
+                          repeat: true,
+                          animate: true,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      );
+                    }),
                 ],
               ),
             );
@@ -920,7 +1097,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
                       children: [
                         FittedBox(
                           child: Text(
-                            widget.isListening ? 'Recording' : (widget.isProcessing ? 'Thinking' : 'Speaking'),
+                            widget.isListening ? 'recording'.tr : (widget.isProcessing ? 'thinking'.tr : 'speaking_state'.tr),
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: const Color(0xFFA0A0FF),
@@ -943,11 +1120,14 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
 
   // Mic icon with sound wave animation when recording or volume icon when speaking
   Widget _buildMicIcon() {
+    final iconSize = ResponsiveUtils.scaledIconSize(40, context);
+    final idleIconSize = ResponsiveUtils.scaledIconSize(36, context);
+
     if (widget.isListening) {
       // Show mic icon when recording
       return Icon(
         Icons.mic_none_rounded,
-        size: 40.sp,
+        size: iconSize,
         color: widget.isCrystal
             ? Colors.white
             : const Color(0xFF1E1E3F),
@@ -956,7 +1136,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
       // Show volume icon when speaking
       return Icon(
         Icons.volume_up_rounded,
-        size: 40.sp,
+        size: iconSize,
         color: widget.isCrystal
             ? Colors.white
             : const Color(0xFF1E1E3F),
@@ -965,7 +1145,7 @@ class _BreathingMicButtonState extends State<_BreathingMicButton>
       // Idle state - simple mic icon
       return Icon(
         Icons.mic_none_rounded,
-        size: 36.sp,
+        size: idleIconSize,
         color: widget.isCrystal
             ? Colors.white
             : const Color(0xFF1E1E3F),

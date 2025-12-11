@@ -12,6 +12,29 @@ const Map<String, String> zhCN = {
   'shifts': '次转变',
   'shift': '次转变',
 
+  // Mic button states
+  'recording': '录音中',
+  'thinking': '思考中',
+  'speaking_state': '播放中',
+  'skip': '跳过',
+  'get_started': '开始使用',
+  'next': '下一步',
+
+  // Onboarding
+  'onboarding_title_1': '欢迎来到MoodShift',
+  'onboarding_subtitle_1': '你的口袋朋友，随时倾听',
+  'onboarding_title_2': '只需说话。\n无需打字。',
+  'onboarding_subtitle_2': '按住并说话最多1分钟 — 我们会听到一切',
+  'onboarding_title_3': '几秒钟内感觉更好',
+  'onboarding_subtitle_3': '我们会用善意和理解温柔地转变你的心情',
+
+  // Superpower Cards
+  'stronger_2x': '2倍更强!',
+  'crystal_voice': '水晶语音',
+  'crystal_active': '水晶',
+  'peace_mode': '和平模式',
+  'peace_active': '和平',
+
   // Permissions
   'mic_permission_title': '需要麦克风访问权限',
   'mic_permission_message': 'MoodShift需要麦克风来聆听您的声音并创建个性化的情绪转变。\n\n• 我们只在您按住"说话"按钮时访问麦克风\n• 您的声音经过安全处理，从不存储\n• 不会在您的设备或其他地方保存任何录音',

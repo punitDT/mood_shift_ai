@@ -3,6 +3,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'home_controller.dart';
 import '../../services/speech_service.dart';
+import '../settings/settings_controller.dart';
 
 class HomeBinding extends Bindings {
   @override
@@ -40,5 +41,8 @@ class HomeBinding extends Bindings {
         rethrow;
       }
     });
+
+    // SettingsController for the drawer
+    Get.lazyPut<SettingsController>(() => SettingsController());
   }
 }

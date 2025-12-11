@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,6 +25,10 @@ class AdService extends GetxService {
   final isRewardedStrongerLoaded = false.obs;
   final isRewardedCrystalLoaded = false.obs;
   final isRewardedRemoveAdsLoaded = false.obs;
+
+  // Store the banner ad size for proper display
+  AdSize? bannerAdSize;
+  AdSize? topBannerAdSize;
 
   // Ad Unit IDs loaded from environment variables
   String get bannerAdUnitId {
@@ -80,12 +85,54 @@ class AdService extends GetxService {
     loadRewardedAds();
   }
 
+  /// Load adaptive banner ad that fits the screen width
+  /// Call this with a BuildContext to get the proper screen width
+  Future<void> loadAdaptiveBannerAd(BuildContext context) async {
+    if (_storage.isPeaceModeActive()) {
+      isBannerLoaded.value = false;
+      return;
+    }
+
+    // Dispose existing ad if any
+    bannerAd?.dispose();
+    bannerAd = null;
+    isBannerLoaded.value = false;
+
+    // Get adaptive banner size based on screen width
+    final width = MediaQuery.of(context).size.width.truncate();
+    bannerAdSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+
+    if (bannerAdSize == null) {
+      // Fallback to standard banner if adaptive fails
+      bannerAdSize = AdSize.banner;
+    }
+
+    bannerAd = BannerAd(
+      adUnitId: bannerAdUnitId,
+      size: bannerAdSize!,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          isBannerLoaded.value = true;
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          isBannerLoaded.value = false;
+        },
+      ),
+    );
+
+    bannerAd?.load();
+  }
+
+  /// Legacy method - loads standard banner (for backward compatibility)
   void loadBannerAd() {
     if (_storage.isPeaceModeActive()) {
       isBannerLoaded.value = false;
       return;
     }
 
+    bannerAdSize = AdSize.banner;
     bannerAd = BannerAd(
       adUnitId: bannerAdUnitId,
       size: AdSize.banner,
@@ -104,12 +151,52 @@ class AdService extends GetxService {
     bannerAd?.load();
   }
 
+  /// Load adaptive top banner ad
+  Future<void> loadAdaptiveTopBannerAd(BuildContext context) async {
+    if (_storage.isPeaceModeActive()) {
+      isTopBannerLoaded.value = false;
+      return;
+    }
+
+    // Dispose existing ad if any
+    topBannerAd?.dispose();
+    topBannerAd = null;
+    isTopBannerLoaded.value = false;
+
+    // Get adaptive banner size based on screen width
+    final width = MediaQuery.of(context).size.width.truncate();
+    topBannerAdSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+
+    if (topBannerAdSize == null) {
+      topBannerAdSize = AdSize.banner;
+    }
+
+    topBannerAd = BannerAd(
+      adUnitId: bannerAdUnitId,
+      size: topBannerAdSize!,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          isTopBannerLoaded.value = true;
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          isTopBannerLoaded.value = false;
+        },
+      ),
+    );
+
+    topBannerAd?.load();
+  }
+
+  /// Legacy method - loads standard top banner
   void loadTopBannerAd() {
     if (_storage.isPeaceModeActive()) {
       isTopBannerLoaded.value = false;
       return;
     }
 
+    topBannerAdSize = AdSize.banner;
     topBannerAd = BannerAd(
       adUnitId: bannerAdUnitId,
       size: AdSize.banner,

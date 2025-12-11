@@ -1,134 +1,112 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'settings_controller.dart';
-import '../../utils/responsive_utils.dart';
+import '../modules/settings/settings_controller.dart';
+import '../utils/responsive_utils.dart';
 
-class SettingsView extends GetView<SettingsController> {
-  const SettingsView({super.key});
+class SettingsDrawer extends GetView<SettingsController> {
+  const SettingsDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
-      showCardOnTablet: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
+    final isTablet = ResponsiveUtils.isTablet(context);
+    final drawerWidth = isTablet ? 350.0 : MediaQuery.of(context).size.width * 0.85;
+
+    return Drawer(
+      width: drawerWidth,
+      backgroundColor: const Color(0xFF0a0520),
+      child: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF0a0520), // Very dark blue-purple
-              Color(0xFF150a2e), // Deep purple
-              Color(0xFF0d0618), // Almost black
+              Color(0xFF0a0520),
+              Color(0xFF150a2e),
+              Color(0xFF0d0618),
             ],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Top Bar
-              _buildTopBar(),
-
-              // Settings List
+              _buildDrawerHeader(context, isTablet),
               Expanded(
                 child: ListView(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 24 : 20.w,
+                    vertical: isTablet ? 16 : 20.h,
+                  ),
                   children: [
                     _buildSettingItem(
                       icon: Icons.language_rounded,
                       title: 'language'.tr,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Obx(() => Text(
-                                controller.selectedLanguage.value,
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: Colors.white.withOpacity(0.7),
-                                ),
-                              )),
-                          SizedBox(width: 8.w),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 16.sp,
-                            color: Colors.white.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
+                      trailing: Obx(() => Text(
+                            controller.selectedLanguage.value,
+                            style: TextStyle(
+                              fontSize: isTablet ? 14 : 14.sp,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          )),
                       onTap: controller.showLanguageSelector,
+                      isTablet: isTablet,
                     ),
-
-                    SizedBox(height: 12.h),
-
+                    SizedBox(height: isTablet ? 12 : 12.h),
                     _buildSettingItem(
                       icon: Icons.record_voice_over_rounded,
                       title: 'voice_gender'.tr,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Obx(() => Text(
-                                controller.selectedVoiceGender.value,
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: Colors.white.withOpacity(0.7),
-                                ),
-                              )),
-                          SizedBox(width: 8.w),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 16.sp,
-                            color: Colors.white.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
+                      trailing: Obx(() => Text(
+                            controller.selectedVoiceGender.value,
+                            style: TextStyle(
+                              fontSize: isTablet ? 14 : 14.sp,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          )),
                       onTap: controller.showVoiceGenderSelector,
+                      isTablet: isTablet,
                     ),
-
-                    SizedBox(height: 12.h),
-
-                    _buildCrashReportsToggle(),
-
-                    SizedBox(height: 12.h),
-
+                    SizedBox(height: isTablet ? 12 : 12.h),
+                    _buildCrashReportsToggle(isTablet),
+                    SizedBox(height: isTablet ? 12 : 12.h),
                     _buildSettingItem(
                       icon: Icons.privacy_tip_outlined,
                       title: 'privacy_policy'.tr,
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: 16.sp,
+                        size: isTablet ? 16 : 16.sp,
                         color: Colors.white.withOpacity(0.5),
                       ),
-                      onTap: controller.openPrivacyPolicy,
+                      onTap: () {
+                        Navigator.of(context).pop(); // Close drawer first
+                        controller.openPrivacyPolicy();
+                      },
+                      isTablet: isTablet,
                     ),
-
-                    SizedBox(height: 12.h),
-
+                    SizedBox(height: isTablet ? 12 : 12.h),
                     _buildSettingItem(
                       icon: Icons.help_outline_rounded,
                       title: 'about'.tr,
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: 16.sp,
+                        size: isTablet ? 16 : 16.sp,
                         color: Colors.white.withOpacity(0.5),
                       ),
                       onTap: controller.showAbout,
+                      isTablet: isTablet,
                     ),
-
-                    SizedBox(height: 12.h),
-
+                    SizedBox(height: isTablet ? 12 : 12.h),
                     _buildSettingItem(
                       icon: Icons.info_outline_rounded,
                       title: 'version'.tr,
                       trailing: Obx(() => Text(
                             controller.appVersion.value,
                             style: TextStyle(
-                              fontSize: 14.sp,
+                              fontSize: isTablet ? 14 : 14.sp,
                               color: Colors.white.withOpacity(0.7),
                             ),
                           )),
                       onTap: null,
+                      isTablet: isTablet,
                     ),
                   ],
                 ),
@@ -140,25 +118,28 @@ class SettingsView extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildTopBar() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+  Widget _buildDrawerHeader(BuildContext context, bool isTablet) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 24 : 20.w,
+        vertical: isTablet ? 20 : 16.h,
+      ),
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(context).pop(),
             icon: Icon(
-              Icons.arrow_back_rounded,
+              Icons.close_rounded,
               color: Colors.white,
-              size: 28.sp,
+              size: isTablet ? 26 : 24.sp,
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: isTablet ? 12 : 8.w),
           Text(
             'settings'.tr,
             style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
+              fontSize: isTablet ? 20 : 18.sp,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
@@ -172,15 +153,19 @@ class SettingsView extends GetView<SettingsController> {
     required String title,
     required Widget trailing,
     VoidCallback? onTap,
+    required bool isTablet,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12.r),
+      borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: isTablet ? 16 : 16.w,
+          vertical: isTablet ? 16 : 16.h,
+        ),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
           border: Border.all(
             color: Colors.white.withOpacity(0.2),
             width: 1,
@@ -191,14 +176,14 @@ class SettingsView extends GetView<SettingsController> {
             Icon(
               icon,
               color: Colors.white,
-              size: 24.sp,
+              size: isTablet ? 24 : 24.sp,
             ),
-            SizedBox(width: 16.w),
+            SizedBox(width: isTablet ? 16 : 16.w),
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: isTablet ? 16 : 16.sp,
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
                 ),
@@ -211,12 +196,15 @@ class SettingsView extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildCrashReportsToggle() {
+  Widget _buildCrashReportsToggle(bool isTablet) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 16 : 16.w,
+        vertical: isTablet ? 16 : 16.h,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
         border: Border.all(
           color: Colors.white.withOpacity(0.2),
           width: 1,
@@ -227,9 +215,9 @@ class SettingsView extends GetView<SettingsController> {
           Icon(
             Icons.bug_report_rounded,
             color: Colors.white,
-            size: 24.sp,
+            size: isTablet ? 24 : 24.sp,
           ),
-          SizedBox(width: 16.w),
+          SizedBox(width: isTablet ? 16 : 16.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,16 +225,16 @@ class SettingsView extends GetView<SettingsController> {
                 Text(
                   'crash_reports'.tr,
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: isTablet ? 16 : 16.sp,
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: isTablet ? 4 : 4.h),
                 Text(
                   'crash_reports_subtitle'.tr,
                   style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: isTablet ? 13 : 13.sp,
                     color: Colors.white.withOpacity(0.7),
                     height: 1.3,
                   ),
@@ -254,7 +242,7 @@ class SettingsView extends GetView<SettingsController> {
               ],
             ),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: isTablet ? 12 : 12.w),
           Obx(() => Switch(
                 value: controller.crashReportsEnabled.value,
                 onChanged: controller.toggleCrashReports,

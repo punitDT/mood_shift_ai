@@ -1,10 +1,10 @@
 const Map<String, String> hiIN = {
   // App
   'app_name': 'MoodShift AI',
-  
+
   // Splash
   'loading': 'लोड हो रहा है...',
-  
+
   // Home
   'hold_to_speak': 'बोलने के लिए दबाएं',
   'get_ready': 'तैयार हो जाइए...',
@@ -16,6 +16,29 @@ const Map<String, String> hiIN = {
   'day': 'दिन',
   'shifts': 'शिफ्ट',
   'shift': 'शिफ्ट',
+
+  // Mic button states
+  'recording': 'रिकॉर्डिंग',
+  'thinking': 'सोच रहा है',
+  'speaking_state': 'बोल रहा है',
+  'skip': 'छोड़ें',
+  'get_started': 'शुरू करें',
+  'next': 'अगला',
+
+  // Onboarding
+  'onboarding_title_1': 'MoodShift में आपका स्वागत है',
+  'onboarding_subtitle_1': 'आपका पॉकेट दोस्त जो हमेशा सुनता है',
+  'onboarding_title_2': 'बस बोलें।\nटाइप नहीं।',
+  'onboarding_subtitle_2': 'दबाकर रखें और 1 मिनट तक बोलें — हम सब कुछ सुनेंगे',
+  'onboarding_title_3': 'सेकंडों में बेहतर महसूस करें',
+  'onboarding_subtitle_3': 'हम दयालुता और समझ के साथ आपके मूड को धीरे से बदलेंगे',
+
+  // Superpower Cards
+  'stronger_2x': '2× मजबूत!',
+  'crystal_voice': 'क्रिस्टल वॉइस',
+  'crystal_active': 'क्रिस्टल',
+  'peace_mode': 'शांति मोड',
+  'peace_active': 'शांति',
 
   // Permissions
   'mic_permission_title': 'माइक्रोफ़ोन एक्सेस आवश्यक',

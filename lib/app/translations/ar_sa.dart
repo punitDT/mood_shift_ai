@@ -12,6 +12,29 @@ const Map<String, String> arSA = {
   'shifts': 'تحولات',
   'shift': 'تحول',
 
+  // Mic button states
+  'recording': 'تسجيل',
+  'thinking': 'يفكر',
+  'speaking_state': 'يتحدث',
+  'skip': 'تخطي',
+  'get_started': 'ابدأ',
+  'next': 'التالي',
+
+  // Onboarding
+  'onboarding_title_1': 'مرحباً بك في MoodShift',
+  'onboarding_subtitle_1': 'صديقك الجيب الذي يستمع دائماً',
+  'onboarding_title_2': 'فقط تحدث.\nبدون كتابة.',
+  'onboarding_subtitle_2': 'اضغط وتحدث لمدة تصل إلى دقيقة واحدة — سنسمع كل شيء',
+  'onboarding_title_3': 'اشعر بتحسن في ثوانٍ',
+  'onboarding_subtitle_3': 'سنغير مزاجك بلطف مع اللطف والتفهم',
+
+  // Superpower Cards
+  'stronger_2x': '2× أقوى!',
+  'crystal_voice': 'صوت كريستالي',
+  'crystal_active': 'كريستال',
+  'peace_mode': 'وضع السلام',
+  'peace_active': 'سلام',
+
   // Permissions
   'mic_permission_title': 'الوصول إلى الميكروفون مطلوب',
   'mic_permission_message': 'يحتاج MoodShift إلى الميكروفون للاستماع إلى صوتك وإنشاء تحول مزاجك الشخصي.\n\n• نصل إلى الميكروفون فقط عندما تضغط على زر التحدث\n• يتم معالجة صوتك بشكل آمن ولا يتم تخزينه أبدًا\n• لا يتم حفظ أي تسجيلات على جهازك أو في أي مكان آخر',
