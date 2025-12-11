@@ -259,7 +259,7 @@ class CloudAIService extends GetxService {
 
     // Log Polly TTS used event with character count
     _analytics?.logPollyTtsUsed(
-      mode: mode,
+      feature: mode,
       voiceEngine: cloudResponse.engine.toLowerCase(),
       characterCount: cloudResponse.response.length,
     );

@@ -111,23 +111,23 @@ class AnalyticsService extends GetxService {
   }
   
   /// Log Polly TTS used event
-  /// [mode] can be: "normal", "stronger", "crystal"
+  /// [feature] can be: "normal", "stronger", "crystal"
   /// [voiceEngine] can be: "standard", "neural", "generative"
   /// [characterCount] is the number of characters sent to Polly for synthesis
   Future<void> logPollyTtsUsed({
-    required String mode,
+    required String feature,
     required String voiceEngine,
     required int characterCount,
   }) async {
     await _analytics.logEvent(
       name: 'polly_tts_used',
       parameters: {
-        'mode': mode,
+        'feature': feature,
         'voice_engine': voiceEngine,
         'character_count': characterCount,
       },
     );
-    AppLogger.debug('📊 Event: polly_tts_used | mode=$mode, engine=$voiceEngine, chars=$characterCount');
+    AppLogger.debug('📊 Event: polly_tts_used | feature=$feature, engine=$voiceEngine, chars=$characterCount');
   }
 }
 
