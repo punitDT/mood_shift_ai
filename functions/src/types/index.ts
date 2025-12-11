@@ -30,7 +30,7 @@ export interface TokenUsage {
 export interface ProcessUserInputResponse {
   success: boolean;
   response: string;
-  audioUrl: string;
+  audioBase64: string;
   voiceId: string;
   engine: string;
   tokenUsage?: TokenUsage;

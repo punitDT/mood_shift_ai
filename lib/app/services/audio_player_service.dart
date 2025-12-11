@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -6,8 +8,8 @@ import 'storage_service.dart';
 import 'crashlytics_service.dart';
 import '../utils/app_logger.dart';
 
-/// Service to play audio from Cloud Storage URLs
-/// Falls back to device TTS if URL playback fails
+/// Service to play audio from base64 encoded data
+/// Falls back to device TTS if playback fails
 class AudioPlayerService extends GetxService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FlutterTts _fallbackTts = FlutterTts();
@@ -84,11 +86,11 @@ class AudioPlayerService extends GetxService {
     await _fallbackTts.setPitch(1.0);
   }
 
-  /// Play audio from a Cloud Storage signed URL
-  /// Falls back to device TTS if URL playback fails
-  Future<void> playFromUrl(String audioUrl, String fallbackText) async {
-    if (audioUrl.isEmpty) {
-      AppLogger.info('🔊 No audio URL, using fallback TTS');
+  /// Play audio from base64 encoded data
+  /// Falls back to device TTS if playback fails
+  Future<void> playFromBase64(String audioBase64, String fallbackText) async {
+    if (audioBase64.isEmpty) {
+      AppLogger.info('🔊 No audio data, using fallback TTS');
       await _speakWithFallback(fallbackText);
       return;
     }
@@ -98,12 +100,14 @@ class AudioPlayerService extends GetxService {
     isUsingOfflineMode.value = false;
 
     try {
-      AppLogger.info('🔊 Playing audio from URL: ${audioUrl.substring(0, 50)}...');
+      // Decode base64 to bytes
+      final Uint8List audioBytes = base64Decode(audioBase64);
+      AppLogger.info('🔊 Playing audio from base64 (${audioBytes.length} bytes)');
 
       // Create a completer to wait for playback completion
       _audioCompleter = Completer<void>();
 
-      await _audioPlayer.play(UrlSource(audioUrl));
+      await _audioPlayer.play(BytesSource(audioBytes));
       isPreparing.value = false;
 
       // Wait for playback to complete using the completer
@@ -111,8 +115,8 @@ class AudioPlayerService extends GetxService {
     } catch (e, stackTrace) {
       isPreparing.value = false;
       _audioCompleter = null;
-      AppLogger.error('Audio URL playback failed', e, stackTrace);
-      _crashlytics.reportError(e, stackTrace, reason: 'Audio URL playback failed');
+      AppLogger.error('Audio playback failed', e, stackTrace);
+      _crashlytics.reportError(e, stackTrace, reason: 'Audio base64 playback failed');
 
       // Fallback to device TTS
       isUsingOfflineMode.value = true;

@@ -29,11 +29,6 @@ import {
 } from "./services/groqService";
 import { buildSSML, buildStrongerSSML, buildCrystalSSML } from "./services/ssmlService";
 import { synthesizeSpeech, AWS_ACCESS_KEY, AWS_SECRET_KEY } from "./services/pollyService";
-import {
-  generateInputHash,
-  checkCache,
-  saveToCache,
-} from "./services/audioService";
 import { logger } from "./utils/logger";
 
 // Helper to get the appropriate engine for a feature
@@ -141,42 +136,6 @@ export const processUserInput = onRequest(
         res.status(400).json({ success: false, error: "Missing required fields" });
         return;
       }
-
-      // Generate cache key based on user input
-      const inputHash = generateInputHash(
-        request.text || "",
-        request.language,
-        request.locale,
-        request.voiceGender,
-        request.crystalVoice,
-        request.strongerMode,
-        request.originalResponse
-      );
-      logger.debug("Generated input hash", { inputHash });
-
-      // Check cache first
-      const cachedResponse = await checkCache(inputHash);
-      if (cachedResponse) {
-        // Cache hit - return cached response
-        logger.info("Cache HIT", {
-          inputHash,
-          responseLength: cachedResponse.response.length,
-          voiceId: cachedResponse.voiceId,
-        });
-        const response: ProcessUserInputResponse = {
-          success: true,
-          response: cachedResponse.response,
-          audioUrl: cachedResponse.audioUrl,
-          voiceId: cachedResponse.voiceId,
-          engine: cachedResponse.engine,
-        };
-        logger.flow("Request completed (cached)", { duration: `${Date.now() - startTime}ms` });
-        res.status(200).json(response);
-        return;
-      }
-
-      // Cache miss - generate new response
-      logger.info("Cache MISS", { inputHash });
 
       // Load all configs in parallel
       logger.flow("Loading configs");
@@ -297,7 +256,7 @@ export const processUserInput = onRequest(
 
       // Synthesize speech with feature-specific engine
       logger.flow("Synthesizing speech with Polly");
-      let audioUrl: string;
+      let audioBase64: string;
       let voiceId: string;
       let engine: string;
       try {
@@ -315,24 +274,15 @@ export const processUserInput = onRequest(
 
         voiceId = pollyResult.voiceId;
         engine = pollyResult.engine;
+        // Convert audio buffer to base64 for direct response
+        audioBase64 = pollyResult.audioBuffer.toString("base64");
         logger.info("Polly synthesis complete", {
           duration: `${Date.now() - pollyStartTime}ms`,
           voiceId,
           engine,
           audioSize: pollyResult.audioBuffer.length,
+          base64Length: audioBase64.length,
         });
-
-        // Save to cache (audio with response in metadata)
-        logger.flow("Saving to cache");
-        const cacheStartTime = Date.now();
-        audioUrl = await saveToCache(
-          inputHash,
-          responseText,
-          pollyResult.audioBuffer,
-          voiceId,
-          engine
-        );
-        logger.debug("Saved to cache", { duration: `${Date.now() - cacheStartTime}ms` });
       } catch (error) {
         logger.error("Polly synthesis failed", error);
         res.status(500).json({
@@ -346,7 +296,7 @@ export const processUserInput = onRequest(
       const response: ProcessUserInputResponse = {
         success: true,
         response: responseText,
-        audioUrl,
+        audioBase64,
         voiceId,
         engine,
         tokenUsage,

@@ -34,7 +34,7 @@ class TokenUsage {
 class CloudAIResponse {
   final bool success;
   final String response;
-  final String audioUrl;
+  final String audioBase64;
   final String voiceId;
   final String engine;
   final TokenUsage? tokenUsage;
@@ -43,7 +43,7 @@ class CloudAIResponse {
   CloudAIResponse({
     required this.success,
     required this.response,
-    required this.audioUrl,
+    required this.audioBase64,
     required this.voiceId,
     required this.engine,
     this.tokenUsage,
@@ -54,7 +54,7 @@ class CloudAIResponse {
     return CloudAIResponse(
       success: json['success'] ?? false,
       response: json['response'] ?? '',
-      audioUrl: json['audioUrl'] ?? '',
+      audioBase64: json['audioBase64'] ?? '',
       voiceId: json['voiceId'] ?? '',
       engine: json['engine'] ?? '',
       tokenUsage: json['tokenUsage'] != null
@@ -68,7 +68,7 @@ class CloudAIResponse {
     return CloudAIResponse(
       success: false,
       response: '',
-      audioUrl: '',
+      audioBase64: '',
       voiceId: '',
       engine: '',
       error: message,

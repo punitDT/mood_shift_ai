@@ -556,8 +556,8 @@ class HomeController extends GetxController {
 
       _startSpeakingProgress(estimatedMs);
 
-      // Play audio from Cloud Storage URL
-      await audioPlayer.playFromUrl(result.audioUrl, result.response);
+      // Play audio from base64 data
+      await audioPlayer.playFromBase64(result.audioBase64, result.response);
 
       _stopSpeakingProgress();
       _onShiftCompleted();
@@ -675,7 +675,7 @@ class HomeController extends GetxController {
           _startSpeakingProgress(estimatedMs);
           confettiController.play();
 
-          await audioPlayer.playFromUrl(result.audioUrl, result.response);
+          await audioPlayer.playFromBase64(result.audioBase64, result.response);
 
           _stopSpeakingProgress();
           _resetToIdle();
