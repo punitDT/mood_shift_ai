@@ -44,11 +44,22 @@ class AdService extends GetxService {
     return '';
   }
 
-  String get rewardedAdUnitId {
+  // Rewarded interstitial ad unit ID for 2x Stronger and Crystal Voice
+  String get rewardedInterstitialAdUnitId {
     if (Platform.isAndroid) {
-      return dotenv.env['ADMOB_ANDROID_REWARDED_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/5224354917';
+      return dotenv.env['ADMOB_ANDROID_REWARDED_INTERSTITIAL_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/5224354917';
     } else if (Platform.isIOS) {
-      return dotenv.env['ADMOB_IOS_REWARDED_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/1712485313';
+      return dotenv.env['ADMOB_IOS_REWARDED_INTERSTITIAL_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/1712485313';
+    }
+    return '';
+  }
+
+  // Rewarded video ad unit ID for peace mode
+  String get rewardedVideoAdUnitId {
+    if (Platform.isAndroid) {
+      return dotenv.env['ADMOB_ANDROID_REWARDED_VIDEO_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/5224354917';
+    } else if (Platform.isIOS) {
+      return dotenv.env['ADMOB_IOS_REWARDED_VIDEO_AD_UNIT_ID'] ?? 'ca-app-pub-3940256099942544/1712485313';
     }
     return '';
   }
@@ -70,7 +81,7 @@ class AdService extends GetxService {
   }
 
   void loadBannerAd() {
-    if (_storage.isAdFree()) {
+    if (_storage.isPeaceModeActive()) {
       isBannerLoaded.value = false;
       return;
     }
@@ -94,7 +105,7 @@ class AdService extends GetxService {
   }
 
   void loadTopBannerAd() {
-    if (_storage.isAdFree()) {
+    if (_storage.isPeaceModeActive()) {
       isTopBannerLoaded.value = false;
       return;
     }
@@ -118,7 +129,7 @@ class AdService extends GetxService {
   }
 
   void loadInterstitialAd() {
-    if (_storage.isAdFree()) {
+    if (_storage.isPeaceModeActive()) {
       isInterstitialLoaded.value = false;
       return;
     }
@@ -163,7 +174,7 @@ class AdService extends GetxService {
   }
 
   void showInterstitialAd() {
-    if (_storage.isAdFree()) {
+    if (_storage.isPeaceModeActive()) {
       return;
     }
 
@@ -181,8 +192,9 @@ class AdService extends GetxService {
   }
 
   void loadRewardedAds() {
+    // 2x Stronger uses rewarded interstitial ad
     RewardedAd.load(
-      adUnitId: rewardedAdUnitId,
+      adUnitId: rewardedInterstitialAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -195,8 +207,9 @@ class AdService extends GetxService {
       ),
     );
 
+    // Crystal Voice uses rewarded interstitial ad
     RewardedAd.load(
-      adUnitId: rewardedAdUnitId,
+      adUnitId: rewardedInterstitialAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -209,8 +222,9 @@ class AdService extends GetxService {
       ),
     );
 
+    // Peace mode uses rewarded video ad unit ID
     RewardedAd.load(
-      adUnitId: rewardedAdUnitId,
+      adUnitId: rewardedVideoAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -225,11 +239,17 @@ class AdService extends GetxService {
   }
 
   void showRewardedAdStronger(Function onRewarded) {
+    // Skip ad if peace mode is active - give reward for free
+    if (_storage.isPeaceModeActive()) {
+      onRewarded();
+      return;
+    }
+
     if (rewardedAdStronger == null || !isRewardedStrongerLoaded.value) {
       SnackbarUtils.showInfo(title: 'Loading...', message: 'Please wait a moment and try again');
 
       RewardedAd.load(
-        adUnitId: rewardedAdUnitId,
+        adUnitId: rewardedInterstitialAdUnitId,
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
@@ -253,7 +273,7 @@ class AdService extends GetxService {
           onRewarded();
         }
         RewardedAd.load(
-          adUnitId: rewardedAdUnitId,
+          adUnitId: rewardedInterstitialAdUnitId,
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
@@ -273,12 +293,12 @@ class AdService extends GetxService {
           Exception('Rewarded ad (Stronger) failed to show: ${error.message}'),
           StackTrace.current,
           operation: 'show_rewarded_stronger',
-          adType: 'rewarded',
+          adType: 'rewarded_interstitial',
           errorCode: error.code,
           errorMessage: error.message,
         );
         RewardedAd.load(
-          adUnitId: rewardedAdUnitId,
+          adUnitId: rewardedInterstitialAdUnitId,
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
@@ -301,11 +321,17 @@ class AdService extends GetxService {
   }
 
   void showRewardedAdCrystal(Function onRewarded) {
+    // Skip ad if peace mode is active - give reward for free
+    if (_storage.isPeaceModeActive()) {
+      onRewarded();
+      return;
+    }
+
     if (rewardedAdCrystal == null || !isRewardedCrystalLoaded.value) {
       SnackbarUtils.showInfo(title: 'Loading...', message: 'Please wait a moment and try again');
 
       RewardedAd.load(
-        adUnitId: rewardedAdUnitId,
+        adUnitId: rewardedInterstitialAdUnitId,
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
@@ -329,7 +355,7 @@ class AdService extends GetxService {
           onRewarded();
         }
         RewardedAd.load(
-          adUnitId: rewardedAdUnitId,
+          adUnitId: rewardedInterstitialAdUnitId,
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
@@ -349,12 +375,12 @@ class AdService extends GetxService {
           Exception('Rewarded ad (Crystal) failed to show: ${error.message}'),
           StackTrace.current,
           operation: 'show_rewarded_crystal',
-          adType: 'rewarded',
+          adType: 'rewarded_interstitial',
           errorCode: error.code,
           errorMessage: error.message,
         );
         RewardedAd.load(
-          adUnitId: rewardedAdUnitId,
+          adUnitId: rewardedInterstitialAdUnitId,
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
@@ -376,12 +402,13 @@ class AdService extends GetxService {
     );
   }
 
+  // Peace mode uses rewarded video ad unit ID
   void showRewardedAdRemoveAds(Function onRewarded) {
     if (rewardedAdRemoveAds == null || !isRewardedRemoveAdsLoaded.value) {
       SnackbarUtils.showInfo(title: 'Loading...', message: 'Please wait a moment and try again');
 
       RewardedAd.load(
-        adUnitId: rewardedAdUnitId,
+        adUnitId: rewardedVideoAdUnitId,
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
@@ -405,7 +432,7 @@ class AdService extends GetxService {
           onRewarded();
         }
         RewardedAd.load(
-          adUnitId: rewardedAdUnitId,
+          adUnitId: rewardedVideoAdUnitId,
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {
@@ -422,15 +449,15 @@ class AdService extends GetxService {
         ad.dispose();
         SnackbarUtils.showError(title: 'Error', message: 'Failed to show ad. Please try again.');
         _crashlytics?.reportAdError(
-          Exception('Rewarded ad (RemoveAds) failed to show: ${error.message}'),
+          Exception('Rewarded ad (PeaceMode) failed to show: ${error.message}'),
           StackTrace.current,
-          operation: 'show_rewarded_remove_ads',
-          adType: 'rewarded',
+          operation: 'show_rewarded_peace_mode',
+          adType: 'rewarded_video',
           errorCode: error.code,
           errorMessage: error.message,
         );
         RewardedAd.load(
-          adUnitId: rewardedAdUnitId,
+          adUnitId: rewardedVideoAdUnitId,
           request: const AdRequest(),
           rewardedAdLoadCallback: RewardedAdLoadCallback(
             onAdLoaded: (ad) {

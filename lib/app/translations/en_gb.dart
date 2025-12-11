@@ -39,15 +39,15 @@ const Map<String, String> enGB = {
   // Rewarded Ad Buttons
   'make_stronger': 'Make this 2x stronger 🎯',
   'unlock_crystal': 'Unlock Crystal Voice for 1 hour 💎',
-  'remove_ads': 'Remove ads for 24 hours 🕊️',
-  'ad_free_active': 'Ad-free: ',
+  'activate_peace_mode': 'Activate Peace Mode 🕊️',
+  'peace_mode_active': 'Peace Mode: ',
   'save_wallpaper': 'Save as wallpaper 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ Peace Mode Activated! No ads for 24 hours',
-  'ad_free_ended': 'Ad-free period ended – welcome back!',
-  'ad_free_status': 'Ad-Free Status',
-  'no_ads_active': 'No active ad-free period',
+  // Peace Mode Messages
+  'peace_mode_activated': 'Enjoy ad-free experience',
+  'peace_mode_ended': 'Peace Mode ended – welcome back!',
+  'peace_mode_status': 'Peace Mode Status',
+  'no_peace_mode_active': 'No active Peace Mode',
   
   // Settings
   'settings': 'Settings',

@@ -32,15 +32,15 @@ const Map<String, String> zhCN = {
   'tap_mic_again': '再次点击麦克风按钮开始录音',
   'make_stronger': '让它强2倍 🎯',
   'unlock_crystal': '解锁水晶语音1小时 💎',
-  'remove_ads': '移除广告24小时 🕊️',
-  'ad_free_active': '无广告: ',
+  'activate_peace_mode': '激活和平模式 🕊️',
+  'peace_mode_active': '和平模式: ',
   'save_wallpaper': '保存为壁纸 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ 和平模式已激活！24小时无广告',
-  'ad_free_ended': '无广告期已结束 – 欢迎回来！',
-  'ad_free_status': '无广告状态',
-  'no_ads_active': '没有活动的无广告期',
+  // Peace Mode Messages
+  'peace_mode_activated': '享受无广告体验',
+  'peace_mode_ended': '和平模式已结束 – 欢迎回来！',
+  'peace_mode_status': '和平模式状态',
+  'no_peace_mode_active': '没有活动的和平模式',
 
   'settings': '设置',
   'version': '版本',

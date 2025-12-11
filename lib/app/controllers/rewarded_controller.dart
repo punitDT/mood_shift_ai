@@ -121,6 +121,23 @@ class RewardedController extends GetxController {
     return 'Crystal Voice: ${crystalTimeRemaining.value}';
   }
 
+  /// Stop crystal voice early and clear the timer
+  void stopCrystalVoice() {
+    _storage.clearCrystalVoice();
+    hasCrystalVoice.value = false;
+    crystalTimeRemaining.value = '';
+    showCrystalGlow.value = false;
+
+    SnackbarUtils.showCustom(
+      title: '💎 Crystal Voice Stopped',
+      message: 'Returned to standard voice',
+      backgroundColor: const Color(0xFF7B1FA2).withOpacity(0.8),
+      textColor: Colors.white,
+      icon: Icons.diamond_outlined,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
   @override
   void onClose() {
     _crystalVoiceTimer?.cancel();

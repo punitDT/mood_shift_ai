@@ -39,15 +39,15 @@ const Map<String, String> hiIN = {
   // Rewarded Ad Buttons
   'make_stronger': 'इसे 2x मजबूत बनाएं 🎯',
   'unlock_crystal': 'क्रिस्टल वॉइस 1 घंटे के लिए अनलॉक करें 💎',
-  'remove_ads': '24 घंटे के लिए विज्ञापन हटाएं 🕊️',
-  'ad_free_active': 'विज्ञापन-मुक्त: ',
+  'activate_peace_mode': 'शांति मोड सक्रिय करें 🕊️',
+  'peace_mode_active': 'शांति मोड: ',
   'save_wallpaper': 'वॉलपेपर के रूप में सेव करें 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ शांति मोड सक्रिय! 24 घंटे के लिए कोई विज्ञापन नहीं',
-  'ad_free_ended': 'विज्ञापन-मुक्त अवधि समाप्त हो गई – वापस स्वागत है!',
-  'ad_free_status': 'विज्ञापन-मुक्त स्थिति',
-  'no_ads_active': 'कोई सक्रिय विज्ञापन-मुक्त अवधि नहीं',
+  // Peace Mode Messages
+  'peace_mode_activated': 'विज्ञापन-मुक्त अनुभव का आनंद लें',
+  'peace_mode_ended': 'शांति मोड समाप्त हो गया – वापस स्वागत है!',
+  'peace_mode_status': 'शांति मोड स्थिति',
+  'no_peace_mode_active': 'कोई सक्रिय शांति मोड नहीं',
   
   // Settings
   'settings': 'सेटिंग्स',

@@ -32,15 +32,15 @@ const Map<String, String> jaJP = {
   'tap_mic_again': 'マイクボタンをもう一度タップして録音を開始してください',
   'make_stronger': '2倍強くする 🎯',
   'unlock_crystal': 'クリスタルボイスを1時間アンロック 💎',
-  'remove_ads': '24時間広告を削除 🕊️',
-  'ad_free_active': '広告なし: ',
+  'activate_peace_mode': 'ピースモードを有効化 🕊️',
+  'peace_mode_active': 'ピースモード: ',
   'save_wallpaper': '壁紙として保存 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ ピースモード有効化！24時間広告なし',
-  'ad_free_ended': '広告なし期間が終了しました – おかえりなさい！',
-  'ad_free_status': '広告なしステータス',
-  'no_ads_active': 'アクティブな広告なし期間はありません',
+  // Peace Mode Messages
+  'peace_mode_activated': '広告なしの体験をお楽しみください',
+  'peace_mode_ended': 'ピースモードが終了しました – おかえりなさい！',
+  'peace_mode_status': 'ピースモードステータス',
+  'no_peace_mode_active': 'アクティブなピースモードはありません',
 
   'settings': '設定',
   'version': 'バージョン',

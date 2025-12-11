@@ -32,15 +32,15 @@ const Map<String, String> esES = {
   'tap_mic_again': 'Toca el botón del micrófono nuevamente para comenzar a grabar',
   'make_stronger': 'Hazlo 2x más fuerte 🎯',
   'unlock_crystal': 'Desbloquear Voz Cristal por 1 hora 💎',
-  'remove_ads': 'Eliminar anuncios por 24 horas 🕊️',
-  'ad_free_active': 'Sin anuncios: ',
+  'activate_peace_mode': 'Activar Modo Paz 🕊️',
+  'peace_mode_active': 'Modo Paz: ',
   'save_wallpaper': 'Guardar como fondo de pantalla 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ ¡Modo Paz Activado! Sin anuncios por 24 horas',
-  'ad_free_ended': 'Período sin anuncios terminado – ¡bienvenido de vuelta!',
-  'ad_free_status': 'Estado Sin Anuncios',
-  'no_ads_active': 'No hay período activo sin anuncios',
+  // Peace Mode Messages
+  'peace_mode_activated': 'Disfruta de una experiencia sin anuncios',
+  'peace_mode_ended': 'Modo Paz terminado – ¡bienvenido de vuelta!',
+  'peace_mode_status': 'Estado Modo Paz',
+  'no_peace_mode_active': 'No hay Modo Paz activo',
 
   'settings': 'Configuración',
   'version': 'Versión',

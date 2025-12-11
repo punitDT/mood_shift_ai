@@ -32,15 +32,15 @@ const Map<String, String> deDE = {
   'tap_mic_again': 'Tippen Sie erneut auf die Mikrofontaste, um die Aufnahme zu starten',
   'make_stronger': 'Mach es 2x stärker 🎯',
   'unlock_crystal': 'Kristallstimme für 1 Stunde freischalten 💎',
-  'remove_ads': 'Anzeigen für 24 Stunden entfernen 🕊️',
-  'ad_free_active': 'Werbefrei: ',
+  'activate_peace_mode': 'Friedensmodus aktivieren 🕊️',
+  'peace_mode_active': 'Friedensmodus: ',
   'save_wallpaper': 'Als Hintergrundbild speichern 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ Friedensmodus Aktiviert! Keine Werbung für 24 Stunden',
-  'ad_free_ended': 'Werbefreie Zeit beendet – willkommen zurück!',
-  'ad_free_status': 'Werbefreier Status',
-  'no_ads_active': 'Keine aktive werbefreie Zeit',
+  // Peace Mode Messages
+  'peace_mode_activated': 'Genießen Sie ein werbefreies Erlebnis',
+  'peace_mode_ended': 'Friedensmodus beendet – willkommen zurück!',
+  'peace_mode_status': 'Friedensmodus Status',
+  'no_peace_mode_active': 'Kein aktiver Friedensmodus',
 
   'settings': 'Einstellungen',
   'version': 'Version',

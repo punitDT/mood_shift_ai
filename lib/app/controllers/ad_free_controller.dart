@@ -4,16 +4,17 @@ import 'package:flutter/scheduler.dart';
 import '../services/storage_service.dart';
 import '../services/ad_service.dart';
 
+/// Controller for Peace Mode feature - hides all ads for a configurable period
 class AdFreeController extends GetxController {
   static AdFreeController get to => Get.find();
 
   final StorageService _storage = Get.find<StorageService>();
   AdService? _adService;
 
-  final isAdFree = false.obs;
-  final adFreeTimeRemaining = ''.obs;
+  final isPeaceModeActive = false.obs;
+  final peaceModeTimeRemaining = ''.obs;
 
-  Timer? _adFreeTimer;
+  Timer? _peaceModeTimer;
 
   @override
   void onInit() {
@@ -21,51 +22,53 @@ class AdFreeController extends GetxController {
     // Use post-frame callback to access AdService after initialization completes
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _adService = Get.find<AdService>();
-      _updateAdFreeStatus();
-      _startAdFreeTimer();
+      _updatePeaceModeStatus();
+      _startPeaceModeTimer();
     });
   }
 
-  void _startAdFreeTimer() {
-    // Update ad-free status every second
-    _adFreeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _updateAdFreeStatus();
+  void _startPeaceModeTimer() {
+    // Update peace mode status every second
+    _peaceModeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updatePeaceModeStatus();
     });
   }
 
-  void _updateAdFreeStatus() {
-    final wasAdFree = isAdFree.value;
-    isAdFree.value = _storage.isAdFree();
+  void _updatePeaceModeStatus() {
+    final wasPeaceMode = isPeaceModeActive.value;
+    isPeaceModeActive.value = _storage.isPeaceModeActive();
 
-    if (isAdFree.value) {
-      final remaining = _storage.getRemainingAdFreeTime();
-      final hours = remaining.inHours;
-      final minutes = remaining.inMinutes.remainder(60);
+    if (isPeaceModeActive.value) {
+      final remaining = _storage.getRemainingPeaceModeTime();
+      final minutes = remaining.inMinutes;
       final seconds = remaining.inSeconds.remainder(60);
 
-      if (hours > 0) {
-        adFreeTimeRemaining.value = '${hours}h ${minutes}m';
-      } else if (minutes > 0) {
-        adFreeTimeRemaining.value = '${minutes}m ${seconds}s';
-      } else {
-        adFreeTimeRemaining.value = '${seconds}s';
-      }
+      peaceModeTimeRemaining.value =
+          '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     } else {
-      adFreeTimeRemaining.value = '';
+      peaceModeTimeRemaining.value = '';
 
-      if (wasAdFree && !isAdFree.value) {
+      // Peace mode just ended - reload all ads
+      if (wasPeaceMode && !isPeaceModeActive.value) {
         _adService?.loadBannerAd();
+        _adService?.loadInterstitialAd();
       }
     }
   }
 
-  void activateAdFree24h(Function onSuccess) {
+  /// Get formatted timer display for UI
+  String getPeaceModeTimerDisplay() {
+    if (!isPeaceModeActive.value) return '';
+    return peaceModeTimeRemaining.value;
+  }
+
+  void activatePeaceMode(Function onSuccess) {
     final adService = _adService;
     if (adService == null) return;
 
     adService.showRewardedAdRemoveAds(() {
-      _storage.setAdFree24Hours();
-      _updateAdFreeStatus();
+      _storage.setPeaceMode();
+      _updatePeaceModeStatus();
 
       // Hide banner ad immediately
       adService.isBannerLoaded.value = false;
@@ -78,7 +81,7 @@ class AdFreeController extends GetxController {
 
   @override
   void onClose() {
-    _adFreeTimer?.cancel();
+    _peaceModeTimer?.cancel();
     super.onClose();
   }
 }

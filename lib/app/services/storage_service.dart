@@ -13,6 +13,10 @@ class StorageService extends GetxService {
   int get crystalVoicePeriodMinutes =>
       int.tryParse(dotenv.env['CRYSTAL_VOICE_PERIOD_MINUTES'] ?? '10') ?? 10;
 
+  // Peace mode period in minutes (from env, default 10)
+  int get peaceModePeriodMinutes =>
+      int.tryParse(dotenv.env['PEACE_MODE_PERIOD_MINUTES'] ?? '10') ?? 10;
+
   Future<StorageService> init() async {
     _box = GetStorage();
     return this;
@@ -178,36 +182,36 @@ class StorageService extends GetxService {
     _box.write('shift_counter', 0);
   }
 
-  // Ad-free period
-  bool isAdFree() {
-    final adFreeUntil = _box.read('ad_free_until');
-    if (adFreeUntil == null) return false;
+  // Peace Mode (ad-free period)
+  bool isPeaceModeActive() {
+    final peaceModeUntil = _box.read('peace_mode_until');
+    if (peaceModeUntil == null) return false;
 
-    final until = DateTime.parse(adFreeUntil);
+    final until = DateTime.parse(peaceModeUntil);
     return DateTime.now().isBefore(until);
   }
 
-  void setAdFree24Hours() {
-    final until = DateTime.now().add(const Duration(hours: 24));
-    _box.write('ad_free_until', until.toIso8601String());
+  void setPeaceMode() {
+    final until = DateTime.now().add(Duration(minutes: peaceModePeriodMinutes));
+    _box.write('peace_mode_until', until.toIso8601String());
   }
 
-  Duration getRemainingAdFreeTime() {
-    final adFreeUntil = _box.read('ad_free_until');
-    if (adFreeUntil == null) return Duration.zero;
+  Duration getRemainingPeaceModeTime() {
+    final peaceModeUntil = _box.read('peace_mode_until');
+    if (peaceModeUntil == null) return Duration.zero;
 
-    final until = DateTime.parse(adFreeUntil);
+    final until = DateTime.parse(peaceModeUntil);
     final remaining = until.difference(DateTime.now());
 
     return remaining.isNegative ? Duration.zero : remaining;
   }
 
-  String getAdFreeEndTime() {
-    return _box.read('ad_free_until') ?? '';
+  String getPeaceModeEndTime() {
+    return _box.read('peace_mode_until') ?? '';
   }
 
-  void clearAdFree() {
-    _box.remove('ad_free_until');
+  void clearPeaceMode() {
+    _box.remove('peace_mode_until');
   }
 
   bool hasCrystalVoice() {

@@ -703,11 +703,11 @@ class HomeController extends GetxController {
     });
   }
 
-  void onRemoveAds() {
+  void onActivatePeaceMode() {
     final adFreeController = _adFreeController;
     if (adFreeController == null) return;
 
-    adFreeController.activateAdFree24h(() {
+    adFreeController.activatePeaceMode(() {
       // Play confetti animation
       confettiController.play();
 

@@ -32,15 +32,15 @@ const Map<String, String> arSA = {
   'tap_mic_again': 'اضغط على زر الميكروفون مرة أخرى لبدء التسجيل',
   'make_stronger': 'اجعله أقوى بمرتين 🎯',
   'unlock_crystal': 'فتح الصوت الكريستالي لمدة ساعة 💎',
-  'remove_ads': 'إزالة الإعلانات لمدة 24 ساعة 🕊️',
-  'ad_free_active': 'خالي من الإعلانات: ',
+  'activate_peace_mode': 'تفعيل وضع السلام 🕊️',
+  'peace_mode_active': 'وضع السلام: ',
   'save_wallpaper': 'حفظ كخلفية 🖼️',
 
-  // Ad-Free Messages
-  'peace_mode_activated': '🕊️ تم تفعيل وضع السلام! لا إعلانات لمدة 24 ساعة',
-  'ad_free_ended': 'انتهت فترة خالية من الإعلانات – مرحبًا بعودتك!',
-  'ad_free_status': 'حالة خالية من الإعلانات',
-  'no_ads_active': 'لا توجد فترة نشطة خالية من الإعلانات',
+  // Peace Mode Messages
+  'peace_mode_activated': 'استمتع بتجربة خالية من الإعلانات',
+  'peace_mode_ended': 'انتهى وضع السلام – مرحبًا بعودتك!',
+  'peace_mode_status': 'حالة وضع السلام',
+  'no_peace_mode_active': 'لا يوجد وضع سلام نشط',
 
   'settings': 'الإعدادات',
   'version': 'الإصدار',

@@ -8,6 +8,7 @@ import 'home_controller.dart';
 import '../../services/ad_service.dart';
 import '../../services/habit_service.dart';
 import '../../controllers/rewarded_controller.dart';
+import '../../controllers/ad_free_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -225,6 +226,7 @@ class HomeView extends GetView<HomeController> {
   // Minimal top bar - clean and spacious
   Widget _buildMinimalTopBar() {
     final rewardedController = controller.rewardedController!;
+    final adFreeController = controller.adFreeController!;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -232,7 +234,7 @@ class HomeView extends GetView<HomeController> {
         children: [
           Row(
             children: [
-              // Crystal Voice Timer (left side) - flexible to prevent overflow
+              // Crystal Voice Timer (left side) with stop button
               Obx(() {
                 final timerText = rewardedController.getCrystalTimerDisplay();
                 if (timerText.isEmpty) {
@@ -276,6 +278,23 @@ class HomeView extends GetView<HomeController> {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
+                      SizedBox(width: 6.w),
+                      // Stop button
+                      GestureDetector(
+                        onTap: () => rewardedController.stopCrystalVoice(),
+                        child: Container(
+                          padding: EdgeInsets.all(2.w),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.stop_rounded, 
+                            color: Colors.white,
+                            size: 12.sp,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -312,10 +331,65 @@ class HomeView extends GetView<HomeController> {
             ],
           ),
 
-          // TODO: Uncomment to show habit stats container
-          // // Habit stats - clean and informative
-          // SizedBox(height: 12.h),
-          // _buildHabitStats(),
+          // Peace Mode Timer (top center, below main bar)
+          Obx(() {
+            final peaceModeTimer = adFreeController.getPeaceModeTimerDisplay();
+            if (peaceModeTimer.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(top: 10.h),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4CAF50).withOpacity(0.4),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.spa_rounded,
+                      color: Colors.white,
+                      size: 14.sp,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Peace Mode',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      peaceModeTimer,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -413,7 +487,7 @@ class HomeView extends GetView<HomeController> {
                       Obx(() {
                         final rewardedController = controller.rewardedController!;
                         final isCrystal = rewardedController.hasCrystalVoice.value;
-                        final isAdFree = adFreeController.isAdFree.value;
+                        final isPeaceMode = adFreeController.isPeaceModeActive.value;
 
                         return Column(
                           children: [
@@ -432,16 +506,15 @@ class HomeView extends GetView<HomeController> {
                               isCrystal ? null : controller.onUnlockCrystal,
                               isActive: isCrystal,
                             ),
-                            // TODO: Uncomment for enhancement phase
-                            // SizedBox(height: 12.h),
-                            // _buildSuperpowerCard(
-                            //   isAdFree
-                            //       ? 'Ad-free • ${adFreeController.adFreeTimeRemaining.value}'
-                            //       : 'Remove ads',
-                            //   Icons.spa_outlined,
-                            //   isAdFree ? null : controller.onRemoveAds,
-                            //   isActive: isAdFree,
-                            // ),
+                            SizedBox(height: 12.h),
+                            _buildSuperpowerCard(
+                              isPeaceMode
+                                  ? 'Peace Mode • ${adFreeController.peaceModeTimeRemaining.value}'
+                                  : 'Peace Mode',
+                              Icons.spa_outlined,
+                              isPeaceMode ? null : controller.onActivatePeaceMode,
+                              isActive: isPeaceMode,
+                            ),
                           ],
                         );
                       }),
