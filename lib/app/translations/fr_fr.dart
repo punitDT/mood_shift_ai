@@ -37,9 +37,9 @@ const Map<String, String> frFR = {
 
   // Permissions
   'mic_permission_title': 'Accès au microphone requis',
-  'mic_permission_message': 'MoodShift a besoin du microphone pour écouter votre voix et créer votre changement d\'humeur personnalisé.\n\n• Nous n\'accédons au microphone que lorsque vous maintenez le bouton Parler\n• Votre voix est traitée en toute sécurité et n\'est jamais stockée\n• Aucun enregistrement n\'est sauvegardé sur votre appareil ou ailleurs',
+  'mic_permission_message': 'MoodShift a besoin du microphone pour écouter votre voix et créer votre changement d\'humeur personnalisé.\n\n• Nous n\'accédons au microphone que lorsque vous maintenez le bouton Parler\n• Votre voix est traitée de manière sécurisée et n\'est jamais stockée\n• Aucun enregistrement n\'est sauvegardé sur votre appareil ni envoyé nulle part\n• Les réponses sont générées par IA et à usage personnel uniquement, pas des conseils professionnels',
   'mic_permission_settings_title': 'Accès au microphone requis',
-  'mic_permission_settings_message': 'MoodShift a besoin du microphone pour écouter votre voix et créer votre changement d\'humeur personnalisé.\n\n• Nous n\'accédons au microphone que lorsque vous maintenez le bouton Parler\n• Votre voix est traitée en toute sécurité et n\'est jamais stockée\n• Aucun enregistrement n\'est sauvegardé sur votre appareil ou ailleurs',
+  'mic_permission_settings_message': 'MoodShift a besoin du microphone pour écouter votre voix et créer votre changement d\'humeur personnalisé.\n\n• Nous n\'accédons au microphone que lorsque vous maintenez le bouton Parler\n• Votre voix est traitée de manière sécurisée et n\'est jamais stockée\n• Aucun enregistrement n\'est sauvegardé sur votre appareil ni envoyé nulle part\n• Les réponses sont générées par IA et à usage personnel uniquement, pas des conseils professionnels',
   'notification_permission_title': 'Rappel quotidien doux?',
   'notification_permission_message': 'Souhaitez-vous une notification quotidienne calme pour vous rappeler de changer votre humeur?\n\nVous pouvez modifier cela à tout moment dans les Paramètres.',
   'permission_cancel': 'Annuler',
@@ -83,6 +83,10 @@ const Map<String, String> frFR = {
   'share_app': 'Partager l\'application',
   'about': 'À propos',
   'about_text': 'MoodShift AI est votre compagnon personnel TDAH qui aide à changer votre humeur instantanément avec des réponses vocales alimentées par l\'IA.',
+  'about_ai_disclaimer_title': 'Avertissement IA',
+  'about_ai_disclaimer_text': 'MoodShift AI génère des réponses en utilisant l\'intelligence artificielle basée sur votre entrée vocale. Ces réponses sont uniquement à usage personnel et peuvent ne pas toujours être exactes. Elles ne remplacent pas les conseils professionnels, la thérapie ou les conseils médicaux. Utilisez votre propre jugement, et en cas de crise de santé mentale, contactez immédiatement votre ligne d\'assistance locale.',
+  'about_privacy_title': 'Confidentialité',
+  'about_privacy_text': 'Votre voix est traitée en temps réel de manière sécurisée et n\'est jamais stockée. Aucun enregistrement n\'est sauvegardé sur votre appareil ni envoyé nulle part.',
   'english': 'English',
   'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',

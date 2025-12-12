@@ -408,6 +408,7 @@ class SettingsController extends GetxController {
         child: Container(
           constraints: BoxConstraints(
             maxWidth: isTablet ? 400 : double.infinity,
+            maxHeight: MediaQuery.of(Get.context!).size.height * 0.85,
           ),
           padding: EdgeInsets.all(isTablet ? 28 : 24.w),
           child: Column(
@@ -470,18 +471,36 @@ class SettingsController extends GetxController {
                     )),
               ),
               SizedBox(height: isTablet ? 24 : 20.h),
-              // About text
-              Text(
-                'about_text'.tr,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: isTablet ? 16 : 15.sp,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.85),
-                  height: 1.5,
+              // Scrollable content
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // About text
+                      Text(
+                        'about_text'.tr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isTablet ? 16 : 15.sp,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withOpacity(0.85),
+                          height: 1.5,
+                        ),
+                      ),
+                      SizedBox(height: isTablet ? 24 : 20.h),
+                      // AI Disclaimer Section
+                      _buildAboutSection(
+                        title: 'about_ai_disclaimer_title'.tr,
+                        content: 'about_ai_disclaimer_text'.tr,
+                        icon: Icons.smart_toy_outlined,
+                        isTablet: isTablet,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(height: isTablet ? 28 : 24.h),
+              SizedBox(height: isTablet ? 20 : 16.h),
               // Close button
               SizedBox(
                 width: double.infinity,
@@ -508,6 +527,59 @@ class SettingsController extends GetxController {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAboutSection({
+    required String title,
+    required String content,
+    required IconData icon,
+    required bool isTablet,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isTablet ? 16 : 14.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(isTablet ? 12 : 12.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: const Color(0xFF7C4DFF),
+                size: isTablet ? 20 : 18.sp,
+              ),
+              SizedBox(width: isTablet ? 8 : 8.w),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: isTablet ? 15 : 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isTablet ? 10 : 8.h),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: isTablet ? 13 : 12.sp,
+              fontWeight: FontWeight.w400,
+              color: Colors.white.withOpacity(0.7),
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }

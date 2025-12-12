@@ -42,9 +42,9 @@ const Map<String, String> enGB = {
 
   // Permissions
   'mic_permission_title': 'Microphone Access Required',
-  'mic_permission_message': 'MoodShift needs the microphone to listen to your voice and create your personalised mood shift.\n\n• We only access the microphone when you hold the Speak button\n• Your voice is processed securely and never stored\n• No recordings are saved on your device or sent anywhere',
+  'mic_permission_message': 'MoodShift needs the microphone to listen to your voice and create your personalised mood shift.\n\n• We only access the microphone when you hold the Speak button\n• Your voice is processed securely and never stored\n• No recordings are saved on your device or sent anywhere\n• Responses are AI-generated and for personal use only, not professional advice',
   'mic_permission_settings_title': 'Microphone Access Required',
-  'mic_permission_settings_message': 'MoodShift needs the microphone to listen to your voice and create your personalised mood shift.\n\n• We only access the microphone when you hold the Speak button\n• Your voice is processed securely and never stored\n• No recordings are saved on your device or sent anywhere',
+  'mic_permission_settings_message': 'MoodShift needs the microphone to listen to your voice and create your personalised mood shift.\n\n• We only access the microphone when you hold the Speak button\n• Your voice is processed securely and never stored\n• No recordings are saved on your device or sent anywhere\n• Responses are AI-generated and for personal use only, not professional advice',
   'notification_permission_title': 'Daily Gentle Reminder?',
   'notification_permission_message': 'Would you like a calm daily notification to help you remember to shift your mood?\n\nYou can change this anytime in Settings.',
   'permission_cancel': 'Cancel',
@@ -91,7 +91,11 @@ const Map<String, String> enGB = {
   'share_app': 'Share App',
   'about': 'About',
   'about_text': 'MoodShift AI is your personal mood companion that helps shift your mood instantly with AI-powered voice responses.',
-  
+  'about_ai_disclaimer_title': 'AI Disclaimer',
+  'about_ai_disclaimer_text': 'MoodShift AI generates responses using artificial intelligence based on your voice input. These responses are for personal use only and may not always be accurate. They are not a substitute for professional advice, therapy, or medical guidance. Use your own judgment, and in case of a mental health crisis, contact your local hotline immediately.',
+  'about_privacy_title': 'Privacy',
+  'about_privacy_text': 'Your voice is processed securely in real-time and is never stored. No recordings are saved on your device or sent anywhere.',
+
   // Languages
   'english': 'English',
   'english_uk': 'English (UK)',

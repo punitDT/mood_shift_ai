@@ -37,9 +37,9 @@ const Map<String, String> deDE = {
 
   // Permissions
   'mic_permission_title': 'Mikrofonzugriff erforderlich',
-  'mic_permission_message': 'MoodShift benötigt das Mikrofon, um Ihre Stimme zu hören und Ihre personalisierte Stimmungsänderung zu erstellen.\n\n• Wir greifen nur auf das Mikrofon zu, wenn Sie die Sprechen-Taste gedrückt halten\n• Ihre Stimme wird sicher verarbeitet und niemals gespeichert\n• Es werden keine Aufnahmen auf Ihrem Gerät oder anderswo gespeichert',
+  'mic_permission_message': 'MoodShift benötigt das Mikrofon, um Ihre Stimme zu hören und Ihre personalisierte Stimmungsänderung zu erstellen.\n\n• Wir greifen nur auf das Mikrofon zu, wenn Sie die Sprechen-Taste gedrückt halten\n• Ihre Stimme wird sicher verarbeitet und niemals gespeichert\n• Es werden keine Aufnahmen auf Ihrem Gerät gespeichert oder irgendwohin gesendet\n• Antworten werden von KI generiert und sind nur für den persönlichen Gebrauch, keine professionelle Beratung',
   'mic_permission_settings_title': 'Mikrofonzugriff erforderlich',
-  'mic_permission_settings_message': 'MoodShift benötigt das Mikrofon, um Ihre Stimme zu hören und Ihre personalisierte Stimmungsänderung zu erstellen.\n\n• Wir greifen nur auf das Mikrofon zu, wenn Sie die Sprechen-Taste gedrückt halten\n• Ihre Stimme wird sicher verarbeitet und niemals gespeichert\n• Es werden keine Aufnahmen auf Ihrem Gerät oder anderswo gespeichert',
+  'mic_permission_settings_message': 'MoodShift benötigt das Mikrofon, um Ihre Stimme zu hören und Ihre personalisierte Stimmungsänderung zu erstellen.\n\n• Wir greifen nur auf das Mikrofon zu, wenn Sie die Sprechen-Taste gedrückt halten\n• Ihre Stimme wird sicher verarbeitet und niemals gespeichert\n• Es werden keine Aufnahmen auf Ihrem Gerät gespeichert oder irgendwohin gesendet\n• Antworten werden von KI generiert und sind nur für den persönlichen Gebrauch, keine professionelle Beratung',
   'notification_permission_title': 'Tägliche sanfte Erinnerung?',
   'notification_permission_message': 'Möchten Sie eine ruhige tägliche Benachrichtigung, um Sie daran zu erinnern, Ihre Stimmung zu ändern?\n\nSie können dies jederzeit in den Einstellungen ändern.',
   'permission_cancel': 'Abbrechen',
@@ -83,6 +83,10 @@ const Map<String, String> deDE = {
   'share_app': 'App teilen',
   'about': 'Über',
   'about_text': 'MoodShift AI ist Ihr persönlicher ADHS-Begleiter, der Ihre Stimmung sofort mit KI-gesteuerten Sprachantworten verändert.',
+  'about_ai_disclaimer_title': 'KI-Haftungsausschluss',
+  'about_ai_disclaimer_text': 'MoodShift AI generiert Antworten mithilfe künstlicher Intelligenz basierend auf Ihrer Spracheingabe. Diese Antworten sind nur für den persönlichen Gebrauch bestimmt und sind möglicherweise nicht immer genau. Sie ersetzen keine professionelle Beratung, Therapie oder medizinische Anleitung. Nutzen Sie Ihr eigenes Urteilsvermögen, und wenden Sie sich im Falle einer psychischen Krise sofort an Ihre lokale Hotline.',
+  'about_privacy_title': 'Datenschutz',
+  'about_privacy_text': 'Ihre Stimme wird in Echtzeit sicher verarbeitet und niemals gespeichert. Es werden keine Aufnahmen auf Ihrem Gerät gespeichert oder irgendwohin gesendet.',
   'english': 'English',
   'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',

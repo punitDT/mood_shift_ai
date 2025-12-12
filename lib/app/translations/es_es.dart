@@ -37,9 +37,9 @@ const Map<String, String> esES = {
 
   // Permissions
   'mic_permission_title': 'Acceso al micrófono requerido',
-  'mic_permission_message': 'MoodShift necesita el micrófono para escuchar tu voz y crear tu cambio de ánimo personalizado.\n\n• Solo accedemos al micrófono cuando mantienes presionado el botón Hablar\n• Tu voz se procesa de forma segura y nunca se almacena\n• No se guardan grabaciones en tu dispositivo ni en ningún otro lugar',
+  'mic_permission_message': 'MoodShift necesita el micrófono para escuchar tu voz y crear tu cambio de ánimo personalizado.\n\n• Solo accedemos al micrófono cuando mantienes presionado el botón Hablar\n• Tu voz se procesa de forma segura y nunca se almacena\n• No se guardan grabaciones en tu dispositivo ni se envían a ningún lugar\n• Las respuestas son generadas por IA y solo para uso personal, no son consejos profesionales',
   'mic_permission_settings_title': 'Acceso al micrófono requerido',
-  'mic_permission_settings_message': 'MoodShift necesita el micrófono para escuchar tu voz y crear tu cambio de ánimo personalizado.\n\n• Solo accedemos al micrófono cuando mantienes presionado el botón Hablar\n• Tu voz se procesa de forma segura y nunca se almacena\n• No se guardan grabaciones en tu dispositivo ni en ningún otro lugar',
+  'mic_permission_settings_message': 'MoodShift necesita el micrófono para escuchar tu voz y crear tu cambio de ánimo personalizado.\n\n• Solo accedemos al micrófono cuando mantienes presionado el botón Hablar\n• Tu voz se procesa de forma segura y nunca se almacena\n• No se guardan grabaciones en tu dispositivo ni se envían a ningún lugar\n• Las respuestas son generadas por IA y solo para uso personal, no son consejos profesionales',
   'notification_permission_title': '¿Recordatorio diario suave?',
   'notification_permission_message': '¿Te gustaría recibir una notificación diaria tranquila para recordarte cambiar tu ánimo?\n\nPuedes cambiar esto en cualquier momento en Configuración.',
   'permission_cancel': 'Cancelar',
@@ -83,6 +83,10 @@ const Map<String, String> esES = {
   'share_app': 'Compartir aplicación',
   'about': 'Acerca de',
   'about_text': 'MoodShift AI es tu compañero personal de TDAH que ayuda a cambiar tu estado de ánimo al instante con respuestas de voz impulsadas por IA.',
+  'about_ai_disclaimer_title': 'Aviso de IA',
+  'about_ai_disclaimer_text': 'MoodShift AI genera respuestas utilizando inteligencia artificial basada en tu entrada de voz. Estas respuestas son solo para uso personal y pueden no ser siempre precisas. No son un sustituto del consejo profesional, terapia u orientación médica. Usa tu propio juicio, y en caso de una crisis de salud mental, contacta a tu línea de ayuda local inmediatamente.',
+  'about_privacy_title': 'Privacidad',
+  'about_privacy_text': 'Tu voz se procesa de forma segura en tiempo real y nunca se almacena. No se guardan grabaciones en tu dispositivo ni se envían a ningún lugar.',
   'english': 'English',
   'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',

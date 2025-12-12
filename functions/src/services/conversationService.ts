@@ -3,6 +3,7 @@ import { ConversationMessage, ConversationDocument } from "../types";
 import { logger } from "../utils/logger";
 
 const MAX_MESSAGES = 8; // Keep last 4 user + 4 assistant messages
+const TTL_DAYS = 30; // Documents expire after 30 days of inactivity
 
 export async function getConversationHistory(deviceId: string): Promise<ConversationMessage[]> {
   try {
@@ -32,6 +33,11 @@ export async function addToConversationHistory(
     const docRef = db.collection("conversations").doc(deviceId);
     const now = admin.firestore.Timestamp.now();
 
+    // Calculate expiration: 30 days from now
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      now.toMillis() + TTL_DAYS * 24 * 60 * 60 * 1000
+    );
+
     const newMessages: ConversationMessage[] = [
       { role: "user", content: userMessage, timestamp: now },
       { role: "assistant", content: assistantMessage, timestamp: now },
@@ -45,6 +51,7 @@ export async function addToConversationHistory(
         deviceId,
         messages: newMessages,
         lastActivity: now,
+        expiresAt: expiresAt,
       };
       await docRef.set(newDoc);
     } else {
@@ -60,6 +67,7 @@ export async function addToConversationHistory(
       await docRef.update({
         messages,
         lastActivity: now,
+        expiresAt: expiresAt, // Reset TTL on every interaction
       });
     }
   } catch (error) {

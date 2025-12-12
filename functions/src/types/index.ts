@@ -49,6 +49,7 @@ export interface ConversationDocument {
   deviceId: string;
   messages: ConversationMessage[];
   lastActivity: FirebaseFirestore.Timestamp;
+  expiresAt: FirebaseFirestore.Timestamp; // TTL field - document auto-deleted after this timestamp
 }
 
 // LLM Config from Firestore

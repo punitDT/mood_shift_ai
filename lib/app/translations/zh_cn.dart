@@ -37,9 +37,9 @@ const Map<String, String> zhCN = {
 
   // Permissions
   'mic_permission_title': '需要麦克风访问权限',
-  'mic_permission_message': 'MoodShift需要麦克风来聆听您的声音并创建个性化的情绪转变。\n\n• 我们只在您按住"说话"按钮时访问麦克风\n• 您的声音经过安全处理，从不存储\n• 不会在您的设备或其他地方保存任何录音',
+  'mic_permission_message': 'MoodShift需要麦克风来聆听您的声音并创建个性化的情绪转变。\n\n• 我们仅在您按住"说话"按钮时访问麦克风\n• 您的声音安全处理，从不存储\n• 不会在您的设备上保存任何录音，也不会发送到任何地方\n• 回复由AI生成，仅供个人使用，不构成专业建议',
   'mic_permission_settings_title': '需要麦克风访问权限',
-  'mic_permission_settings_message': 'MoodShift需要麦克风来聆听您的声音并创建个性化的情绪转变。\n\n• 我们只在您按住"说话"按钮时访问麦克风\n• 您的声音经过安全处理，从不存储\n• 不会在您的设备或其他地方保存任何录音',
+  'mic_permission_settings_message': 'MoodShift需要麦克风来聆听您的声音并创建个性化的情绪转变。\n\n• 我们仅在您按住"说话"按钮时访问麦克风\n• 您的声音安全处理，从不存储\n• 不会在您的设备上保存任何录音，也不会发送到任何地方\n• 回复由AI生成，仅供个人使用，不构成专业建议',
   'notification_permission_title': '每日温和提醒？',
   'notification_permission_message': '您想要一个平静的每日通知来帮助您记住转变情绪吗？\n\n您可以随时在设置中更改此选项。',
   'permission_cancel': '取消',
@@ -83,6 +83,10 @@ const Map<String, String> zhCN = {
   'share_app': '分享应用',
   'about': '关于',
   'about_text': 'MoodShift AI是您的个人心情伴侣，通过AI语音响应帮助您即时转变心情。',
+  'about_ai_disclaimer_title': 'AI免责声明',
+  'about_ai_disclaimer_text': 'MoodShift AI根据您的语音输入使用人工智能生成回复。这些回复仅供个人使用，可能并不总是准确的。它们不能替代专业建议、治疗或医疗指导。请自行判断，如遇心理健康危机，请立即联系当地热线。',
+  'about_privacy_title': '隐私',
+  'about_privacy_text': '您的声音实时安全处理，从不存储。不会在您的设备上保存任何录音，也不会发送到任何地方。',
   'english': 'English',
   'english_uk': 'English (UK)',
   'hindi': 'हिंदी (Hindi)',
