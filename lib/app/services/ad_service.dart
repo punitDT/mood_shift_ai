@@ -15,8 +15,8 @@ class AdService extends GetxService {
   BannerAd? bannerAd; // Bottom banner
   BannerAd? topBannerAd; // Top banner
   InterstitialAd? interstitialAd;
-  RewardedAd? rewardedAdStronger;
-  RewardedAd? rewardedAdCrystal;
+  RewardedInterstitialAd? rewardedAdStronger; // Changed to RewardedInterstitialAd
+  RewardedInterstitialAd? rewardedAdCrystal; // Changed to RewardedInterstitialAd
   RewardedAd? rewardedAdRemoveAds;
 
   final isBannerLoaded = false.obs;
@@ -279,37 +279,49 @@ class AdService extends GetxService {
   }
 
   void loadRewardedAds() {
-    // 2x Stronger uses rewarded interstitial ad
-    RewardedAd.load(
+    _loadRewardedInterstitialStronger();
+    _loadRewardedInterstitialCrystal();
+    _loadRewardedVideoRemoveAds();
+  }
+
+  /// Load Rewarded Interstitial Ad for 2x Stronger
+  void _loadRewardedInterstitialStronger() {
+    RewardedInterstitialAd.load(
       adUnitId: rewardedInterstitialAdUnitId,
       request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           rewardedAdStronger = ad;
           isRewardedStrongerLoaded.value = true;
         },
         onAdFailedToLoad: (error) {
           isRewardedStrongerLoaded.value = false;
+          rewardedAdStronger = null;
         },
       ),
     );
+  }
 
-    // Crystal Voice uses rewarded interstitial ad
-    RewardedAd.load(
+  /// Load Rewarded Interstitial Ad for Crystal Voice
+  void _loadRewardedInterstitialCrystal() {
+    RewardedInterstitialAd.load(
       adUnitId: rewardedInterstitialAdUnitId,
       request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           rewardedAdCrystal = ad;
           isRewardedCrystalLoaded.value = true;
         },
         onAdFailedToLoad: (error) {
           isRewardedCrystalLoaded.value = false;
+          rewardedAdCrystal = null;
         },
       ),
     );
+  }
 
-    // Peace mode uses rewarded video ad unit ID
+  /// Load Rewarded Video Ad for Peace Mode (Remove Ads)
+  void _loadRewardedVideoRemoveAds() {
     RewardedAd.load(
       adUnitId: rewardedVideoAdUnitId,
       request: const AdRequest(),
@@ -320,6 +332,7 @@ class AdService extends GetxService {
         },
         onAdFailedToLoad: (error) {
           isRewardedRemoveAdsLoaded.value = false;
+          rewardedAdRemoveAds = null;
         },
       ),
     );
@@ -334,20 +347,7 @@ class AdService extends GetxService {
 
     if (rewardedAdStronger == null || !isRewardedStrongerLoaded.value) {
       SnackbarUtils.showInfo(title: 'Loading...', message: 'Please wait a moment and try again');
-
-      RewardedAd.load(
-        adUnitId: rewardedInterstitialAdUnitId,
-        request: const AdRequest(),
-        rewardedAdLoadCallback: RewardedAdLoadCallback(
-          onAdLoaded: (ad) {
-            rewardedAdStronger = ad;
-            isRewardedStrongerLoaded.value = true;
-          },
-          onAdFailedToLoad: (error) {
-            isRewardedStrongerLoaded.value = false;
-          },
-        ),
-      );
+      _loadRewardedInterstitialStronger();
       return;
     }
 
@@ -356,47 +356,27 @@ class AdService extends GetxService {
     rewardedAdStronger?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        rewardedAdStronger = null;
+        isRewardedStrongerLoaded.value = false;
         if (rewarded) {
           onRewarded();
         }
-        RewardedAd.load(
-          adUnitId: rewardedInterstitialAdUnitId,
-          request: const AdRequest(),
-          rewardedAdLoadCallback: RewardedAdLoadCallback(
-            onAdLoaded: (ad) {
-              rewardedAdStronger = ad;
-              isRewardedStrongerLoaded.value = true;
-            },
-            onAdFailedToLoad: (error) {
-              isRewardedStrongerLoaded.value = false;
-            },
-          ),
-        );
+        _loadRewardedInterstitialStronger();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
+        rewardedAdStronger = null;
+        isRewardedStrongerLoaded.value = false;
         SnackbarUtils.showError(title: 'Error', message: 'Failed to show ad. Please try again.');
         _crashlytics?.reportAdError(
-          Exception('Rewarded ad (Stronger) failed to show: ${error.message}'),
+          Exception('Rewarded interstitial ad (Stronger) failed to show: ${error.message}'),
           StackTrace.current,
           operation: 'show_rewarded_stronger',
           adType: 'rewarded_interstitial',
           errorCode: error.code,
           errorMessage: error.message,
         );
-        RewardedAd.load(
-          adUnitId: rewardedInterstitialAdUnitId,
-          request: const AdRequest(),
-          rewardedAdLoadCallback: RewardedAdLoadCallback(
-            onAdLoaded: (ad) {
-              rewardedAdStronger = ad;
-              isRewardedStrongerLoaded.value = true;
-            },
-            onAdFailedToLoad: (error) {
-              isRewardedStrongerLoaded.value = false;
-            },
-          ),
-        );
+        _loadRewardedInterstitialStronger();
       },
     );
 
@@ -416,20 +396,7 @@ class AdService extends GetxService {
 
     if (rewardedAdCrystal == null || !isRewardedCrystalLoaded.value) {
       SnackbarUtils.showInfo(title: 'Loading...', message: 'Please wait a moment and try again');
-
-      RewardedAd.load(
-        adUnitId: rewardedInterstitialAdUnitId,
-        request: const AdRequest(),
-        rewardedAdLoadCallback: RewardedAdLoadCallback(
-          onAdLoaded: (ad) {
-            rewardedAdCrystal = ad;
-            isRewardedCrystalLoaded.value = true;
-          },
-          onAdFailedToLoad: (error) {
-            isRewardedCrystalLoaded.value = false;
-          },
-        ),
-      );
+      _loadRewardedInterstitialCrystal();
       return;
     }
 
@@ -438,47 +405,27 @@ class AdService extends GetxService {
     rewardedAdCrystal?.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        rewardedAdCrystal = null;
+        isRewardedCrystalLoaded.value = false;
         if (rewarded) {
           onRewarded();
         }
-        RewardedAd.load(
-          adUnitId: rewardedInterstitialAdUnitId,
-          request: const AdRequest(),
-          rewardedAdLoadCallback: RewardedAdLoadCallback(
-            onAdLoaded: (ad) {
-              rewardedAdCrystal = ad;
-              isRewardedCrystalLoaded.value = true;
-            },
-            onAdFailedToLoad: (error) {
-              isRewardedCrystalLoaded.value = false;
-            },
-          ),
-        );
+        _loadRewardedInterstitialCrystal();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
+        rewardedAdCrystal = null;
+        isRewardedCrystalLoaded.value = false;
         SnackbarUtils.showError(title: 'Error', message: 'Failed to show ad. Please try again.');
         _crashlytics?.reportAdError(
-          Exception('Rewarded ad (Crystal) failed to show: ${error.message}'),
+          Exception('Rewarded interstitial ad (Crystal) failed to show: ${error.message}'),
           StackTrace.current,
           operation: 'show_rewarded_crystal',
           adType: 'rewarded_interstitial',
           errorCode: error.code,
           errorMessage: error.message,
         );
-        RewardedAd.load(
-          adUnitId: rewardedInterstitialAdUnitId,
-          request: const AdRequest(),
-          rewardedAdLoadCallback: RewardedAdLoadCallback(
-            onAdLoaded: (ad) {
-              rewardedAdCrystal = ad;
-              isRewardedCrystalLoaded.value = true;
-            },
-            onAdFailedToLoad: (error) {
-              isRewardedCrystalLoaded.value = false;
-            },
-          ),
-        );
+        _loadRewardedInterstitialCrystal();
       },
     );
 
