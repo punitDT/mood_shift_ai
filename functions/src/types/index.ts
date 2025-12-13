@@ -17,6 +17,7 @@ export interface ProcessUserInputRequest {
   crystalVoice: boolean;
   strongerMode: boolean;
   originalResponse?: string; // Only for strongerMode
+  originalStyle?: string; // Only for strongerMode - the style from the original response
 }
 
 // Token usage from Groq API
@@ -30,6 +31,7 @@ export interface TokenUsage {
 export interface ProcessUserInputResponse {
   success: boolean;
   response: string;
+  style: string; // The MoodStyle used for this response
   audioBase64: string;
   voiceId: string;
   engine: string;

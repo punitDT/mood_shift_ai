@@ -169,18 +169,26 @@ export const processUserInput = onRequest(
       if (request.strongerMode && request.originalResponse) {
         // Generate 2× stronger response
         logger.flow("Generating 2x stronger response");
+
+        // Use the original style from the request, or default to microDare
+        let originalStyle: MoodStyle = MoodStyle.microDare;
+        if (request.originalStyle && Object.values(MoodStyle).includes(request.originalStyle as MoodStyle)) {
+          originalStyle = request.originalStyle as MoodStyle;
+        }
+        logger.debug("Original style for stronger mode", { originalStyle, requestedStyle: request.originalStyle });
+
         try {
           const llmStartTime = Date.now();
           const result = await generateStrongerResponse(
             request.originalResponse,
-            style,
+            originalStyle,
             languageName,
             llmConfig,
             promptsConfig,
             groqApiKey
           );
           responseText = result.response;
-          style = result.style;
+          style = originalStyle; // Keep the original style for consistency
           tokenUsage = result.tokenUsage;
           logger.info("Stronger response generated", {
             duration: `${Date.now() - llmStartTime}ms`,
@@ -191,6 +199,7 @@ export const processUserInput = onRequest(
         } catch (error) {
           logger.error("Stronger response generation failed", error);
           responseText = amplifyResponseManually(request.originalResponse);
+          style = originalStyle; // Keep the original style even for fallback
           logger.warn("Using manual amplification fallback");
         }
       } else {
@@ -296,6 +305,7 @@ export const processUserInput = onRequest(
       const response: ProcessUserInputResponse = {
         success: true,
         response: responseText,
+        style: style, // Include the style in the response for 2× Stronger mode
         audioBase64,
         voiceId,
         engine,
@@ -306,6 +316,7 @@ export const processUserInput = onRequest(
         totalDuration: `${Date.now() - startTime}ms`,
         voiceId,
         engine,
+        style,
         responseLength: responseText.length,
         tokenUsage,
       });

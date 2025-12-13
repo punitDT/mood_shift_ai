@@ -77,6 +77,7 @@ class HomeController extends GetxController {
   bool _isMicOperationInProgress = false;
 
   String? lastResponse;
+  String? lastStyle; // The style from the last response (for 2× Stronger mode)
 
   @override
   void onInit() {
@@ -551,6 +552,7 @@ class HomeController extends GetxController {
       AppLogger.pollySaid(result.response);
 
       lastResponse = result.response;
+      lastStyle = result.style; // Store the style for 2× Stronger mode
       storage.setLastResponse(result.response);
 
       currentState.value = AppState.speaking;
@@ -664,8 +666,11 @@ class HomeController extends GetxController {
           statusText.value = _tr('processing', fallback: 'Thinking...');
           showLottieAnimation.value = true;
 
-          // Use Cloud Functions
-          final result = await cloudAI.processStronger(lastResponse!);
+          // Use Cloud Functions - pass the original style for consistency
+          final result = await cloudAI.processStronger(
+            lastResponse!,
+            lastStyle ?? 'microDare',
+          );
 
           if (!result.success || result.response.isEmpty) {
             throw Exception('Failed to generate stronger response');

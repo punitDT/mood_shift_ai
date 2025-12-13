@@ -34,6 +34,7 @@ class TokenUsage {
 class CloudAIResponse {
   final bool success;
   final String response;
+  final String style; // The MoodStyle used for this response (for 2× Stronger mode)
   final String audioBase64;
   final String voiceId;
   final String engine;
@@ -43,6 +44,7 @@ class CloudAIResponse {
   CloudAIResponse({
     required this.success,
     required this.response,
+    required this.style,
     required this.audioBase64,
     required this.voiceId,
     required this.engine,
@@ -54,6 +56,7 @@ class CloudAIResponse {
     return CloudAIResponse(
       success: json['success'] ?? false,
       response: json['response'] ?? '',
+      style: json['style'] ?? 'microDare',
       audioBase64: json['audioBase64'] ?? '',
       voiceId: json['voiceId'] ?? '',
       engine: json['engine'] ?? '',
@@ -68,6 +71,7 @@ class CloudAIResponse {
     return CloudAIResponse(
       success: false,
       response: '',
+      style: 'microDare',
       audioBase64: '',
       voiceId: '',
       engine: '',
@@ -123,11 +127,14 @@ class CloudAIService extends GetxService {
   }
 
   /// Generate 2× stronger response through Cloud Function
-  Future<CloudAIResponse> processStronger(String originalResponse) async {
+  /// [originalResponse] - The original response text to make stronger
+  /// [originalStyle] - The style from the original response (e.g., 'microDare', 'chaosEnergy')
+  Future<CloudAIResponse> processStronger(String originalResponse, String originalStyle) async {
     return _callCloudFunction(
       text: '',
       strongerMode: true,
       originalResponse: originalResponse,
+      originalStyle: originalStyle,
     );
   }
 
@@ -135,6 +142,7 @@ class CloudAIService extends GetxService {
     required String text,
     required bool strongerMode,
     String? originalResponse,
+    String? originalStyle,
   }) async {
     try {
       final deviceId = _deviceService.deviceId;
@@ -152,6 +160,7 @@ class CloudAIService extends GetxService {
         'crystalVoice': crystalVoice,
         'strongerMode': strongerMode,
         if (originalResponse != null) 'originalResponse': originalResponse,
+        if (originalStyle != null) 'originalStyle': originalStyle,
       };
 
       AppLogger.info('🌐 CLOUD FUNCTION REQUEST: $requestBody');
