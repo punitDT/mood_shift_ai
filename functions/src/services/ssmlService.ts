@@ -1,21 +1,129 @@
 import { MoodStyle, ProsodyConfig, VoiceEngine } from "../types";
+import { logger } from "../utils/logger";
 
 // Escape XML special characters for SSML
+// Note: We intentionally do NOT escape apostrophes (') as AWS Polly handles them
+// natively and escaping to &apos; can cause pronunciation issues
 export function escapeXml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/"/g, "&quot;");
+  // Removed: .replace(/'/g, "&apos;") - causes Polly pronunciation issues
+}
+
+// Normalize text to remove invisible/problematic characters that cause Polly to spell out words
+function normalizeTextForPolly(text: string): string {
+  // Log the raw input with character codes for debugging
+  const charCodes = text.split("").slice(0, 50).map((c) => c.charCodeAt(0).toString(16));
+  logger.debug("normalizeTextForPolly input", {
+    textLength: text.length,
+    preview: text.substring(0, 100),
+    firstCharCodes: charCodes,
+  });
+
+  // Use Unicode normalization to convert composed characters to their canonical form
+  // This handles many homoglyphs and combining characters
+  text = text.normalize("NFKC");
+
+  // Remove zero-width characters that can cause spelling issues
+  text = text.replace(/[\u200B-\u200D\uFEFF]/g, "");
+
+  // Remove other invisible Unicode characters (split to avoid ESLint combined character class warning)
+  // eslint-disable-next-line no-misleading-character-class
+  text = text.replace(/[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E]/g, "");
+  text = text.replace(/[\u2000-\u200A]/g, " "); // Replace various Unicode spaces with regular space
+  text = text.replace(/[\u2028\u2029]/g, " "); // Line/paragraph separators to space
+  text = text.replace(/[\u202A-\u202E]/g, ""); // Bidirectional text control
+  text = text.replace(/[\u2060-\u2064]/g, ""); // Word joiner and invisible operators
+  text = text.replace(/[\u206A-\u206F]/g, ""); // Deprecated formatting characters
+
+  // Remove variation selectors that might affect pronunciation
+  text = text.replace(/[\uFE00-\uFE0F]/g, "");
+
+  // Replace common Unicode homoglyphs with ASCII equivalents
+  // These are characters that look like regular letters but have different code points
+  const homoglyphMap: { [key: string]: string } = {
+    "\u0131": "i", // Latin small letter dotless i
+    "\u0130": "I", // Latin capital letter I with dot above
+    "\u0456": "i", // Cyrillic small letter byelorussian-ukrainian i
+    "\u0406": "I", // Cyrillic capital letter byelorussian-ukrainian i
+    "\u04CF": "i", // Cyrillic small letter palochka (looks like lowercase L or I)
+    "\u0435": "e", // Cyrillic small letter ie
+    "\u0415": "E", // Cyrillic capital letter ie
+    "\u043E": "o", // Cyrillic small letter o
+    "\u041E": "O", // Cyrillic capital letter o
+    "\u0440": "p", // Cyrillic small letter er
+    "\u0420": "P", // Cyrillic capital letter er
+    "\u0441": "c", // Cyrillic small letter es
+    "\u0421": "C", // Cyrillic capital letter es
+    "\u0430": "a", // Cyrillic small letter a
+    "\u0410": "A", // Cyrillic capital letter a
+    "\u0445": "x", // Cyrillic small letter ha
+    "\u0425": "X", // Cyrillic capital letter ha
+    "\u0443": "y", // Cyrillic small letter u (looks like y)
+    "\u0423": "Y", // Cyrillic capital letter u
+    "\u0422": "T", // Cyrillic capital letter te
+    "\u0442": "t", // Cyrillic small letter te (some fonts)
+    "\u041C": "M", // Cyrillic capital letter em
+    "\u041D": "H", // Cyrillic capital letter en
+    "\u041A": "K", // Cyrillic capital letter ka
+    "\u0412": "B", // Cyrillic capital letter ve
+    "\u2018": "'", // Left single quotation mark
+    "\u2019": "'", // Right single quotation mark
+    "\u201C": "\"", // Left double quotation mark
+    "\u201D": "\"", // Right double quotation mark
+    "\u2013": "-", // En dash
+    "\u2014": "-", // Em dash
+    "\u2026": "...", // Horizontal ellipsis
+  };
+
+  for (const [homoglyph, ascii] of Object.entries(homoglyphMap)) {
+    text = text.split(homoglyph).join(ascii);
+  }
+
+  // Normalize multiple spaces to single space
+  text = text.replace(/\s+/g, " ");
+
+  const resultCharCodes = text.split("").slice(0, 50).map((c) => c.charCodeAt(0).toString(16));
+  logger.debug("normalizeTextForPolly output", {
+    textLength: text.length,
+    preview: text.substring(0, 100),
+    firstCharCodes: resultCharCodes,
+  });
+
+  return text.trim();
+}
+
+// Convert ALL CAPS words to Title Case to prevent Polly from spelling them out as acronyms
+// Polly treats ALL CAPS words as acronyms and spells them letter by letter
+// e.g., "FIRE" → "F I R E", "IT" → "I T"
+// This function converts them to "Fire", "It" so they're pronounced as words
+function convertAllCapsToTitleCase(text: string): string {
+  return text.replace(/\b([A-Z]+)\b/g, (match) => {
+    // Convert to title case: first letter uppercase, rest lowercase
+    // Single letters like "I" are naturally preserved (slice(1) returns empty string)
+    return match.charAt(0) + match.slice(1).toLowerCase();
+  });
 }
 
 // Clean text for speech
 function cleanTextForSpeech(text: string): string {
+  // First normalize to remove problematic Unicode characters
+  text = normalizeTextForPolly(text);
+  // Convert ALL CAPS words to Title Case to prevent Polly spelling them out
+  text = convertAllCapsToTitleCase(text);
   // Clean up extra whitespace
   text = text.trim().replace(/\s+/g, " ");
   // Remove any prosody artifacts
   text = removeProsodyArtifacts(text);
+
+  logger.debug("cleanTextForSpeech result", {
+    textLength: text.length,
+    preview: text.substring(0, 100),
+  });
+
   return text;
 }
 
@@ -98,54 +206,72 @@ export function buildSSML(
   style: MoodStyle,
   prosodyConfig: ProsodyConfig
 ): string {
+  logger.debug("buildSSML input", { textLength: text.length, engine, style });
+
   const cleanedText = cleanTextForSpeech(text);
   const escapedText = escapeXml(cleanedText);
   const settings = prosodyConfig[style] || { rate: "medium", pitch: "medium", volume: "medium" };
 
+  let ssml: string;
   if (engine === "generative") {
     const rate = convertToXValue(settings.rate, "rate");
     const volume = convertToXValue(settings.volume, "volume");
-    return `<speak><prosody rate="${rate}" volume="${volume}">${escapedText}</prosody></speak>`;
+    ssml = `<speak><prosody rate="${rate}" volume="${volume}">${escapedText}</prosody></speak>`;
   } else if (engine === "neural") {
     const volumeDb = convertToDecibels(settings.volume);
-    return `<speak><prosody volume="${volumeDb}">${escapedText}</prosody></speak>`;
+    ssml = `<speak><prosody volume="${volumeDb}">${escapedText}</prosody></speak>`;
   } else {
     // Standard engine - full SSML support
     const prosody = `rate="${settings.rate}" volume="${settings.volume}" pitch="${settings.pitch}"`;
-    return `<speak><prosody ${prosody}>${escapedText}</prosody></speak>`;
+    ssml = `<speak><prosody ${prosody}>${escapedText}</prosody></speak>`;
   }
+
+  logger.debug("buildSSML output", { ssmlLength: ssml.length, ssmlPreview: ssml.substring(0, 200) });
+  return ssml;
 }
 
 // Build SSML for 2× stronger response
 export function buildStrongerSSML(text: string, engine: VoiceEngine): string {
+  logger.debug("buildStrongerSSML input", { textLength: text.length, engine });
+
   const cleanedText = cleanTextForSpeech(text);
   const escapedText = escapeXml(cleanedText);
 
+  let ssml: string;
   if (engine === "generative") {
-    return `<speak><prosody rate="medium" volume="x-loud">${escapedText}</prosody></speak>`;
+    ssml = `<speak><prosody rate="medium" volume="x-loud">${escapedText}</prosody></speak>`;
   } else if (engine === "neural") {
-    return `<speak><prosody volume="+6dB">${escapedText}</prosody></speak>`;
+    ssml = `<speak><prosody volume="+6dB">${escapedText}</prosody></speak>`;
   } else {
-    return "<speak><emphasis level=\"strong\">" +
+    ssml = "<speak><emphasis level=\"strong\">" +
       `<prosody rate="medium" volume="+6dB" pitch="+15%">${escapedText}</prosody></emphasis></speak>`;
   }
+
+  logger.debug("buildStrongerSSML output", { ssmlLength: ssml.length, ssmlPreview: ssml.substring(0, 200) });
+  return ssml;
 }
 
 // Build SSML for Crystal Voice
 export function buildCrystalSSML(text: string, engine: VoiceEngine): string {
+  logger.debug("buildCrystalSSML input", { textLength: text.length, engine });
+
   const cleanedText = cleanTextForSpeech(text);
   const escapedText = escapeXml(cleanedText);
 
+  let ssml: string;
   if (engine === "generative") {
-    return `<speak><prosody rate="x-slow" volume="x-soft">${escapedText}</prosody></speak>`;
+    ssml = `<speak><prosody rate="x-slow" volume="x-soft">${escapedText}</prosody></speak>`;
   } else if (engine === "neural") {
-    return `<speak><amazon:effect name="drc"><prosody volume="+0dB">${escapedText}</prosody></amazon:effect></speak>`;
+    ssml = `<speak><amazon:effect name="drc"><prosody volume="+0dB">${escapedText}</prosody></amazon:effect></speak>`;
   } else {
     // Standard engine with crystal voice effects
-    return "<speak><amazon:effect name=\"drc\"><amazon:effect phonation=\"soft\">" +
+    ssml = "<speak><amazon:effect name=\"drc\"><amazon:effect phonation=\"soft\">" +
       "<amazon:effect vocal-tract-length=\"+12%\">" +
       `<prosody rate="slow" pitch="-10%" volume="soft">${escapedText}</prosody>` +
       "</amazon:effect></amazon:effect></amazon:effect></speak>";
   }
+
+  logger.debug("buildCrystalSSML output", { ssmlLength: ssml.length, ssmlPreview: ssml.substring(0, 200) });
+  return ssml;
 }
 

@@ -20,6 +20,47 @@ export function getLanguageName(languageCode: string): string {
   return LANGUAGE_NAMES[languageCode] || "English";
 }
 
+// Normalize text to remove problematic Unicode characters that can cause TTS issues
+// This function is used both for LLM responses and for input text
+function normalizeTextForTTS(text: string): string {
+  // Use Unicode normalization to convert composed characters to their canonical form
+  text = text.normalize("NFKC");
+
+  // Remove zero-width characters
+  text = text.replace(/[\u200B-\u200D\uFEFF]/g, "");
+
+  // Remove other invisible Unicode characters
+  // eslint-disable-next-line no-misleading-character-class
+  text = text.replace(/[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E]/g, "");
+  text = text.replace(/[\u2000-\u200A]/g, " ");
+  text = text.replace(/[\u2028\u2029]/g, " ");
+  text = text.replace(/[\u202A-\u202E]/g, "");
+  text = text.replace(/[\u2060-\u2064]/g, "");
+  text = text.replace(/[\u206A-\u206F]/g, "");
+  text = text.replace(/[\uFE00-\uFE0F]/g, "");
+
+  // Replace common Unicode homoglyphs with ASCII equivalents
+  const homoglyphMap: { [key: string]: string } = {
+    "\u0131": "i", "\u0130": "I", "\u0456": "i", "\u0406": "I", "\u04CF": "i",
+    "\u0435": "e", "\u0415": "E", "\u043E": "o", "\u041E": "O",
+    "\u0440": "p", "\u0420": "P", "\u0441": "c", "\u0421": "C",
+    "\u0430": "a", "\u0410": "A", "\u0445": "x", "\u0425": "X",
+    "\u0443": "y", "\u0423": "Y", "\u0422": "T", "\u0442": "t",
+    "\u041C": "M", "\u041D": "H", "\u041A": "K", "\u0412": "B",
+    "\u2018": "'", "\u2019": "'", "\u201C": "\"", "\u201D": "\"",
+    "\u2013": "-", "\u2014": "-", "\u2026": "...",
+  };
+
+  for (const [homoglyph, ascii] of Object.entries(homoglyphMap)) {
+    text = text.split(homoglyph).join(ascii);
+  }
+
+  // Normalize multiple spaces to single space
+  text = text.replace(/\s+/g, " ");
+
+  return text.trim();
+}
+
 export async function generateResponse(
   messages: Array<{ role: string; content: string }>,
   config: LLMConfig,
@@ -89,22 +130,28 @@ export async function generateStrongerResponse(
   promptsConfig: PromptsConfig,
   apiKey: string
 ): Promise<GroqParsedResponse> {
+  // Normalize the original response to remove problematic characters before sending to LLM
+  const normalizedOriginal = normalizeTextForTTS(originalResponse);
+  logger.debug("generateStrongerResponse input normalization", {
+    originalLength: originalResponse.length,
+    normalizedLength: normalizedOriginal.length,
+    changed: originalResponse !== normalizedOriginal,
+  });
+
   const styleStr = getStyleString(originalStyle);
-  const prompt = promptsConfig.strongerPrompt
+
+  // System prompt: strongerPrompt from config contains all transformation instructions
+  const systemPrompt = promptsConfig.strongerPrompt
     .replace("{style}", styleStr)
     .replace("$languageName", languageName);
 
-  const fullPrompt = `ORIGINAL RESPONSE: "${originalResponse}"
-ORIGINAL STYLE: ${styleStr}
-
-${prompt}`;
+  // User message: just the data to transform
+  const userMessage = `ORIGINAL RESPONSE: "${normalizedOriginal}"
+ORIGINAL STYLE: ${styleStr}`;
 
   const messages = [
-    {
-      role: "system",
-      content: "You are MoodShift AI in MAXIMUM POWER MODE. Amplify responses to 2× intensity. ALWAYS respond with valid JSON only.",
-    },
-    { role: "user", content: fullPrompt },
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userMessage },
   ];
 
   const controller = new AbortController();
@@ -164,6 +211,7 @@ function parseGroqResponse(content: string, maxWords: number, tokenUsage: TokenU
     let response = json.response || "";
     response = cleanResponse(response, maxWords);
     response = removeEmojis(response);
+    response = normalizeTextForTTS(response);
 
     return {
       style: MoodStyle.microDare, // Default style
@@ -179,12 +227,13 @@ function parseGroqResponse(content: string, maxWords: number, tokenUsage: TokenU
         let response = json.response || "";
         response = cleanResponse(response, maxWords);
         response = removeEmojis(response);
+        response = normalizeTextForTTS(response);
         return { style: MoodStyle.microDare, response, tokenUsage };
       } catch {
         // Fall through to return raw content
       }
     }
-    return { style: MoodStyle.microDare, response: removeEmojis(content), tokenUsage };
+    return { style: MoodStyle.microDare, response: normalizeTextForTTS(removeEmojis(content)), tokenUsage };
   }
 }
 
