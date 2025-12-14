@@ -205,6 +205,58 @@ ORIGINAL STYLE: ${styleStr}`;
   }
 }
 
+function parseStyleFromResponse(styleStr: string | undefined): MoodStyle {
+  if (!styleStr) return MoodStyle.microDare;
+
+  // Check if the style is a valid MoodStyle enum value (exact match)
+  if (Object.values(MoodStyle).includes(styleStr as MoodStyle)) {
+    return styleStr as MoodStyle;
+  }
+
+  // Normalize the style string: remove underscores/hyphens/spaces and convert to lowercase
+  // This handles: REALITY_CHECK, reality-check, Reality Check, reality_check, etc.
+  const normalizedInput = styleStr.toLowerCase().replace(/[_\-\s]/g, "");
+
+  // Map of normalized style names to MoodStyle enum values
+  const styleMap: { [key: string]: MoodStyle } = {
+    // chaosEnergy variations
+    "chaosenergy": MoodStyle.chaosEnergy,
+    "chaos": MoodStyle.chaosEnergy,
+
+    // gentleGrandma variations
+    "gentlegrandma": MoodStyle.gentleGrandma,
+    "grandma": MoodStyle.gentleGrandma,
+    "gentle": MoodStyle.gentleGrandma,
+
+    // permissionSlip variations
+    "permissionslip": MoodStyle.permissionSlip,
+    "permission": MoodStyle.permissionSlip,
+
+    // realityCheck variations
+    "realitycheck": MoodStyle.realityCheck,
+    "reality": MoodStyle.realityCheck,
+
+    // microDare variations
+    "microdare": MoodStyle.microDare,
+    "dare": MoodStyle.microDare,
+    "micro": MoodStyle.microDare,
+  };
+
+  if (styleMap[normalizedInput]) {
+    return styleMap[normalizedInput];
+  }
+
+  // Try partial match as last resort
+  for (const [key, value] of Object.entries(styleMap)) {
+    if (normalizedInput.includes(key) || key.includes(normalizedInput)) {
+      return value;
+    }
+  }
+
+  logger.debug("Unknown style from LLM, defaulting to microDare", { receivedStyle: styleStr });
+  return MoodStyle.microDare;
+}
+
 function parseGroqResponse(content: string, maxWords: number, tokenUsage: TokenUsage): GroqParsedResponse {
   try {
     const json = JSON.parse(content);
@@ -213,8 +265,11 @@ function parseGroqResponse(content: string, maxWords: number, tokenUsage: TokenU
     response = removeEmojis(response);
     response = normalizeTextForTTS(response);
 
+    const style = parseStyleFromResponse(json.style);
+    logger.debug("Parsed style from LLM response", { rawStyle: json.style, parsedStyle: style });
+
     return {
-      style: MoodStyle.microDare, // Default style
+      style,
       response,
       tokenUsage,
     };
@@ -228,7 +283,8 @@ function parseGroqResponse(content: string, maxWords: number, tokenUsage: TokenU
         response = cleanResponse(response, maxWords);
         response = removeEmojis(response);
         response = normalizeTextForTTS(response);
-        return { style: MoodStyle.microDare, response, tokenUsage };
+        const style = parseStyleFromResponse(json.style);
+        return { style, response, tokenUsage };
       } catch {
         // Fall through to return raw content
       }

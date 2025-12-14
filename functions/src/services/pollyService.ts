@@ -75,11 +75,16 @@ function getVoiceId(
   voiceMapping: VoiceMapping
 ): string {
   const localeVoices = voiceMapping[locale];
+
+  // If locale not found, use default en-US voices for the requested gender
   if (!localeVoices) {
+    logger.debug("Locale not found in voice mapping, using default en-US", { locale, gender });
     return gender === "male" ? "Matthew" : "Joanna";
   }
 
   const engines = getEngineOrder(preferredEngine);
+
+  // Step 1: Try to find a voice for the requested gender across all engines (in order)
   for (const engine of engines) {
     const engineVoices = localeVoices[engine as keyof typeof localeVoices];
     if (engineVoices && engineVoices[gender]) {
@@ -87,15 +92,29 @@ function getVoiceId(
     }
   }
 
-  // Fallback to opposite gender if preferred not available
+  // Step 2: No voice found for the requested gender in this locale.
+  // We must respect the language, so fallback to the opposite gender in the same locale.
+  // Language is more important than gender preference.
+  logger.warn("No voice found for requested gender, falling back to opposite gender to respect language", {
+    locale,
+    requestedGender: gender,
+    preferredEngine,
+  });
+
+  const oppositeGender = gender === "male" ? "female" : "male";
   for (const engine of engines) {
     const engineVoices = localeVoices[engine as keyof typeof localeVoices];
-    const oppositeGender = gender === "male" ? "female" : "male";
     if (engineVoices && engineVoices[oppositeGender]) {
+      logger.warn(`Using ${oppositeGender} voice for ${locale} as ${gender} is not available`, {
+        voiceId: engineVoices[oppositeGender],
+        engine,
+      });
       return engineVoices[oppositeGender]!;
     }
   }
 
+  // Step 3: No voice at all for this locale (should not happen with proper config)
+  logger.error("No voice found for locale at all, using default en-US", { locale, gender });
   return gender === "male" ? "Matthew" : "Joanna";
 }
 
