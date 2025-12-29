@@ -124,5 +124,15 @@ const Map<String, String> arSA = {
   'notification_body': 'لحظة هدوئك في انتظارك. خذ نفسًا عميقًا وغيّر مزاجك.',
   'notification_channel_name': 'التذكيرات اليومية',
   'notification_channel_description': 'تذكيرات لطيفة للحفاظ على سلسلتك',
+
+  // Tutorial
+  'tutorial_mic_title': 'الميزة الرئيسية',
+  'tutorial_mic_desc': 'اضغط مع الاستمرار على هذا الزر وتحدث بما في ذهنك. سيستجيب الذكاء الاصطناعي برسالة صوتية مخصصة لتغيير مزاجك على الفور.',
+  'tutorial_stronger_title': '2× أقوى',
+  'tutorial_stronger_desc': 'شاهد إعلانًا للحصول على نسخة مضخمة وأقوى من آخر استجابة للذكاء الاصطناعي.',
+  'tutorial_crystal_title': 'الصوت الكريستالي',
+  'tutorial_crystal_desc': 'افتح وضوح الصوت المميز. استمتع بجودة صوت نقية كالكريستال.',
+  'tutorial_peace_title': 'وضع السلام',
+  'tutorial_peace_desc': 'قم بتفعيل تجربة خالية من الإعلانات لجلسة هادئة. استمتع بتغييرات المزاج دون انقطاع.',
 };
 

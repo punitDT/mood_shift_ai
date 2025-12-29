@@ -140,5 +140,15 @@ const Map<String, String> hiIN = {
   'notification_body': 'आपका शांति का पल इंतज़ार कर रहा है। एक सांस लें और अपना मूड बदलें।',
   'notification_channel_name': 'दैनिक रिमाइंडर',
   'notification_channel_description': 'आपकी स्ट्रीक बनाए रखने के लिए सौम्य रिमाइंडर',
+
+  // Tutorial
+  'tutorial_mic_title': 'मुख्य फीचर',
+  'tutorial_mic_desc': 'इस बटन को दबाएं और अपने मन की बात कहें। AI तुरंत आपके मूड को बदलने के लिए एक व्यक्तिगत वॉयस मैसेज के साथ जवाब देगा।',
+  'tutorial_stronger_title': '2× ज्यादा मजबूत',
+  'tutorial_stronger_desc': 'अपने आखिरी AI रिस्पांस का एक शक्तिशाली वर्जन पाने के लिए एड देखें।',
+  'tutorial_crystal_title': 'क्रिस्टल वॉयस',
+  'tutorial_crystal_desc': 'प्रीमियम वॉयस क्लैरिटी अनलॉक करें। क्रिस्टल-क्लियर ऑडियो क्वालिटी का अनुभव करें।',
+  'tutorial_peace_title': 'पीस मोड',
+  'tutorial_peace_desc': 'शांतिपूर्ण सेशन के लिए एड-फ्री अनुभव सक्रिय करें। बिना रुकावट के मूड शिफ्ट का आनंद लें।',
 };
 

@@ -1,7 +1,7 @@
 name: mood_shift_ai
 description: A mood shifter app with AI voice responses
 publish_to: 'none'
-version: 1.0.0+7
+version: 1.0.1+8
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -56,6 +56,7 @@ dependencies:
   in_app_review: ^2.0.11
   firebase_app_check: ^0.2.2
   firebase_analytics: ^10.10.7
+  tutorial_coach_mark: ^1.3.3
 
 dev_dependencies:
   flutter_test:

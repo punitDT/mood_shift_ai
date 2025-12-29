@@ -140,5 +140,15 @@ const Map<String, String> enUS = {
   'notification_body': 'Your moment of calm awaits. Take a breath and shift your mood.',
   'notification_channel_name': 'Daily Reminders',
   'notification_channel_description': 'Gentle reminders to keep your streak alive',
+
+  // Tutorial
+  'tutorial_mic_title': 'Main Feature',
+  'tutorial_mic_desc': 'Hold this button and speak what\'s on your mind. AI will respond with a personalized voice message to shift your mood instantly.',
+  'tutorial_stronger_title': '2× Stronger',
+  'tutorial_stronger_desc': 'Watch an ad to get an amplified, more powerful version of your last AI response.',
+  'tutorial_crystal_title': 'Crystal Voice',
+  'tutorial_crystal_desc': 'Unlock premium voice clarity. Experience crystal-clear audio quality.',
+  'tutorial_peace_title': 'Peace Mode',
+  'tutorial_peace_desc': 'Activate ad-free experience for a peaceful session. Enjoy uninterrupted mood shifts.',
 };
 

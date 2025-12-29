@@ -285,6 +285,15 @@ class StorageService extends GetxService {
     _box.write('seenOnboarding', seen);
   }
 
+  // Feature Tutorial
+  bool hasSeenFeatureTutorial() {
+    return _box.read('seenFeatureTutorial') ?? false;
+  }
+
+  void setSeenFeatureTutorial(bool seen) {
+    _box.write('seenFeatureTutorial', seen);
+  }
+
   // Generic bool getter/setter for flexible storage
   bool? getBool(String key) {
     return _box.read(key);

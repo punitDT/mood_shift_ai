@@ -124,5 +124,15 @@ const Map<String, String> frFR = {
   'notification_body': 'Votre moment de calme vous attend. Respirez et changez votre humeur.',
   'notification_channel_name': 'Rappels Quotidiens',
   'notification_channel_description': 'Rappels doux pour maintenir votre série',
+
+  // Tutorial
+  'tutorial_mic_title': 'Fonction Principale',
+  'tutorial_mic_desc': 'Maintenez ce bouton et exprimez-vous. L\'IA répondra avec un message vocal personnalisé pour changer votre humeur instantanément.',
+  'tutorial_stronger_title': '2× Plus Fort',
+  'tutorial_stronger_desc': 'Regardez une publicité pour obtenir une version amplifiée et plus puissante de votre dernière réponse IA.',
+  'tutorial_crystal_title': 'Voix Cristal',
+  'tutorial_crystal_desc': 'Débloquez la clarté vocale premium. Découvrez une qualité audio cristalline.',
+  'tutorial_peace_title': 'Mode Paix',
+  'tutorial_peace_desc': 'Activez l\'expérience sans publicité pour une session paisible. Profitez de changements d\'humeur ininterrompus.',
 };
 

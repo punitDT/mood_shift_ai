@@ -124,5 +124,15 @@ const Map<String, String> zhCN = {
   'notification_body': '您的平静时刻正在等待。深呼吸，转变您的心情。',
   'notification_channel_name': '每日提醒',
   'notification_channel_description': '温和的提醒，帮助您保持连续记录',
+
+  // Tutorial
+  'tutorial_mic_title': '主要功能',
+  'tutorial_mic_desc': '按住此按钮并说出您的想法。AI将立即用个性化的语音消息回应，帮助您转变心情。',
+  'tutorial_stronger_title': '2倍增强',
+  'tutorial_stronger_desc': '观看广告以获得上次AI回应的增强版本。',
+  'tutorial_crystal_title': '水晶之声',
+  'tutorial_crystal_desc': '解锁高级语音清晰度。体验水晶般清晰的音质。',
+  'tutorial_peace_title': '和平模式',
+  'tutorial_peace_desc': '激活无广告体验，享受宁静的会话。畅享不间断的心情转变。',
 };
 

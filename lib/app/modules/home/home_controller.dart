@@ -634,6 +634,11 @@ class HomeController extends GetxController {
 
   // Rewarded Ad Actions
   Future<void> onMakeStronger() async {
+    // Prevent multiple clicks while speaking or processing
+    if (currentState.value == AppState.speaking || currentState.value == AppState.processing) {
+      return;
+    }
+
     final adService = _adService;
     final rewardedController = _rewardedController;
     final cloudAI = _cloudAIService;
@@ -700,6 +705,11 @@ class HomeController extends GetxController {
   }
 
   Future<void> onUnlockCrystal() async {
+    // Prevent multiple clicks while speaking or processing
+    if (currentState.value == AppState.speaking || currentState.value == AppState.processing) {
+      return;
+    }
+
     final adService = _adService;
     final rewardedController = _rewardedController;
 

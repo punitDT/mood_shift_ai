@@ -27,6 +27,7 @@ import 'app/services/cloud_ai_service.dart';
 import 'app/services/audio_player_service.dart';
 import 'app/services/in_app_review_service.dart';
 import 'app/services/analytics_service.dart';
+import 'app/services/tutorial_service.dart';
 import 'app/controllers/ad_free_controller.dart';
 import 'app/controllers/streak_controller.dart';
 import 'app/controllers/rewarded_controller.dart';
@@ -264,6 +265,15 @@ void main() async {
   } catch (e, stackTrace) {
     if (kReleaseMode) {
       FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'AnalyticsService initialization failed', fatal: false);
+    }
+  }
+
+  // Initialize TutorialService
+  try {
+    await Get.putAsync(() => TutorialService().init());
+  } catch (e, stackTrace) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, reason: 'TutorialService initialization failed', fatal: false);
     }
   }
 

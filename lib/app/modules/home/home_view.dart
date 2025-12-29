@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' hide AppState;
@@ -6,6 +7,8 @@ import 'package:confetti/confetti.dart';
 import 'package:lottie/lottie.dart';
 import 'home_controller.dart';
 import '../../services/ad_service.dart';
+import '../../services/tutorial_service.dart';
+import '../../services/storage_service.dart';
 import '../../controllers/rewarded_controller.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/settings_drawer.dart';
@@ -22,11 +25,30 @@ class HomeView extends GetResponsiveView<HomeController> {
 
 class _HomeViewContent extends GetView<HomeController> {
   final bool isTablet;
+  // GlobalKeys for tutorial targets
+  final GlobalKey micButtonKey = GlobalKey();
+  final GlobalKey strongerButtonKey = GlobalKey();
+  final GlobalKey crystalButtonKey = GlobalKey();
+  final GlobalKey peaceModeButtonKey = GlobalKey();
 
-  const _HomeViewContent({required this.isTablet});
+  _HomeViewContent({required this.isTablet});
 
   @override
   Widget build(BuildContext context) {
+    // Trigger main tutorial after first frame if needed
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _showTutorialIfNeeded(context);
+    });
+
+    // Listen for bottom sheet appearing to show features tutorial
+    ever(controller.showRewardButtons, (isShowing) {
+      if (isShowing) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          _showFeaturesTutorialIfNeeded(context);
+        });
+      }
+    });
+
     return Obx(() {
       // Wait for services to be initialized
       if (!controller.servicesInitialized) {
@@ -56,6 +78,41 @@ class _HomeViewContent extends GetView<HomeController> {
 
       return _buildMainContent(context, adService, rewardedController);
     });
+  }
+
+  void _showTutorialIfNeeded(BuildContext context) {
+    try {
+      final tutorialService = Get.find<TutorialService>();
+      final storageService = Get.find<StorageService>();
+
+      // Only show main mic tutorial if user has seen onboarding but not the tutorial
+      if (storageService.hasSeenOnboarding() && !tutorialService.hasSeenTutorial) {
+        tutorialService.showTutorial(
+          micButtonKey: micButtonKey,
+          context: context,
+        );
+      }
+    } catch (e) {
+      // Tutorial service not available, skip
+    }
+  }
+
+  void _showFeaturesTutorialIfNeeded(BuildContext context) {
+    try {
+      final tutorialService = Get.find<TutorialService>();
+
+      // Show features tutorial after bottom sheet appears
+      if (!tutorialService.hasSeenFeaturesTutorial) {
+        tutorialService.showFeaturesTutorial(
+          strongerButtonKey: strongerButtonKey,
+          crystalButtonKey: crystalButtonKey,
+          peaceModeButtonKey: peaceModeButtonKey,
+          context: context,
+        );
+      }
+    } catch (e) {
+      // Tutorial service not available, skip
+    }
   }
 
   Widget _buildMainContent(BuildContext context, AdService adService, RewardedController rewardedController) {
@@ -460,6 +517,7 @@ class _HomeViewContent extends GetView<HomeController> {
       final isCrystal = rewardedController.hasCrystalVoice.value;
 
       return GestureDetector(
+        key: micButtonKey,
         onTapDown: (_) => controller.onMicPressed(),
         onTapUp: (_) => controller.onMicReleased(),
         onTapCancel: () => controller.onMicReleased(),
@@ -552,6 +610,8 @@ class _HomeViewContent extends GetView<HomeController> {
                             final rewardedController = controller.rewardedController!;
                             final isCrystal = rewardedController.hasCrystalVoice.value;
                             final isPeaceMode = adFreeController.isPeaceModeActive.value;
+                            final isBusy = controller.currentState.value == AppState.speaking ||
+                                          controller.currentState.value == AppState.processing;
 
                             if (useHorizontalLayout) {
                               // Tablet and small phones: horizontal row layout to save vertical space
@@ -561,9 +621,10 @@ class _HomeViewContent extends GetView<HomeController> {
                                     child: _buildSuperpowerCardCompact(
                                       'stronger_2x'.tr,
                                       Icons.bolt_outlined,
-                                      controller.onMakeStronger,
+                                      isBusy ? null : controller.onMakeStronger,
                                       isActive: false,
                                       isSmallPhone: isSmallPhone,
+                                      key: strongerButtonKey,
                                     ),
                                   ),
                                   SizedBox(width: isSmallPhone ? 8 : 12),
@@ -573,9 +634,10 @@ class _HomeViewContent extends GetView<HomeController> {
                                           ? '${'crystal_active'.tr} • ${rewardedController.crystalTimeRemaining.value}'
                                           : 'crystal_voice'.tr,
                                       Icons.diamond_outlined,
-                                      isCrystal ? null : controller.onUnlockCrystal,
+                                      (isCrystal || isBusy) ? null : controller.onUnlockCrystal,
                                       isActive: isCrystal,
                                       isSmallPhone: isSmallPhone,
+                                      key: crystalButtonKey,
                                     ),
                                   ),
                                   SizedBox(width: isSmallPhone ? 8 : 12),
@@ -588,6 +650,7 @@ class _HomeViewContent extends GetView<HomeController> {
                                       isPeaceMode ? null : controller.onActivatePeaceMode,
                                       isActive: isPeaceMode,
                                       isSmallPhone: isSmallPhone,
+                                      key: peaceModeButtonKey,
                                     ),
                                   ),
                                 ],
@@ -600,8 +663,9 @@ class _HomeViewContent extends GetView<HomeController> {
                                 _buildSuperpowerCard(
                                   'stronger_2x'.tr,
                                   Icons.bolt_outlined,
-                                  controller.onMakeStronger,
+                                  isBusy ? null : controller.onMakeStronger,
                                   isActive: false,
+                                  key: strongerButtonKey,
                                 ),
                                 SizedBox(height: 12.h),
                                 _buildSuperpowerCard(
@@ -609,8 +673,9 @@ class _HomeViewContent extends GetView<HomeController> {
                                       ? '${'crystal_active'.tr} • ${rewardedController.crystalTimeRemaining.value}'
                                       : 'crystal_voice'.tr,
                                   Icons.diamond_outlined,
-                                  isCrystal ? null : controller.onUnlockCrystal,
+                                  (isCrystal || isBusy) ? null : controller.onUnlockCrystal,
                                   isActive: isCrystal,
+                                  key: crystalButtonKey,
                                 ),
                                 SizedBox(height: 12.h),
                                 _buildSuperpowerCard(
@@ -620,6 +685,7 @@ class _HomeViewContent extends GetView<HomeController> {
                                   Icons.spa_outlined,
                                   isPeaceMode ? null : controller.onActivatePeaceMode,
                                   isActive: isPeaceMode,
+                                  key: peaceModeButtonKey,
                                 ),
                               ],
                             );
@@ -644,8 +710,10 @@ class _HomeViewContent extends GetView<HomeController> {
     VoidCallback? onTap, {
     bool isActive = false,
     bool isSmallPhone = false,
+    GlobalKey? key,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
@@ -696,8 +764,10 @@ class _HomeViewContent extends GetView<HomeController> {
     IconData icon,
     VoidCallback? onTap, {
     bool isActive = false,
+    GlobalKey? key,
   }) {
     return InkWell(
+      key: key,
       onTap: isActive ? null : onTap,
       borderRadius: BorderRadius.circular(16.r),
       child: Container(

@@ -124,5 +124,15 @@ const Map<String, String> jaJP = {
   'notification_body': '穏やかなひとときがあなたを待っています。深呼吸して気分を変えましょう。',
   'notification_channel_name': '毎日のリマインダー',
   'notification_channel_description': '連続記録を維持するための優しいリマインダー',
+
+  // Tutorial
+  'tutorial_mic_title': 'メイン機能',
+  'tutorial_mic_desc': 'このボタンを長押しして、あなたの考えを話してください。AIがパーソナライズされた音声メッセージで応答し、すぐに気分を変えます。',
+  'tutorial_stronger_title': '2倍強化',
+  'tutorial_stronger_desc': '広告を見て、前回のAI応答の増幅されたより強力なバージョンを取得します。',
+  'tutorial_crystal_title': 'クリスタルボイス',
+  'tutorial_crystal_desc': 'プレミアム音声クリアリティをアンロックします。クリスタルクリアなオーディオ品質を体験してください。',
+  'tutorial_peace_title': 'ピースモード',
+  'tutorial_peace_desc': '広告なしの体験を有効にして、平和なセッションをお楽しみください。中断のない気分転換をお楽しみください。',
 };
 

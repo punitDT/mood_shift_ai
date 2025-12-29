@@ -124,5 +124,15 @@ const Map<String, String> deDE = {
   'notification_body': 'Ihr Moment der Ruhe wartet. Atmen Sie durch und ändern Sie Ihre Stimmung.',
   'notification_channel_name': 'Tägliche Erinnerungen',
   'notification_channel_description': 'Sanfte Erinnerungen, um Ihre Serie aufrechtzuerhalten',
+
+  // Tutorial
+  'tutorial_mic_title': 'Hauptfunktion',
+  'tutorial_mic_desc': 'Halten Sie diese Taste gedrückt und sprechen Sie Ihre Gedanken aus. Die KI antwortet mit einer personalisierten Sprachnachricht, um Ihre Stimmung sofort zu ändern.',
+  'tutorial_stronger_title': '2× Stärker',
+  'tutorial_stronger_desc': 'Sehen Sie sich eine Anzeige an, um eine verstärkte, kraftvollere Version Ihrer letzten KI-Antwort zu erhalten.',
+  'tutorial_crystal_title': 'Kristallstimme',
+  'tutorial_crystal_desc': 'Schalten Sie Premium-Sprachklarheit frei. Erleben Sie kristallklare Audioqualität.',
+  'tutorial_peace_title': 'Friedensmodus',
+  'tutorial_peace_desc': 'Aktivieren Sie das werbefreie Erlebnis für eine friedliche Sitzung. Genießen Sie ununterbrochene Stimmungsänderungen.',
 };
 

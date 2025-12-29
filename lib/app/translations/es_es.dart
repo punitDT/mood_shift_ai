@@ -124,5 +124,15 @@ const Map<String, String> esES = {
   'notification_body': 'Tu momento de calma te espera. Respira y cambia tu estado de ánimo.',
   'notification_channel_name': 'Recordatorios Diarios',
   'notification_channel_description': 'Recordatorios suaves para mantener tu racha',
+
+  // Tutorial
+  'tutorial_mic_title': 'Función Principal',
+  'tutorial_mic_desc': 'Mantén este botón y habla lo que piensas. La IA responderá con un mensaje de voz personalizado para cambiar tu ánimo al instante.',
+  'tutorial_stronger_title': '2× Más Fuerte',
+  'tutorial_stronger_desc': 'Mira un anuncio para obtener una versión amplificada y más poderosa de tu última respuesta de IA.',
+  'tutorial_crystal_title': 'Voz Cristal',
+  'tutorial_crystal_desc': 'Desbloquea claridad de voz premium. Experimenta calidad de audio cristalina.',
+  'tutorial_peace_title': 'Modo Paz',
+  'tutorial_peace_desc': 'Activa la experiencia sin anuncios para una sesión pacífica. Disfruta de cambios de ánimo sin interrupciones.',
 };
 
