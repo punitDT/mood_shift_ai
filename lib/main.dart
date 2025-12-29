@@ -59,6 +59,7 @@ void main() async {
   // Uses debug provider for development (prints debug token to console)
   if (kReleaseMode) {
     try {
+      // TODO: Change to production providers before release
       await FirebaseAppCheck.instance.activate(
         androidProvider: AndroidProvider.playIntegrity,
         appleProvider: AppleProvider.deviceCheck,

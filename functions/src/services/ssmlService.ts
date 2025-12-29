@@ -100,20 +100,20 @@ function normalizeTextForPolly(text: string): string {
 // Polly treats ALL CAPS words as acronyms and spells them letter by letter
 // e.g., "FIRE" → "F I R E", "IT" → "I T"
 // This function converts them to "Fire", "It" so they're pronounced as words
-function convertAllCapsToTitleCase(text: string): string {
-  return text.replace(/\b([A-Z]+)\b/g, (match) => {
-    // Convert to title case: first letter uppercase, rest lowercase
-    // Single letters like "I" are naturally preserved (slice(1) returns empty string)
-    return match.charAt(0) + match.slice(1).toLowerCase();
-  });
-}
+// function convertAllCapsToTitleCase(text: string): string {
+//   return text.replace(/\b([A-Z]+)\b/g, (match) => {
+//     // Convert to title case: first letter uppercase, rest lowercase
+//     // Single letters like "I" are naturally preserved (slice(1) returns empty string)
+//     return match.charAt(0) + match.slice(1).toLowerCase();
+//   });
+// }
 
 // Clean text for speech
 function cleanTextForSpeech(text: string): string {
   // First normalize to remove problematic Unicode characters
   text = normalizeTextForPolly(text);
   // Convert ALL CAPS words to Title Case to prevent Polly spelling them out
-  text = convertAllCapsToTitleCase(text);
+  // text = convertAllCapsToTitleCase(text);
   // Clean up extra whitespace
   text = text.trim().replace(/\s+/g, " ");
   // Remove any prosody artifacts
