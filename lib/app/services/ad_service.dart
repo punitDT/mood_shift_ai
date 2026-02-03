@@ -69,6 +69,10 @@ class AdService extends GetxService {
     return '';
   }
 
+  // Interstitial ad frequency from env (default 4)
+  int get interstitialFrequency =>
+      int.tryParse(dotenv.env['AD_INTERSTITIAL_FREQUENCY'] ?? '4') ?? 4;
+
   @override
   void onInit() {
     super.onInit();
@@ -267,7 +271,7 @@ class AdService extends GetxService {
 
     final counter = _storage.getShiftCounter();
 
-    if (counter == 4) {
+    if (counter == interstitialFrequency) {
       if (isInterstitialLoaded.value && interstitialAd != null) {
         interstitialAd?.show();
         _storage.resetShiftCounter();
