@@ -1,9 +1,5 @@
-import { defineSecret } from "firebase-functions/params";
 import { MoodStyle, GroqParsedResponse, LLMConfig, PromptsConfig, TokenUsage } from "../types";
 import { logger } from "../utils/logger";
-
-// Define the secret
-export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
 
 const LANGUAGE_NAMES: { [key: string]: string } = {
   en: "English",

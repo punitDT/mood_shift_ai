@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import * as dotenv from "dotenv";
 import {
   ProcessUserInputRequest,
   ProcessUserInputResponse,
@@ -25,11 +26,13 @@ import {
   generateResponse,
   generateStrongerResponse,
   getLanguageName,
-  GROQ_API_KEY,
 } from "./services/groqService";
 import { buildSSML, buildStrongerSSML, buildCrystalSSML } from "./services/ssmlService";
-import { synthesizeSpeech, AWS_ACCESS_KEY, AWS_SECRET_KEY } from "./services/pollyService";
+import { synthesizeSpeech } from "./services/pollyService";
 import { logger } from "./utils/logger";
+
+// Load environment variables
+dotenv.config();
 
 // Helper to get the appropriate engine for a feature
 function getFeatureEngine(
@@ -73,7 +76,6 @@ export const processUserInput = onRequest(
     region: "us-central1",
     memory: "512MiB",
     timeoutSeconds: 60,
-    secrets: [GROQ_API_KEY, AWS_ACCESS_KEY, AWS_SECRET_KEY],
     cors: true,
   },
   async (req, res) => {
@@ -160,11 +162,22 @@ export const processUserInput = onRequest(
       let style: MoodStyle = MoodStyle.microDare;
       let tokenUsage: TokenUsage | undefined;
 
-      // Get API keys from secrets
-      const groqApiKey = GROQ_API_KEY.value();
-      const awsAccessKey = AWS_ACCESS_KEY.value();
-      const awsSecretKey = AWS_SECRET_KEY.value();
-      logger.debug("Secrets loaded", { hasGroqKey: !!groqApiKey, hasAwsKeys: !!awsAccessKey && !!awsSecretKey });
+      // Get API keys from environment variables
+      const groqApiKey = process.env.GROQ_API_KEY || "";
+      const awsAccessKey = process.env.AWS_ACCESS_KEY || "";
+      const awsSecretKey = process.env.AWS_SECRET_KEY || "";
+
+      if (!groqApiKey || !awsAccessKey || !awsSecretKey) {
+        logger.error("Missing required environment variables", {
+          hasGroqKey: !!groqApiKey,
+          hasAwsAccessKey: !!awsAccessKey,
+          hasAwsSecretKey: !!awsSecretKey,
+        });
+        res.status(500).json({ success: false, error: "Server configuration error" });
+        return;
+      }
+
+      logger.debug("Environment variables loaded", { hasGroqKey: !!groqApiKey, hasAwsKeys: !!awsAccessKey && !!awsSecretKey });
 
       if (request.strongerMode && request.originalResponse) {
         // Generate 2× stronger response

@@ -78,6 +78,7 @@ void main() async {
     // Use debug provider for development
     // The debug token will be printed to console - copy it to Firebase Console
     try {
+      AppLogger.info('DEBUG MODE: Activating App Check debug provider');
       await FirebaseAppCheck.instance.activate(
         androidProvider: AndroidProvider.debug,
         appleProvider: AppleProvider.debug,

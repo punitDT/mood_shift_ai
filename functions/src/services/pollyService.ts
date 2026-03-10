@@ -1,11 +1,6 @@
 import * as crypto from "crypto";
-import { defineSecret } from "firebase-functions/params";
 import { PollyConfig, VoiceMapping, VoiceEngine } from "../types";
 import { logger } from "../utils/logger";
-
-// Define secrets
-export const AWS_ACCESS_KEY = defineSecret("AWS_ACCESS_KEY");
-export const AWS_SECRET_KEY = defineSecret("AWS_SECRET_KEY");
 
 interface PollyResult {
   audioBuffer: Buffer;

@@ -274,26 +274,21 @@ class HomeController extends GetxController {
                   style: const TextStyle(color: Colors.grey),
                 ),
               ),
-            Flexible(
-              child: ElevatedButton(
-                onPressed: _openAppStore,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C4DFF),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+            ElevatedButton(
+              onPressed: _openAppStore,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C4DFF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'update_now'.tr,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+              ),
+              child: Text(
+                'update_now'.tr,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),

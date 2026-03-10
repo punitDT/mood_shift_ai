@@ -48,10 +48,12 @@ class AdFreeController extends GetxController {
     } else {
       peaceModeTimeRemaining.value = '';
 
-      // Peace mode just ended - reload all ads
+      // Peace mode just ended - reload all ads and reset shift counter
       if (wasPeaceMode && !isPeaceModeActive.value) {
         _adService?.loadBannerAd();
         _adService?.loadInterstitialAd();
+        // Reset shift counter so interstitial ad frequency starts fresh
+        _storage.resetShiftCounter();
       }
     }
   }
