@@ -1,7 +1,7 @@
 name: mood_shift_ai
 description: A mood shifter app with AI voice responses
 publish_to: 'none'
-version: 1.0.1+9
+version: 1.0.3+11
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
